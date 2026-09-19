@@ -4,19 +4,26 @@ import bcrypt from "bcrypt";
 
 import { pool } from "./db.js";
 import { auth, admin, sign } from "./auth.js";
+
 import {
   registerPair,
   createChallenge,
-  inbox,
-  acceptChallenge,
   submitMatch,
   reportPair,
   maintenance,
   ranking,
   adminReports,
   adminReportHistory,
-  myChallenges,
 } from "./league.js";
+
+import {
+  availablePlayers,
+  myPair,
+  opponents,
+  challengeInbox,
+  playerChallenges,
+  acceptPendingChallenge,
+} from "./playerArea.js";
 
 export const app = express();
 
@@ -157,24 +164,29 @@ app.get(
   "/api/players",
   auth,
   wrap(async (req, res) => {
-    const result = await pool.query(
-      `
-        SELECT
-          id,
-          first_name,
-          last_name,
-          gender
-        FROM users
-        WHERE role = 'player'
-          AND id <> $1
-        ORDER BY
-          first_name,
-          last_name
-      `,
-      [req.user.id]
+    res.json(
+      await availablePlayers(req.user.id)
     );
+  })
+);
 
-    res.json(result.rows);
+app.get(
+  "/api/me/pair",
+  auth,
+  wrap(async (req, res) => {
+    res.json(
+      await myPair(req.user.id)
+    );
+  })
+);
+
+app.get(
+  "/api/opponents",
+  auth,
+  wrap(async (req, res) => {
+    res.json(
+      await opponents(req.user.id)
+    );
   })
 );
 
@@ -204,7 +216,10 @@ app.get(
   auth,
   wrap(async (req, res) => {
     await maintenance();
-    res.json(await myChallenges(req.user.id));
+
+    res.json(
+      await playerChallenges(req.user.id)
+    );
   })
 );
 
@@ -213,7 +228,10 @@ app.get(
   auth,
   wrap(async (req, res) => {
     await maintenance();
-    res.json(await inbox(req.user.id));
+
+    res.json(
+      await challengeInbox(req.user.id)
+    );
   })
 );
 
@@ -235,9 +253,9 @@ app.patch(
   auth,
   wrap(async (req, res) => {
     res.json(
-      await acceptChallenge(
+      await acceptPendingChallenge(
         req.user.id,
-        req.params.id
+        Number(req.params.id)
       )
     );
   })
@@ -290,13 +308,18 @@ app.get(
   wrap(async (req, res) => {
     const pairId = Number(req.params.pairId);
 
-    if (!Number.isInteger(pairId) || pairId <= 0) {
+    if (
+      !Number.isInteger(pairId) ||
+      pairId <= 0
+    ) {
       return res
         .status(400)
         .json({ error: "Pareja inválida" });
     }
 
-    res.json(await adminReportHistory(pairId));
+    res.json(
+      await adminReportHistory(pairId)
+    );
   })
 );
 
@@ -325,5 +348,7 @@ app.use((err, req, res, next) => {
         ? 400
         : 500
     )
-    .json({ error: message });
+    .json({
+      error: message,
+    });
 });
