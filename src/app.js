@@ -25,6 +25,10 @@ import {
   acceptPendingChallenge,
 } from "./playerArea.js";
 
+import {
+  updateReportStatus,
+} from "./adminReports.js";
+
 export const app = express();
 
 app.use(
@@ -319,6 +323,44 @@ app.get(
 
     res.json(
       await adminReportHistory(pairId)
+    );
+  })
+);
+
+app.patch(
+  "/api/admin/reports/:reportId",
+  auth,
+  admin,
+  wrap(async (req, res) => {
+    const reportId = Number(
+      req.params.reportId
+    );
+
+    if (
+      !Number.isInteger(reportId) ||
+      reportId <= 0
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Denuncia inválida" });
+    }
+
+    const status = req.body.status;
+
+    if (
+      !["reviewed", "dismissed"].includes(status)
+    ) {
+      return res
+        .status(400)
+        .json({ error: "Estado de denuncia inválido" });
+    }
+
+    res.json(
+      await updateReportStatus(
+        req.user.id,
+        reportId,
+        status
+      )
     );
   })
 );
