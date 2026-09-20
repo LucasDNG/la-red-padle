@@ -212,3 +212,123 @@ Comprobar como mínimo:
 - abrir el ranking no produce una cantidad de escrituras proporcional a todo el historial;
 - el mantenimiento automático utiliza solo el motor vigente;
 - ninguna regla vieja de 30/90 días o múltiples desafíos activos queda conectada por accidente.
+
+## Regresiones adicionales de auditoría integral
+
+### Estados competitivos y disciplina
+
+1. Una pareja `paused` no puede volver a `active` solo porque el mantenimiento disciplinario recalculó sus denuncias.
+2. Una pareja puede conservar su estado competitivo y su estado disciplinario sin que uno sobrescriba al otro.
+3. `paused` no libera a sus jugadores para formar otra pareja.
+4. `inactive` sí representa disolución/archivo y no debe confundirse con sanción disciplinaria.
+
+### Disolución / pausa como vía de escape
+
+1. Una pareja que tiene resultado pendiente no puede hacer desaparecer ese resultado mediante disolución normal.
+2. Una pareja que tiene resultado disputado no puede hacer desaparecer la disputa mediante disolución normal.
+3. Una pausa voluntaria no puede borrar un compromiso ya asignado sin una regla explícita de cierre.
+4. Una excepción administrativa debe dejar traza/auditoría y nunca producir dos cierres del mismo compromiso.
+
+### Dos versiones de resultado
+
+1. Cada pareja puede tener como máximo una versión vigente del resultado de una asignación.
+2. Si ambas versiones coinciden, se confirma una sola vez.
+3. Si difieren en ganador o marcador oficial, administración puede ver ambas completas.
+4. Una nota libre no sustituye a la segunda versión estructurada.
+5. Resolver una disputa no puede crear dos filas oficiales en `matches`.
+
+### Fecha real del partido
+
+1. Partido jugado el día 1 y confirmado el día 10 conserva día 1 como fecha real de juego.
+2. La fecha de confirmación/resolución se guarda separada de la fecha de juego.
+3. Auto-validar a los 15 días no debe alterar retroactivamente la fecha declarada del partido.
+
+### Parejas sin rival y categorías impares
+
+1. Una pareja sin rival elegible no recibe penalización por no jugar.
+2. El reloj de 30 días no empieza hasta que existe una asignación real.
+3. Con 3 parejas libres, la que queda esperando no suma incumplimiento.
+4. Repetir muchas rondas con cantidad impar no debe dejar sistemáticamente esperando a la misma pareja.
+5. Cuando aparece un rival elegible, la pareja con mayor tiempo de espera debe ser considerada prioritariamente según el algoritmo final.
+
+### Revancha inmediata / farming
+
+1. Si A acaba de jugar con B y A/B tienen alternativas libres, la rueda no debe emparejarlos de nuevo de forma inmediata si la regla final de variedad lo prohíbe.
+2. Una pareja muy activa no debe poder inflar defensas/rachas simplemente repitiendo infinitamente contra el mismo rival cuando existen alternativas elegibles.
+3. En una categoría de solo 2 parejas, el comportamiento de revancha debe seguir la excepción que finalmente se apruebe y quedar probado explícitamente.
+
+### Administración de disputa
+
+1. Una disputa muestra antigüedad y ambas versiones al administrador.
+2. Confirmar una versión aplica el motor competitivo una sola vez.
+3. Rechazar ambas no debe dejar un estado huérfano; debe seguir la regla que se defina antes de implementación.
+4. Una disputa abierta no genera penalización mensual automática a las parejas por el mero paso del tiempo.
+
+### Integridad de reportes
+
+1. Dos requests concurrentes de la misma pareja para denunciar el mismo compromiso producen como máximo un reporte válido.
+2. `reason = other` con `details = NULL`, vacío o solo espacios es rechazado también por la base.
+3. Una denuncia tardía se trata según la ventana que se defina y no por una interpretación accidental de `created_at`.
+
+### Integridad relacional
+
+1. Una pareja no puede quedar asociada a una categoría de otra liga/circuito por un bug de aplicación.
+2. `winner_pair_id` de un partido oficial debe ser uno de sus dos participantes.
+3. Una asignación nunca puede unir parejas de categorías distintas.
+
+### Automatización de calidad
+
+1. `npm test` debe fallar si se reintroduce cualquiera de los bugs competitivos críticos.
+2. Un push no debe considerarse candidato final si solo pasó `node --check` y build visual.
+3. La suite debe probar concurrencia/idempotencia de confirmación, mantenimiento y penalizaciones.
+4. La simulación de longevidad debe poder repetirse con una semilla fija para reproducir fallas.
+
+### Documentación
+
+1. `README.md`, instrucciones de aplicación y textos visibles no pueden describir simultáneamente reglas 30/90 y rueda mensual.
+2. Una búsqueda final del repositorio no debe encontrar instrucciones activas de `-10 ELO`, cupos, múltiples desafíos simultáneos o 90 días salvo en historial claramente marcado como histórico.
+
+## Estado competitivo vs disciplina
+
+1. Pareja `active + clear` => elegible para rueda si no tiene compromiso abierto.
+2. Pareja `active + observed` => conserva posición, pero no recibe partido.
+3. Pareja `active + review` => conserva posición, pero no recibe partido.
+4. El envejecimiento de reportes no limpia por sí solo un estado disciplinario abierto.
+5. Resolver disciplina a `clear` vuelve a hacerla elegible sin alterar silenciosamente su posición.
+6. Si entra disciplina con partido aún no jugado, se cancela ese compromiso y el rival queda libre sin penalización.
+7. Si ya hay resultado pendiente/disputado, disciplina no lo borra.
+
+## Disolución anti-evasión
+
+1. Pareja con asignación abierta no puede disolverse por autoservicio.
+2. Pareja con resultado `pending` no puede disolverse.
+3. Pareja con resultado `disputed` no puede disolverse.
+4. Una vez cerrado/cancelado administrativamente el compromiso, la disolución vuelve a estar disponible.
+
+## Rueda por antigüedad del cruce
+
+1. Si A nunca jugó contra C pero sí contra B, C tiene prioridad como rival de A.
+2. Si A ya jugó con B y C, se elige aquel cuya última fecha contra A sea más antigua.
+3. Si A-B acaba de jugar y existe C elegible con cruce más antiguo, no se repite A-B.
+4. Con 3 parejas elegibles, la que queda libre mantiene su antigüedad de espera y debe ser priorizada en la siguiente oportunidad.
+5. Una pareja sin rival disponible no suma incumplimiento ni deuda.
+6. Con una sola pareja elegible, no se crea asignación ficticia ni empieza un reloj de 30 días.
+
+## Dos versiones de resultado
+
+1. Primera versión guarda ganador, `played_at` real y marcador.
+2. Confirmar la misma versión oficializa de inmediato.
+3. Segunda versión idéntica normalizada oficializa de inmediato.
+4. Segunda versión diferente crea `disputed` conservando ambas versiones completas.
+5. Administración puede escoger versión A o B; el `played_at` oficial debe ser el de la versión elegida.
+6. Administración puede cerrar sin resultado sin inventar ganador.
+7. No se pueden crear más de dos versiones, una por pareja.
+
+## Pausa y orden del fondo
+
+1. Pausar preserva deuda de posición y rachas deportivas.
+2. Pausar mueve a la pareja debajo de todas las parejas competitivamente activas.
+3. Varias pausadas conservan posiciones únicas y permanecen al fondo.
+4. Una nueva pareja activa entra al fondo del bloque activo y por encima del bloque pausado.
+5. Reactivar entra al fondo del bloque activo y reinicia `monthly_miss_streak` en 0.
+6. Pausa voluntaria con compromiso abierto es rechazada salvo intervención administrativa.

@@ -163,3 +163,35 @@ Se mantienen:
 - `CHECKPOINT_2026-09-20.md`
 
 como referencia obligatoria antes de continuar el desarrollo competitivo.
+
+### Separación definitiva de estado competitivo y disciplinario
+
+Se decide no reutilizar una sola columna para ambas cosas. Competencia (`active/paused/inactive`) y disciplina (`clear/observed/review`) son dimensiones distintas. Cualquier disciplina abierta bloquea la rueda hasta resolución administrativa sin borrar la posición estructural.
+
+### Disolución bloqueada con compromiso abierto
+
+Una pareja no puede desarmarse por autoservicio para hacer desaparecer un partido o resultado pendiente. Mientras exista un compromiso de rueda o un resultado `pending/disputed`, debe cerrarse primero o intervenir administración.
+
+### Dos versiones reales del resultado
+
+Una objeción deja de ser solo una nota. Cada pareja puede registrar su propia versión completa (ganador, fecha jugada y marcador). Si son incompatibles se conservan ambas y administración elige cuál validar o cierra el caso sin resultado.
+
+### Fecha jugada
+
+`matches.played_at` representa la fecha real del partido. La fecha de carga/confirmación se conserva por separado y no debe reemplazarla.
+
+### Rueda por antigüedad del cruce
+
+La selección definitiva prioriza: nunca enfrentados; luego el cruce cuya última fecha es más antigua. Para categorías impares se atiende primero a la pareja que más tiempo lleva libre, de modo que el descanso rote y no exista starvation. No tener rival disponible nunca cuenta como incumplimiento.
+
+### Pausa: decisiones técnicas cerradas
+
+La deuda de posición y las rachas deportivas sobreviven a una pausa. El contador de incumplimientos mensuales se reinicia al reactivar. Las pausadas permanecen debajo del bloque activo; altas/reactivaciones entran al fondo del bloque activo. La pausa voluntaria por autoservicio no puede activarse con compromiso abierto.
+
+### Disciplina persistente
+
+Los umbrales de 180 días pueden abrir/escalar disciplina, pero un estado disciplinario abierto no se borra automáticamente al envejecer una denuncia. Administración debe resolverlo. Mientras tanto no hay nuevos partidos de rueda.
+
+### Calidad técnica a cargo del sistema
+
+Se decide resolver como requisitos técnicos internos: restricciones de base para denuncias, prevención de duplicados concurrentes, tests automáticos del motor y demás invariantes de integridad. No requieren decisiones operativas del usuario salvo que cambien una regla deportiva.

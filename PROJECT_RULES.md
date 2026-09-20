@@ -29,13 +29,23 @@
 
 ## 3. Estados de una pareja
 
-Los estados conceptuales deben distinguirse claramente:
+El estado competitivo y el estado disciplinario son dimensiones distintas y no deben compartir una misma columna lógica.
 
-- `active`: pareja existente y participando normalmente de la rueda.
-- `paused`: pareja existente, temporalmente fuera de la rueda competitiva.
+### Estado competitivo
+
+- `active`: pareja existente y habilitada para competir en la rueda.
+- `paused`: pareja existente, temporalmente fuera de la rueda.
 - `inactive`: pareja disuelta/archivada.
 
-`paused` e `inactive` no son equivalentes.
+### Estado disciplinario
+
+- `clear`: sin bloqueo disciplinario.
+- `observed`: estado disciplinario abierto.
+- `review`: revisión disciplinaria abierta.
+
+Una pareja puede, por ejemplo, ser `active` competitivamente y a la vez estar `review` disciplinariamente. Cuando el estado disciplinario es distinto de `clear`, **no puede recibir ni jugar nuevos partidos de rueda** hasta que administración lo resuelva. El bloqueo disciplinario no debe transformarse silenciosamente en una pausa ni borrar la posición estructural.
+
+Los umbrales de denuncias pueden abrir/escalar un estado disciplinario, pero una vez abierto no se limpia automáticamente por el mero paso del tiempo: queda pendiente de resolución administrativa.
 
 ### Pareja disuelta (`inactive`)
 
@@ -44,23 +54,25 @@ Al disolver una pareja:
 - pasa a `inactive` y queda archivada;
 - no se elimina físicamente;
 - conserva el historial existente;
-- sus compromisos competitivos abiertos deben cerrarse/cancelarse sin transferirlos a una pareja futura;
-- ELO, posición y rachas no se transfieren;
-- cada jugador conserva su categoría individual vigente.
+- ELO, posición y rachas no se transfieren a una pareja futura;
+- cada jugador conserva su categoría individual vigente;
+- no puede desarmarse por autoservicio mientras exista un partido de rueda o un resultado pendiente/disputado sin resolver.
 
 Una nueva pareja empieza con identidad competitiva propia.
 
 ### Pareja pausada (`paused`)
 
 - Sigue existiendo como la misma pareja.
-- Conserva categoría e historial.
-- Sale de la rueda y no recibe nuevos partidos mientras esté pausada.
+- Conserva categoría, historial, deuda de posición y rachas deportivas.
+- Sale de la rueda y no recibe nuevos partidos.
 - Se ubica al fondo de su categoría.
-- Su ELO competitivo visible pasa a 0 mientras está pausada.
-- No sigue recibiendo penalizaciones mensuales por no jugar mientras permanece pausada.
-- Al reactivarse vuelve a competir desde el fondo de su categoría.
+- Su ELO visible pasa a 0 mientras está pausada.
+- No acumula nuevas sanciones mensuales por ausencia.
+- Al reactivarse entra al fondo del bloque competitivo activo de su categoría.
+- El contador de incumplimientos mensuales consecutivos se reinicia al reactivarse.
+- La pausa voluntaria solo puede activarse por autoservicio cuando no existe un partido/resultado abierto; una excepción requiere intervención administrativa.
 
-> **Pendiente:** definir de forma cerrada qué ocurre con deuda de posición previa al entrar/salir de `paused` y qué pasa si se solicita pausa mientras existe un partido de rueda abierto.
+Si hay varias parejas pausadas, todas permanecen debajo de las parejas competitivamente activas. Una nueva pareja activa entra al fondo del bloque activo, no debajo de las pausadas.
 
 ## 4. Corazón del ranking: escalera
 
@@ -146,31 +158,44 @@ Estos criterios nunca pueden reemplazar la posición estructural ganada en canch
 
 ## 9. Rueda competitiva mensual
 
-La rueda reemplaza el modelo de múltiples desafíos activos y los plazos anteriores de 30 días para aceptar / 90 días para jugar.
+La rueda reemplaza el modelo de desafíos múltiples.
 
 ### Principios
 
-- Una pareja `active` puede tener **como máximo un partido de rueda abierto a la vez**.
-- La rueda asigna el rival; no debe depender de que las dos parejas creen desafíos manuales entre sí.
-- Un rival asignado debe pertenecer a la misma categoría en el momento de la asignación.
-- El sistema debe evitar duplicar compromisos activos entre las mismas parejas.
-- El criterio de rueda debe favorecer variedad de rivales y considerar el historial de cruces; el algoritmo exacto queda sujeto a simulación de largo plazo.
+- Una pareja `active` con disciplina `clear` puede tener **como máximo un partido de rueda abierto a la vez**.
+- La rueda asigna el rival automáticamente; no depende de que los jugadores creen desafíos manuales.
+- El rival debe pertenecer a la misma categoría y estar libre/habilitado al momento de la asignación.
+- Una pareja disciplinariamente bloqueada, pausada o con resultado pendiente/disputado no es elegible.
+- Si una categoría tiene cantidad impar de parejas elegibles, una puede quedar esperando sin penalización. Los 30 días comienzan recién cuando existe una asignación real.
+- Con una sola pareja elegible no existe incumplimiento: espera hasta que haya rival.
+
+### Criterio de selección de rival
+
+La rueda prioriza variedad y antigüedad del cruce:
+
+1. primero rivales con los que nunca se jugó;
+2. si todos ya se enfrentaron, el rival contra el que hace más tiempo no se juega;
+3. para decidir qué pareja se atiende primero cuando no alcanza la cantidad de rivales, tiene prioridad la que lleva más tiempo libre/esperando una asignación;
+4. los empates restantes se resuelven de forma estable y determinista.
+
+Esto evita revancha inmediata cuando existen alternativas y evita que una misma pareja quede libre repetidamente por tener una categoría impar.
 
 ### Plazo de juego
 
-- Desde la asignación de un partido de rueda existen **30 días corridos** para jugarlo y cargar un resultado.
-- Los 30 días son un **plazo máximo**, no un límite de frecuencia.
-- Si un partido se resuelve hoy, la pareja puede recibir un nuevo rival inmediatamente y volver a jugar al día siguiente o incluso el mismo día si la logística lo permite.
-- No existe una regla de “solo un partido por mes”. Existe una obligación de no dejar vencer el partido asignado.
+- Desde la asignación existen **30 días corridos** para jugar y cargar resultado.
+- Es un plazo máximo, no un límite de frecuencia.
+- Un partido resuelto libera inmediatamente a ambas parejas para volver a entrar en la rueda.
+- Una pareja puede jugar muchos partidos dentro del mismo mes si va cerrando cada compromiso antes de recibir el siguiente.
 
-### Incumplimiento del plazo de 30 días
+### Evidencia de coordinación e incumplimiento
 
-- Si una pareja cumplió con la coordinación y la otra fue responsable de que el partido no se jugara, baja un puesto únicamente la incumplidora.
-- Si ninguna de las dos realizó acciones válidas para concretarlo, ambas reciben la penalización de un puesto.
-- Si una pareja ya está última y no puede bajar físicamente, la penalización se acumula como deuda de posición.
-- Una penalización de inactividad no cuenta como derrota deportiva y no modifica por sí sola la racha de derrotas.
+La app debe registrar señales simples de coordinación (`disponible`, `no puedo este período`, `rival no responde` y nota opcional). Al vencer 30 días:
 
-> **Pendiente técnico/funcional:** definir el mecanismo objetivo con el que el sistema atribuye responsabilidad (propuestas de fecha, respuestas, reportes y/o resolución administrativa) para no inferir culpa sin evidencia.
+- si una sola pareja aparece objetivamente como incumplidora, solo esa baja un puesto;
+- si ninguna realizó acciones válidas, ambas bajan un puesto;
+- si ambas dejaron evidencia incompatible de haber intentado coordinar pero no hubo partido, el caso pasa a revisión administrativa en vez de inferir culpa;
+- si la sancionada ya está última del bloque competitivo activo, suma deuda de posición;
+- la penalización no cuenta como derrota deportiva.
 
 ## 10. Inactividad competitiva y pausa automática
 
@@ -189,26 +214,30 @@ La pausa voluntaria también debe existir para viajes, vacaciones u otros perío
 
 ## 11. Resultados y orden cronológico
 
-### Carga
+### Carga y fecha real
 
-- Un partido de rueda jugado debe permitir que una de las parejas cargue ganador y marcador.
-- Desde la primera carga de resultado, ambas parejas quedan bloqueadas para recibir otro partido de rueda hasta que ese resultado quede oficial o sea resuelto por administración.
-- Esto evita que resultados viejos modifiquen el ranking después de partidos nuevos.
+- El resultado debe guardar la **fecha real en la que se jugó** el partido. `played_at` no es la fecha de confirmación.
+- La fecha cargada no puede ser anterior a la asignación ni posterior al vencimiento del partido o al momento actual.
+- La primera versión del resultado incluye ganador, fecha jugada y marcador.
+- Desde esa primera carga ambas parejas siguen bloqueadas para una nueva asignación hasta cerrar el resultado.
 
-### Confirmación
+### Confirmación — 15 días
 
-- La otra pareja tiene **15 días corridos** desde la carga para confirmar u objetar.
-- Si confirma, el resultado se vuelve oficial inmediatamente.
-- Si no responde dentro de 15 días, el único resultado cargado se vuelve oficial automáticamente.
-- Una vez vencido ese plazo y auto-validado el resultado, la pareja que no respondió perdió su oportunidad de confirmarlo u objetarlo por la vía normal.
+- La otra pareja tiene 15 días corridos desde la primera carga para confirmar o responder.
+- Si confirma, el resultado se oficializa inmediatamente.
+- Si no responde dentro de 15 días, la única versión cargada se auto-valida una sola vez.
+- La falta de respuesta no puede congelar indefinidamente la rueda.
 
-### Disputa
+### Dos versiones y disputa
 
-- Si la otra pareja declara una versión incompatible del resultado, el caso pasa a `disputed`.
-- Mientras está `disputed`, no impacta ranking, rachas, ELO, ascenso ni descenso.
-- El administrador debe tener una bandeja visible de resultados en disputa.
-- Administración debe poder ver ambas versiones y resolver cuál queda oficial o rechazar ambas.
-- Mientras la disputa siga abierta, las dos parejas permanecen bloqueadas para un nuevo partido de rueda.
+- Cada pareja puede tener como máximo una versión propia del resultado para ese partido.
+- Si la segunda pareja carga exactamente la misma versión normalizada, el resultado se confirma.
+- Si ganador, fecha o marcador no coinciden, se conservan **las dos versiones completas** y el caso pasa a `disputed`.
+- Administración ve ambas versiones lado a lado y puede validar la versión A, validar la versión B o cerrar el caso sin resultado oficial.
+- Una disputa no modifica ranking, rachas, ELO ni categorías hasta su resolución.
+- Mientras exista `pending` o `disputed`, ninguna de las dos parejas recibe otro partido de rueda.
+
+Este bloqueo garantiza el orden cronológico competitivo: una pareja no puede acumular un partido posterior mientras el anterior todavía puede modificar su posición.
 
 ## 12. Marcadores y diferencia de games
 
@@ -233,16 +262,19 @@ Motivos:
 - `no_show`
 - `other`
 
-Ventana móvil: 180 días.
+Ventana móvil de detección: 180 días.
 
-- 3 parejas denunciantes distintas => `observed`.
-- 5 parejas denunciantes distintas => `review`.
+- 3 parejas denunciantes distintas válidas pueden abrir `observed`.
+- 5 pueden escalar a `review`.
 - La misma pareja denunciante cuenta una sola vez para esos umbrales.
-- Reportes `dismissed` no cuentan.
-- El historial completo se conserva.
-- Administración ve totales históricos y de los últimos 180 días.
+- Reportes `dismissed` no cuentan para disparar umbrales.
+- `other` exige detalle no vacío también a nivel base de datos.
+- Una misma pareja no puede duplicar la misma denuncia del mismo hecho por carrera/concurrencia.
+- Una vez que `observed` o `review` quedó abierto, la pareja queda fuera de la rueda hasta resolución administrativa; el paso del tiempo por sí solo no la devuelve a `clear`.
+- Al abrirse un bloqueo disciplinario, un partido todavía no jugado se cancela y el rival queda liberado sin sanción.
+- Si ya existe un resultado cargado o disputado, no se borra: debe concluir por confirmación, auto-validación o administración.
 
-> **Pendiente:** definir cuánto tiempo después de un partido/asignación se permite presentar una denuncia para que un hecho muy antiguo no ingrese artificialmente en la ventana móvil actual.
+> **Pendiente menor para release:** fijar el plazo máximo para presentar una denuncia respecto del hecho. Hasta entonces no se debe atribuir automáticamente disciplina a un hecho extremadamente antiguo sin revisión.
 
 ## 15. Datos, mantenimiento y rendimiento
 
@@ -266,3 +298,31 @@ Ventana móvil: 180 días.
 - Si una regla no está definida, no inventarla silenciosamente.
 - No mantener dos motores competitivos activos en paralelo.
 - El código viejo que contradiga estas reglas debe eliminarse o quedar completamente desconectado antes de considerar la aplicación terminada.
+
+## 18. Pendientes críticos detectados en auditoría integral
+
+Estos puntos **no son reglas resueltas**. Deben permanecer visibles hasta decisión explícita porque afectan el modelo final:
+
+- cómo conviven posiciones de parejas `active`, nuevas y `paused` al fondo;
+- si las parejas `paused` participan o no del denominador de ELO proporcional;
+- si deuda de posición se conserva íntegra al pausar/reactivar;
+- si rachas de victorias/derrotas se conservan o reinician al pausar/reactivar;
+- qué ocurre con pausa o disolución cuando existe asignación, resultado pendiente o disputa abierta;
+- qué acción de una pareja cuenta como cumplimiento suficiente para reiniciar su contador de incumplimientos si el rival fue quien impidió jugar;
+- cómo se prueba objetivamente responsabilidad en un partido mensual no jugado;
+- cómo evita la rueda revancha inmediata/farming cuando existen otros rivales posibles;
+- cómo se prioriza a una pareja que lleva tiempo esperando rival para evitar starvation;
+- qué sucede cuando una categoría tiene una sola pareja activa o una cantidad impar de parejas libres;
+- qué efecto tiene el estado disciplinario `review` sobre la elegibilidad para nuevas asignaciones;
+- qué estado toma una asignación si administración rechaza ambas versiones de un resultado;
+- si quien cargó un resultado puede corregirlo antes de la respuesta rival;
+- si el récord histórico de Primera es uno absoluto para LA RED o uno por circuito masculino/femenino;
+- cómo se registra de manera oficial la fecha real en que se jugó un partido.
+
+### Requisito técnico derivado de las reglas
+
+El estado competitivo/ciclo de vida y el estado disciplinario no deben compartir una única variable si eso impide representar combinaciones válidas. La implementación final debe poder distinguir, por ejemplo, una pareja `paused` de su condición disciplinaria sin que un mantenimiento de denuncias la reactive accidentalmente.
+
+### Regla de no penalización por falta de rival
+
+Hasta que exista decisión más específica, **no implementar penalización automática cuando el sistema no pudo crear una asignación válida**. El plazo competitivo comienza con una asignación real, no con el mero paso del calendario.

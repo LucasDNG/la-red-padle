@@ -119,3 +119,31 @@ Orden recomendado:
 ## Regla de trabajo
 
 Antes de tocar código competitivo en el próximo bloque, releer estos cuatro archivos completos.
+
+## Auditoría posterior al checkpoint
+
+Después de publicar este checkpoint se realizó una auditoría integral del árbol `main` en el commit `4340a18b93ff27919457248e6f829c46af312bd2`.
+
+La auditoría y el plan de finalización quedan registrados en:
+
+- `AUDIT_2026-09-20.md`
+- `FINALIZATION_PLAN.md`
+
+Estos archivos no reemplazan `PROJECT_RULES.md`; registran bugs confirmados, riesgos técnicos, brechas regla/código y el orden de trabajo hacia la versión final.
+
+## Decisiones cerradas después de la auditoría
+
+- Estado competitivo y disciplinario se separan.
+- Cualquier disciplina abierta bloquea la rueda hasta resolución administrativa.
+- Disolución por autoservicio queda bloqueada con partido/resultado abierto.
+- Las disputas conservan dos versiones completas del resultado.
+- `played_at` es la fecha real jugada.
+- Categoría impar: esperar rival no genera sanción y la prioridad rota por tiempo de espera.
+- Selección de rival: nunca jugado primero; luego cruce más antiguo.
+- Deuda y rachas deportivas sobreviven a `paused`; el contador de incumplimientos se reinicia al reactivar.
+- Pausa voluntaria no puede usarse para escapar de un compromiso ya abierto.
+- Problemas de restricciones SQL, concurrencia y tests se resuelven técnicamente sin inventar reglas deportivas nuevas.
+
+## Siguiente bloque congelado
+
+Construir el núcleo de datos y rueda definitiva con estas decisiones. No hacer todavía limpieza visual ni borrar historial. El motor viejo puede permanecer físicamente durante la transición, pero debe quedar desconectado antes del release.

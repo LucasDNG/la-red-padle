@@ -4,11 +4,38 @@ Liga de pádel por parejas para San Pedro, Buenos Aires.
 
 ## Fuente de verdad funcional
 
-Antes de tocar reglas revisar:
+Antes de tocar reglas o código competitivo leer, en este orden:
 
-- `PROJECT_RULES.md`
-- `DECISIONS.md`
-- `TEST_SCENARIOS.md`
+1. `PROJECT_RULES.md`
+2. `TEST_SCENARIOS.md`
+3. `DECISIONS.md`
+4. `CHECKPOINT_2026-09-20.md`
+5. `AUDIT_2026-09-20.md`
+6. `FINALIZATION_PLAN.md`
+
+Si el runtime viejo contradice `PROJECT_RULES.md`, la regla vigente es la documentada; el código debe corregirse en el próximo bloque.
+
+## Estado actual
+
+El repositorio está en transición entre un motor candidato anterior y la rueda competitiva mensual aprobada.
+
+**Todavía no es una versión funcional final de las nuevas reglas.**
+
+La dirección vigente es:
+
+- categorías 1ª–7ª sin límite;
+- ranking por escalera/intercambio de posiciones;
+- un solo partido de rueda abierto por pareja;
+- rival asignado por la rueda;
+- 30 días máximos para jugar y cargar resultado;
+- 15 días para confirmar/objetar;
+- auto-validación por silencio;
+- `paused` después de dos incumplimientos consecutivos atribuibles;
+- `inactive` reservado para pareja disuelta;
+- #1 de Primera: 2000 + 1 por defensa exitosa;
+- récord histórico permanente de Primera.
+
+Los detalles todavía abiertos están listados como `PENDIENTE` en `PROJECT_RULES.md` y `AUDIT_2026-09-20.md`.
 
 ## Tecnología
 
@@ -21,40 +48,13 @@ Producción:
 - API: `https://la-red-padle-api.onrender.com`
 - Frontend: `https://la-red-padle.vercel.app`
 
-
-## Núcleo de esta versión
-
-- `src/competition.js`: escalera, ELO, plazos, penalizaciones, deuda, ascensos/descensos y récord de Primera.
-- `src/matchResolution.js`: confirmación oficial de resultados usando el motor competitivo nuevo.
-- `src/pairManagement.js`: lectura consolidada de pareja y récord de Primera.
-- `frontend/src/LeagueV2.jsx`: Mi Liga sin formulario duplicado de pareja.
-- `frontend/src/HomeRecord.jsx`: récord histórico de Primera en la portada.
-
-## Reglas principales actuales
-
-- Categorías 1ª a 7ª sin límite de parejas.
-- El ranking es una escalera: si una pareja de abajo vence a una de arriba, intercambian posiciones.
-- Parejas sin partidos: ELO 0 y fondo de categoría.
-- #1 + 3 victorias consecutivas: asciende, salvo Primera.
-- Último + 3 derrotas consecutivas: desciende, salvo 7ª.
-- El descenso no desplaza al líder de la categoría inferior; entra desde #2 y puede caer más abajo por deuda de posición.
-- Desafío pendiente: 30 días para aceptar. No aceptar => la pareja desafiada pierde un puesto.
-- Desafío aceptado: 90 días para jugar/resolver. Vencer => ambas parejas pierden un puesto.
-- Si una penalización no puede bajar a una pareja porque ya está última, se acumula como `position_penalty_debt`.
-- Solo el #1 de Primera puede superar 2000: suma +1 por cada defensa exitosa.
-- El récord histórico de Primera se conserva permanentemente.
-
 ## Migraciones
 
-`database/schema.sql` es solo para una base nueva.
+`database/schema.sql` es solo para instalaciones nuevas.
 
 **Nunca ejecutar `database/schema.sql` sobre producción existente.**
 
-Para la base existente, aplicar las migraciones fechadas en orden. La migración de esta versión es:
-
-`database/2026-09-20-competition-rules.sql`
-
-En DBeaver, ejecutarla una sentencia por vez. Una función PL/pgSQL completa cuenta como una sola sentencia.
+Las bases existentes se modifican exclusivamente mediante migraciones fechadas. En DBeaver se ejecuta una sentencia por vez; una función PL/pgSQL completa constituye una sola sentencia.
 
 ## Desarrollo
 
@@ -75,9 +75,11 @@ npm run build
 npm run dev
 ```
 
+Antes de la versión final se agregará una suite `npm test` que valide reglas, concurrencia e invariantes competitivos.
+
 ## Variables
 
-Producción frontend:
+Frontend producción:
 
 ```text
 VITE_API_URL=https://la-red-padle-api.onrender.com/api
