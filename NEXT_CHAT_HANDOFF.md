@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 20/20 tests puros + 12/12 integración PostgreSQL, CI verde en Node 22/PostgreSQL 16.
+Suite actual: 20/20 tests puros + 19/19 integración PostgreSQL, CI verde en Node 22/PostgreSQL 16.
 
 ## Metodología
 
@@ -97,4 +97,4 @@ Se agregaron 5 escenarios PostgreSQL: altas simultáneas, invitaciones compartie
 ### Bloque programación → resultado en validación
 Se agregaron 7 escenarios PostgreSQL que cubren propuesta/aceptación, conservación de programación oficial, revisión de la primera versión, confirmación, matching versions, disputa + resolución Admin, auto-validación a 15 días y rechazo después de 30 días.
 
-También se corrigió que la resolución Admin de disputa no notificaba a ambas parejas. Confirmar CI antes de cerrar el bloque. Si queda verde, el siguiente paso es edge cases de vencimiento/extensión/no-show/pausa/disolución y luego smoke UX.
+También se corrigió que la resolución Admin de disputa no notificaba a ambas parejas. CI confirmado: 20/20 tests puros + 19/19 integración PostgreSQL, Node 22/PostgreSQL 16 y frontend build verdes. Siguiente paso: edge cases de vencimiento/extensión/no-show/pausa/disolución y luego smoke UX.

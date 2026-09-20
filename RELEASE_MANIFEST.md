@@ -35,7 +35,7 @@
 
 ## Validación conocida
 - backend syntax/check en candidatos previos: verde;
-- suite actual: 20/20 tests puros + 12/12 integración PostgreSQL verdes en CI;
+- suite actual: 20/20 tests puros + 19/19 integración PostgreSQL verdes en CI;
 - verificación de identidad probada manualmente con éxito;
 - base Neon nueva conectada.
 
