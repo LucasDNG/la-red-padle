@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite pura actual: 20/20. Se agregó suite PostgreSQL separada; confirmar su primer run de CI antes de declararla verde.
+Suite actual: 20/20 tests puros + 7/7 integración PostgreSQL, CI verde en Node 22/PostgreSQL 16.
 
 ## Metodología
 
@@ -80,6 +80,7 @@ Los `.md` son la memoria oficial del proyecto. El objetivo de este archivo es qu
 Se agregó `npm run test:integration` y PostgreSQL 16 como service de GitHub Actions. También se corrigió el bug de no-show objetado que sumaba strikes no atribuibles y se endureció la concurrencia de `applySportingResult()`.
 
 Antes de seguir con otro bloque:
-1. confirmar CI del commit que introdujo estos cambios;
-2. si está verde, actualizar este handoff/checkpoint con el resultado;
-3. después continuar pareja/rueda y demás integración real.
+1. continuar integración PostgreSQL de formación de pareja y primera asignación de rueda;
+2. probar concurrencia de dos aceptaciones/altas en la misma categoría y máxima una membresía vigente;
+3. probar assignWheel concurrente, máximo un assignment por pareja, odd/byes y waiting time;
+4. después programación/resultado end-to-end.

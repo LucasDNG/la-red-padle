@@ -98,4 +98,4 @@ La auditoría ampliada a 5/10/20 años confirmó la válvula vigente `gap >= 5 =
 
 
 ## Integración PostgreSQL automatizada
-Se incorpora un job de CI con PostgreSQL 16 y `npm run test:integration`. El bloque cubre frontera gap 4/5, entrada de descenso #2, deuda remanente, ELO, ascenso al fondo, retry concurrente exactamente una vez, movimientos concurrentes hacia la misma categoría y no-show objetado sin strike atribuible. Estado de este commit: pendiente de confirmar el primer run del nuevo job.
+Se incorpora un job de CI con PostgreSQL 16 y `npm run test:integration`. El bloque cubre frontera gap 4/5, entrada de descenso #2, deuda remanente, ELO, ascenso al fondo, retry concurrente exactamente una vez, movimientos concurrentes hacia la misma categoría y no-show objetado sin strike atribuible. CI confirmado en Node 22 + PostgreSQL 16: 20/20 tests puros y 7/7 tests de integración PostgreSQL verdes; frontend build verde.
