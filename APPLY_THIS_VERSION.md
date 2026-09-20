@@ -1,26 +1,21 @@
-# Aplicar checkpoint del camino de LA RED
+# Aplicar este checkpoint documental
 
-Este paquete es documental. No contiene runtime ni SQL.
+Este paquete de checkpoint contiene **solo documentación `.md`**. No cambia backend, frontend ni base.
 
-Reemplaza al checkpoint de producto anterior si todavía no fue aplicado.
+## Uso
+1. Descomprimir sobre la raíz del proyecto actual.
+2. Elegir reemplazar archivos existentes.
+3. Ejecutar:
+```bash
+git add -A
+git status
+```
+4. Confirmar que los cambios de este paquete son únicamente `.md`.
+5. Hacer el commit/push del estado actual completo del proyecto.
 
-Copiar estos archivos a la raíz del proyecto:
+## Importante
+El código de referencia de este checkpoint es el candidato `LA_RED_FINAL_2026-09-20_v10.zip` / package `5.0.8`.
 
-- PROJECT_RULES.md
-- PRODUCT_VISION.md
-- PROJECT_JOURNEY.md
-- LEGAL_AND_BUSINESS.md
-- DECISIONS.md
-- TEST_SCENARIOS.md
-- CHECKPOINT_2026-09-20.md
-- AUDIT_2026-09-20.md
-- FINALIZATION_PLAN.md
-- README.md
-- APPLY_THIS_VERSION.md
+No volver a aplicar ZIPs funcionales anteriores (`v1`…`v9`) sobre esta versión.
 
-Después revisar el diff y hacer un único commit documental.
-
-No ejecutar `database/schema.sql` ni ninguna migración por este checkpoint.
-
-A partir de este punto, antes de cambios funcionales importantes se deben releer:
-`PROJECT_RULES.md`, `PRODUCT_VISION.md`, `PROJECT_JOURNEY.md`, `LEGAL_AND_BUSINESS.md`, `TEST_SCENARIOS.md` y el checkpoint vigente.
+Después del push se continúa con búsqueda de inconsistencias/bugs; no con una nueva reconstrucción.

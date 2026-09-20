@@ -1,12 +1,19 @@
 {
   "name": "la-red-padel-san-pedro",
-  "version": "3.1.0",
+  "version": "5.0.8",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22 <23"
+  },
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "check": "node --check src/index.js && node --check src/app.js && node --check src/league.js && node --check src/playerArea.js && node --check src/adminReports.js && node --check src/matchResults.js && node --check src/matchResolution.js && node --check src/pairLifecycle.js && node --check src/pairManagement.js && node --check src/competition.js && node -e \"import('./src/app.js').then(m=>{if(!m.app)throw new Error('app export missing')})\""
+    "check": "node --check src/index.js && node --check src/app.js && node --check src/core.js && node --check src/competitionEngine.js && node --check src/pairs.js && node --check src/wheel.js && node --check src/account.js && node --check src/discipline.js && node --check src/admin.js && node --check src/notifications.js",
+    "test": "node --test tests/*.test.js",
+    "admin:promote": "node scripts/promote-admin.js",
+    "admin:totp-secret": "node scripts/totp-secret.js",
+    "admin:bootstrap": "node scripts/promote-admin.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
@@ -14,6 +21,7 @@
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "multer": "^2.0.2"
   }
 }

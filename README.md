@@ -1,129 +1,72 @@
-# LA RED Pádel San Pedro
+# LA RED Pádel · San Pedro
 
-Liga de pádel por parejas para San Pedro, Buenos Aires.
+Liga continua de pádel por parejas. Estado actual: **candidato wheel-v2 en estabilización**, todavía no release público final.
 
-## Fuente de verdad funcional
+## Stack
+- Node.js 22 objetivo + Express 5
+- PostgreSQL / Neon
+- React 19 + Vite 7
+- Render + Vercel
+- Meta WhatsApp Cloud API mediante outbox
 
-Antes de tocar reglas o código competitivo leer, en este orden:
+## Motor
+`wheel-v2` es el único motor competitivo activo.
 
-1. `PROJECT_RULES.md`
-2. `TEST_SCENARIOS.md`
-3. `DECISIONS.md`
-4. `CHECKPOINT_2026-09-20.md`
-5. `AUDIT_2026-09-20.md`
-6. `FINALIZATION_PLAN.md`
+## Fuente de verdad
+1. `PROJECT_RULES.md` — reglas vigentes.
+2. `DECISIONS.md` — decisiones vigentes, sin capas reemplazadas.
+3. `ARCHITECTURE.md` — construcción técnica.
+4. `TEST_SCENARIOS.md` — invariantes/casos.
+5. `CHECKPOINT_2026-09-20.md` — estado real probado y próximo paso.
+6. `AUDIT_2026-09-20.md` — bugs/hallazgos.
+7. `PROJECT_JOURNEY.md` — cómo llegamos a las decisiones actuales.
+8. `LEGAL_AND_BUSINESS.md` — requisitos legales/comerciales.
 
-Si el runtime viejo contradice `PROJECT_RULES.md`, la regla vigente es la documentada; el código debe corregirse en el próximo bloque.
+## Estado local confirmado
+- Neon nueva creada y conectada.
+- Base histórica eliminada accidentalmente antes del corte.
+- Backend local funcionando.
+- registro con DNI + frente/dorso funcionando.
+- Admin privado `/admin-la-red` funcionando.
+- verificación de identidad probada correctamente.
+- purga de documentación temporal probada.
+- reenvío de DNI implementado.
+- layout/identidad visual restaurados y páginas internas reorganizadas.
+- tests del candidato: 14/14 verdes.
 
-## Estado actual
+## Pendiente principal
+El siguiente bloque es auditoría funcional del deporte:
+**pareja → rueda → programación → resultado → ranking**, y luego edge cases.
 
-El repositorio está en transición entre un motor candidato anterior y la rueda competitiva mensual aprobada.
-
-**Todavía no es una versión funcional final de las nuevas reglas.**
-
-La dirección vigente es:
-
-- categorías 1ª–7ª sin límite;
-- ranking por escalera/intercambio de posiciones;
-- un solo partido de rueda abierto por pareja;
-- rival asignado por la rueda;
-- 30 días máximos para jugar y cargar resultado;
-- 15 días para confirmar/objetar;
-- auto-validación por silencio;
-- `paused` después de dos incumplimientos consecutivos atribuibles;
-- `inactive` reservado para pareja disuelta;
-- #1 de Primera: 2000 + 1 por defensa exitosa;
-- récord histórico permanente de Primera, independiente para masculino y femenino.
-
-Los detalles todavía abiertos están listados como `PENDIENTE` en `PROJECT_RULES.md` y `AUDIT_2026-09-20.md`.
-
-## Tecnología
-
-Backend: Node.js + Express + PostgreSQL/Neon.
-
-Frontend: React + Vite + React Router + Axios + PWA.
-
-Producción:
-
-- API: `https://la-red-padle-api.onrender.com`
-- Frontend: `https://la-red-padle.vercel.app`
-
-## Migraciones
-
-`database/schema.sql` es solo para instalaciones nuevas.
-
-**Nunca ejecutar `database/schema.sql` sobre producción existente.**
-
-Las bases existentes se modifican exclusivamente mediante migraciones fechadas. En DBeaver se ejecuta una sentencia por vez; una función PL/pgSQL completa constituye una sola sentencia.
-
-## Desarrollo
-
+## Local
 Backend:
-
 ```bash
 npm install
-npm run check
-npm run dev
+npm start
 ```
 
 Frontend:
-
 ```bash
 cd frontend
 npm install
-npm run build
 npm run dev
 ```
 
-Antes de la versión final se agregará una suite `npm test` que valide reglas, concurrencia e invariantes competitivos.
+En desarrollo también existe `npm run dev` con watcher para backend, pero para diagnosticar fallos se prefiere `npm start`.
 
-## Variables
-
-Frontend producción:
-
-```text
-VITE_API_URL=https://la-red-padle-api.onrender.com/api
+## Tests
+```bash
+npm run check
+npm test
 ```
 
-Render:
+## Administración
+- login reservado: `/admin-la-red`
+- guía: `ADMIN_GUIDE.md`
+- primer propietario: `npm run admin:promote -- <DNI>`
 
-```text
-FRONTEND_URL=https://la-red-padle.vercel.app
-```
+## Identidad
+El alta exige DNI numérico y frente/dorso. La cuenta queda `pending` hasta revisión. Las imágenes viven temporalmente en `identity_documents` y la fila activa se elimina al verificar/rechazar. Si la foto no sirve, Admin pide nuevas fotos y el usuario reenvía sin crear otra cuenta.
 
-
-## Dirección funcional vigente
-
-La versión final se está construyendo como una rueda autónoma:
-
-- rival asignado automáticamente;
-- un compromiso abierto por pareja;
-- 30 días para jugar/cargar;
-- 15 días para confirmar;
-- penalizaciones y pausas automáticas;
-- administración solo para excepciones reales;
-- documentos de reglas/auditoría mandan sobre el motor transitorio actual.
-
-- cartelera pública de próximos partidos una vez que ambas parejas acuerdan fecha/hora/lugar;
-- lugares/canchas administrables desde el panel, sin listas hardcodeadas.
-
-
-## Checkpoint de producto vigente
-
-Además del motor competitivo, la versión final debe incluir identidad por DNI verificada, WhatsApp, coordinación de fecha/lugar, liga continua, categoría individual separada de la categoría temporal de pareja, historial explicativo y perfiles deportivos públicos sin datos privados.
-
-Las reglas detalladas viven en `PROJECT_RULES.md`; la experiencia en `PRODUCT_VISION.md`.
-
-
-## Memoria del proyecto
-
-Además de las reglas, el repositorio conserva el camino del producto:
-
-- `PROJECT_JOURNEY.md` — evolución y principios;
-- `PRODUCT_VISION.md` — experiencia;
-- `LEGAL_AND_BUSINESS.md` — requisitos legales/comerciales;
-- `PROJECT_RULES.md` — reglas vigentes;
-- `DECISIONS.md` — decisiones;
-- `TEST_SCENARIOS.md` — invariantes.
-
-La conversación sirve para explorar. Los documentos son la memoria persistente del proyecto.
+## Deploy
+Seguir `FINALIZATION_PLAN.md` y `RELEASE_CHECKLIST.md`.

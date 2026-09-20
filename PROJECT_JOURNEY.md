@@ -1,560 +1,92 @@
-# LA RED Pádel — Camino del proyecto
+# LA RED Pádel — El camino hasta la versión final
 
-## Propósito
+LA RED empezó como una liga con desafíos manuales y fue transformándose al detectar contradicciones reales: múltiples compromisos simultáneos, reglas 30/90, ELO mezclado con ranking, estados de disciplina y competencia superpuestos, resultados fuera de orden y demasiada intervención administrativa.
 
-Este archivo conserva el recorrido del proyecto: no solo qué reglas quedaron vigentes, sino **por qué fueron apareciendo** y qué problemas fueron resolviendo.
+La conclusión fue construir una liga **autónoma, explicable y continua**.
 
-No reemplaza a `PROJECT_RULES.md`.  
-- `PROJECT_RULES.md` = fuente de verdad funcional actual.
-- `DECISIONS.md` = historial de decisiones concretas.
-- `PROJECT_JOURNEY.md` = evolución del producto, principios y razonamiento acumulado.
-- `PRODUCT_VISION.md` = cómo debe sentirse y funcionar LA RED.
-- `TEST_SCENARIOS.md` = invariantes que deben sobrevivir cualquier cambio.
+El ranking se convirtió en una escalera: la posición se gana en cancha. La rueda dejó de depender de que alguien desafíe. Cada pareja tiene un solo compromiso, un reloj claro y un rival asignado por variedad histórica. La coordinación se volvió estructurada, pero WhatsApp sigue siendo el canal humano natural.
 
-El objetivo es que el proyecto nunca dependa de recordar el chat.
+La identidad pasó a ser seria: DNI único, verificación antes de competir, privacidad estricta y recuperación por WhatsApp. La pareja dejó de poder formarse unilateralmente y apareció la diferencia entre categoría individual y categoría temporal de la dupla.
 
----
+También se separó la disciplina de la competencia. Una persona no puede “lavar” una conducta cambiando de compañero. Una pausa no borra historia ni obligaciones. Una disolución tampoco.
 
-## 1. De una liga simple a un sistema autónomo
+La experiencia se centró en una pregunta: **“¿Qué me toca hacer ahora?”**. Las reglas importantes se explican en el momento en que afectan al jugador.
 
-LA RED comenzó como una liga de pádel por parejas con ranking y resultados. A medida que se revisó el motor aparecieron riesgos: múltiples desafíos, reglas antiguas 30/90, ELO usado de formas contradictorias, resultados fuera de orden, mantenimiento viejo, cupos y estados mezclados.
+Más adelante apareció el horizonte comercial: primero comunidad y adopción; luego acuerdos con canchas, reservas y pagos. Esa capa se diseñó separada del motor deportivo para que monetizar nunca cambie quién ganó ni quién ocupa una posición.
 
-La dirección se corrigió hacia una idea central:
+La parte legal también pasó a formar parte del producto: mayores de 18, aceptación versionada, riesgos deportivos, conducta, privacidad, WhatsApp, auditoría y revisión profesional antes del lanzamiento.
 
-> **La liga debe poder funcionar casi sola.**
+Finalmente se decidió dejar de apilar migraciones sobre el runtime histórico y reconstruir LA RED de forma limpia. La versión final conserva el aprendizaje, no la deuda técnica: un único `wheel-v2`, un único esquema PostgreSQL, un frontend/PWA único, tests, CI y documentación consolidada.
 
-El administrador no debe ser quien empareja, persigue jugadores, aplica sanciones o valida silencios. Solo debe aparecer cuando existe una excepción humana real.
+A partir de esta versión, cualquier cambio futuro debe modificar en el mismo commit: regla vigente, implementación, tests y documentación.
 
----
 
-## 2. Ranking: la escalera manda
+## Recuperación de la identidad visual final
 
-Se consolidó que el ranking no es un ranking estadístico tradicional.
+Durante la reconstrucción limpia se detectó una regresión visual: el primer frontend consolidado conservaba la funcionalidad nueva, pero había reemplazado el diseño aprobado por un layout genérico y había dejado afuera los assets de identidad ya seleccionados.
 
-- La posición estructural es la autoridad.
-- Una pareja de abajo que vence a una de arriba intercambia posiciones.
-- Si gana la que ya estaba arriba, no hay intercambio.
-- Estadísticas y ELO no reordenan globalmente la escalera.
-- Las estadísticas sirven como contexto o desempate auxiliar, no como gobierno del ranking.
+La corrección no revierte el motor nuevo. Se mantiene `wheel-v2`, sus rutas, DNI, rueda, resultados, perfiles, próximos partidos, administración y seguridad; solamente se vuelve a colocar por encima la identidad visual que el proyecto ya había alcanzado.
 
-Principio permanente:
+Queda nuevamente como sistema visual oficial:
+- cancha real de pádel nocturna como hero;
+- azul marino, azul eléctrico y verde brillante;
+- transparencias/glassmorphism;
+- encabezado y espaciados responsive;
+- tarjeta Top 10;
+- bloques públicos de cartelera, resultados y récords;
+- assets PWA aprobados.
 
-> **Las estadísticas desempatan; no gobiernan el ranking. El ranking se conquista en cancha mediante intercambio de posiciones.**
+Regla de trabajo: una reconstrucción técnica no autoriza a rediseñar silenciosamente la identidad visual aprobada. Backend/reglas y presentación deben evolucionar sin destruirse entre sí.
 
----
 
-## 3. De desafíos manuales a una rueda automática
+## Verificación documental de identidad
 
-El modelo anterior de múltiples desafíos fue descartado.
+Durante el recorrido real del alta se detectó que la cuenta pedía el número de DNI pero no permitía adjuntar frente y dorso. Se corrigió el flujo para que la verificación administrativa tenga evidencia suficiente sin convertir la documentación en un dato permanente.
 
-La rueda final:
+La decisión final equilibra identidad y privacidad: se solicita frente + dorso, administración los revisa y las imágenes se eliminan automáticamente al cerrar la verificación. El número de DNI continúa como usuario único de acceso.
 
-- asigna automáticamente un rival;
-- permite un solo compromiso abierto por pareja;
-- da 30 días para jugar y cargar resultado;
-- libera inmediatamente a la pareja cuando el compromiso se cierra;
-- prioriza rivales nunca enfrentados;
-- después prioriza el cruce más antiguo;
-- evita dejar siempre esperando a la misma pareja cuando la cantidad es impar;
-- no penaliza a quien no tiene rival elegible.
+## Administración operativa final
+Al recorrer el alta real se detectó que existía lógica administrativa pero faltaba cerrar el acceso práctico del propietario y hacer visible el panel como producto. Se consolidó el bootstrap del primer admin, la auditoría visible y el tablero de excepciones. La autonomía deportiva se mantiene: el administrador no reemplaza el consentimiento de los jugadores ni el motor competitivo.
 
-Esto convirtió el sistema en una liga continua, no en un tablero de desafíos.
 
----
+## Entrada administrativa separada
 
-## 4. Autonomía administrativa como principio
+Durante la primera prueba del propietario se detectó que el formulario público mostraba un campo “Código admin”, exponiendo innecesariamente la existencia del acceso administrativo. Se separó completamente el ingreso: el jugador ve solo DNI + contraseña y la administración entra por una ruta reservada no enlazada. El backend también separa ambos endpoints para impedir que una cuenta Admin use el login público.
 
-Se decidió que el panel admin debe ser una **cola de excepciones**, no una consola operativa diaria.
 
-El sistema resuelve por sí solo:
+## Corrección de navegación Login / Registro
 
-- asignaciones;
-- vencimientos;
-- penalizaciones deterministas;
-- auto-validación por silencio;
-- pausas automáticas;
-- reactivaciones normales;
-- ascensos y descensos;
-- ELO y estadísticas;
-- categorías impares;
-- esperas sin rival;
-- reprogramación extraordinaria única;
-- no-show ordinario;
-- publicación de próximos partidos.
+En la prueba manual del alta apareció un bug propio de navegación SPA: cambiar entre `/ingresar` y `/ingresar?registro=1` modificaba la URL pero no siempre el formulario porque React mantenía montado el mismo componente. Se corrigió sincronizando el estado visual con `location.search`, de modo que header, botón interno, historial del navegador y recarga muestran siempre el modo correcto.
 
-El administrador participa principalmente en:
 
-- disputas reales sobre un partido que sí se jugó;
-- disciplina;
-- verificación/corrección excepcional de identidad;
-- correcciones administrativas importantes.
+## Orden visual de todas las pantallas
 
-Principio:
+Las pruebas reales mostraron que conservar los colores y el hero no era suficiente: varias pantallas nuevas de `wheel-v2` seguían pareciendo formularios técnicos. Se hizo una pasada transversal de diseño para dar un mismo ritmo a toda LA RED: títulos con aire, cards separadas, textos legibles, secciones reconocibles y acciones con jerarquía.
 
-> **Si el sistema puede resolver algo objetivamente, no debe enviarlo al administrador.**
+La regla queda fijada: una pantalla funcional no se considera terminada si el usuario no puede entender visualmente qué bloque está leyendo, qué sigue y cuál es la acción principal.
 
----
 
-## 5. Estados separados
+## Reenvío de documentación de identidad
 
-Se detectó que mezclar `active`, `observed`, `review`, `inactive` en un solo campo hacía imposible representar el mundo real.
+Al probar la revisión real apareció un caso cotidiano que faltaba modelar: una foto puede estar borrosa, cortada o mal tomada sin que la identidad sea inválida. Se separó entonces “pedir nuevas fotos” de “rechazar cuenta”.
 
-Se separaron:
+Admin puede pedir un reenvío con motivo; LA RED elimina las imágenes anteriores, mantiene la cuenta pendiente y avisa al jugador. El usuario vuelve a cargar frente y dorso desde Mi cuenta, sin registrarse nuevamente.
 
-### Estado competitivo de la pareja
-- `active`
-- `paused`
-- `inactive`
 
-### Estado disciplinario de la pareja
-- `clear`
-- `observed`
-- `review`
+## Integración del reenvío documental
 
-### Estado disciplinario del jugador
-También existe a nivel persona, para evitar que una conducta desaparezca al cambiar de compañero.
+La prueba local encontró un error que la validación de sintaxis aislada no detectaba: una ruta nueva importaba una función todavía no exportada. A partir de este hallazgo, el release incorpora también un control estático de imports/exports relativos entre módulos del backend.
 
-La disciplina bloquea la rueda pero no borra posiciones ni historial.
 
----
+## Verificación real de identidad y tipado PostgreSQL
 
-## 6. Pausa, incumplimiento y continuidad
+La prueba administrativa encontró un error de tipado que no aparecía en los tests puros: reutilizar el mismo parámetro SQL para una columna `varchar` y una comparación con literal `text` hacía que PostgreSQL rechazara la consulta. Se separó la decisión booleana de “es verificación” del valor textual del estado y se reforzó la transacción completa.
 
-La pausa existe para viajes, vacaciones o inactividad temporal.
 
-- `paused` conserva pareja, categoría, historial, deuda y rachas.
-- queda fuera de la rueda;
-- ELO visible 0;
-- vuelve al fondo del bloque activo al reactivar;
-- no libera jugadores para formar otra pareja;
-- no recibe sanciones mensuales mientras está pausada.
+## Primer checkpoint de estabilización real
 
-Dos incumplimientos atribuibles consecutivos provocan pausa automática.
+Después de reconstruir LA RED se hizo una primera recorrida manual como usuario y como propietario. Esa recorrida fue deliberadamente más valiosa que seguir agregando funciones: expuso fallas de identidad, navegación, estilos, acceso Admin, integración de módulos y tipado SQL.
 
-Una pausa voluntaria no puede usarse para borrar una falta previa ni escapar de un compromiso.
+El circuito **registro → documentación → Admin → verificación** finalmente quedó funcionando de punta a punta. En este punto se decidió frenar los cambios, pushear y fijar la memoria del proyecto en `.md` antes de entrar al corazón deportivo.
 
-Se agregó `PAUSAR AL TERMINAR ESTE PARTIDO` para que una pareja pueda cumplir el compromiso actual y luego salir de la rueda sin quedar atrapada en una nueva asignación inmediata.
-
----
-
-## 7. Coordinación, fecha y una única programación oficial
-
-Cada compromiso tiene una única programación oficial vigente:
-
-- día;
-- hora;
-- lugar.
-
-Dentro de los 30 días se puede cambiar todas las veces que sea necesario, siempre que ambas parejas acepten.
-
-Pedir cambio **no cancela la fecha anterior**. La fecha anterior sigue siendo válida hasta que ambas acepten una nueva.
-
-WhatsApp sirve para conversar, pero el acuerdo oficial queda registrado en LA RED.
-
----
-
-## 8. Reprogramación extraordinaria
-
-Si los 30 días se agotan por una causa externa y ambas parejas lo confirman:
-
-- el mismo partido recibe una única extensión extraordinaria de 15 días;
-- no se crea otro compromiso;
-- no hay sanción por esa primera causa externa.
-
-Si tampoco se resuelve durante esa extensión:
-
-- ambas parejas pierden una posición;
-- si ya están últimas, acumulan deuda;
-- la penalización no cuenta como derrota deportiva;
-- no suma un strike para la pausa automática.
-
-No existe una segunda prórroga extraordinaria.
-
----
-
-## 9. No-show sin administrador
-
-Si había fecha confirmada y una pareja denuncia que la otra no se presentó:
-
-- la denunciada tiene 48 horas para objetar;
-- si no responde, se considera incumplimiento atribuible;
-- si contradice y el sistema no puede determinar objetivamente quién tuvo razón, la liga no se frena: se aplica la regla automática de penalización operativa y se cierra el compromiso.
-
-La contradicción operativa no equivale automáticamente a una falta disciplinaria.
-
----
-
-## 10. Resultados, silencio y disputa
-
-La primera pareja puede cargar resultado real con fecha jugada.
-
-- la otra dispone de 15 días para confirmar o responder;
-- si confirma, se oficializa;
-- si guarda silencio, el resultado se auto-valida;
-- si presenta una versión distinta, se guardan dos versiones completas;
-- administración puede validar una, la otra o cerrar `void`.
-
-La primera versión puede corregirse antes de que la otra pareja responda, sin reiniciar el plazo de 15 días y dejando auditoría.
-
-La fecha oficial del partido es la fecha en que realmente se jugó.
-
----
-
-## 11. Lesión / abandono
-
-Se descartó cargar sets incompletos.
-
-Si un partido comenzó y una pareja abandona:
-
-- el resultado se marca `LESIÓN / ABANDONO`;
-- la otra pareja recibe victoria deportiva;
-- la que abandona recibe derrota deportiva;
-- no se cargan sets ni games;
-- no hay penalización extra;
-- sí se aplica el motor normal de escalera, rachas, ascenso/descenso y defensa del #1.
-
-No se publican diagnósticos ni detalles médicos.
-
----
-
-## 12. Disolución sin borrar obligaciones
-
-Una pareja no puede borrar un partido o resultado disolviéndose.
-
-- cualquiera de los integrantes puede iniciar disolución;
-- si ambos aceptan y no hay obligaciones, puede cerrarse de inmediato;
-- si no hay acuerdo, existe una salida de 7 días para no dejar a una persona cautiva de un compañero ausente;
-- si al final del plazo queda una asignación sin jugar, la pareja que se disuelve recibe derrota deportiva y luego se archiva;
-- si ya existe resultado cargado, ese resultado termina su flujo normal antes del archivo;
-- la disciplina individual o de pareja no se borra por disolución.
-
----
-
-## 13. Categoría de pareja versus categoría individual
-
-Se detectó que copiar la categoría de la pareja a ambos jugadores podía dejar atrapado a quien solo había aceptado jugar por encima de su nivel.
-
-La regla final distingue:
-
-- **categoría de pareja** = dónde compite la dupla;
-- **categoría individual** = nivel propio vigente del jugador.
-
-Ejemplo:
-- jugador A = 5ª;
-- jugador B = 2ª;
-- la pareja juega en 2ª;
-- A sigue individualmente en 5ª;
-- B sigue en 2ª.
-
-Solo movimientos deportivos reales cambian la categoría individual.
-
-- Si ascienden 2ª → 1ª, ambos adquieren 1ª.
-- Si descienden 2ª → 3ª, el jugador que era 2ª pasa a 3ª; el que era 5ª sigue 5ª.
-- Si la pareja llega a 6ª, ambos quedan en 6ª.
-
-Esto permite probar competir hacia arriba sin quedar atrapado y evita bajar artificialmente de nivel cambiando de compañero.
-
----
-
-## 14. Formación de pareja
-
-La pareja no se forma unilateralmente.
-
-- un jugador invita a otro;
-- la invitación muestra quién invita y qué categoría resultaría;
-- existe una sola invitación saliente activa;
-- puede cancelarse;
-- vence a los 10 días;
-- aceptar crea/reactiva la pareja de forma transaccional;
-- la base impide pertenecer a dos parejas vigentes por concurrencia.
-
----
-
-## 15. Identidad: DNI y verificación
-
-Se incorporó DNI para evitar cuentas duplicadas.
-
-- DNI único;
-- login con DNI + contraseña;
-- DNI nunca público;
-- registro con nombre, apellido, DNI, teléfono WhatsApp y contraseña;
-- cuenta nueva queda `pending_verification`;
-- administración verifica una sola vez que corresponde a una persona real;
-- hasta entonces puede acceder a su cuenta pero no competir;
-- correcciones de DNI requieren administración y auditoría;
-- recuperación de contraseña usa DNI + validación por WhatsApp.
-
-La falta de uso de la app por sí sola no cambia ningún estado competitivo.
-
----
-
-## 16. WhatsApp como canal principal
-
-WhatsApp es fundamental para la operación.
-
-Los avisos relevantes llegan a **ambos integrantes** de la pareja:
-
-- nuevo rival;
-- nueva propuesta;
-- cambio de horario;
-- fecha confirmada;
-- cambio de cancha;
-- resultado pendiente;
-- recordatorios;
-- auto-validación;
-- reprogramación;
-- no-show;
-- pausa;
-- movimientos competitivos.
-
-La app sigue siendo la fuente oficial. WhatsApp es el canal de aviso.
-
-El teléfono del rival solo es accesible durante un compromiso abierto y nunca se vuelve público.
-
-Más adelante, Android/iPhone pueden sumar push notifications, pero sin reemplazar la lógica oficial de LA RED.
-
----
-
-## 17. Mi Liga: “¿Qué me toca hacer ahora?”
-
-Se decidió que la pantalla del jugador no debe obligarlo a entender el motor.
-
-Debe responder primero:
-
-> **¿Qué me toca hacer ahora?**
-
-Ejemplos:
-
-- Esperando rival.
-- Proponé una fecha.
-- Respondé esta propuesta.
-- Jugás el sábado 19:30.
-- Cargá el resultado.
-- Confirmá el resultado.
-- Estás al día.
-- Tu pareja está pausada.
-
-Debajo aparecen datos e historial, pero la acción prioritaria debe ser inequívoca.
-
----
-
-## 18. Reglamento integrado en la experiencia
-
-LA RED no debe exigir leer un reglamento para entenderla.
-
-Las reglas se explican dentro del flujo con microexplicaciones:
-
-- por qué una fecha anterior sigue vigente;
-- qué significa deuda;
-- por qué una pareja subió o bajó;
-- qué implica la prórroga extraordinaria;
-- por qué una pareja quedó pausada;
-- por qué un ascenso/descenso ocurrió.
-
-También existe un historial explicativo:
-
-- qué pasó;
-- cuándo;
-- quién hizo qué;
-- qué consecuencia produjo.
-
----
-
-## 19. Página pública y cartelera
-
-LA RED también debe sentirse como una liga que la comunidad puede seguir.
-
-La parte pública puede mostrar:
-
-- Próximos partidos;
-- Hoy en LA RED;
-- Esta semana;
-- Ranking;
-- Resultados recientes;
-- Récord Primera Masculina;
-- Récord Primera Femenina;
-- perfiles deportivos de parejas.
-
-Los próximos partidos aparecen cuando ambas parejas aceptaron fecha, hora y lugar.
-
-Filtros simples:
-- hoy / esta semana;
-- masculino / femenino;
-- categoría;
-- lugar.
-
-No se publican teléfonos, DNI, emails, mensajes de coordinación ni disciplina.
-
----
-
-## 20. Lugares / canchas
-
-Administración puede:
-
-- agregar lugares;
-- editar;
-- activar/desactivar;
-- marcarlos como sede asociada/recomendada;
-- conservarlos históricamente aunque dejen de estar disponibles.
-
-Una cancha desactivada:
-
-- no aparece para nuevas programaciones;
-- no borra partidos históricos;
-- no cancela automáticamente partidos ya confirmados allí.
-
-La lista real de lugares se incorporará más adelante.
-
----
-
-## 21. Récord de Primera
-
-Se corrigió la idea inicial de un récord absoluto único.
-
-Debe haber dos récords independientes:
-
-- **Primera Masculina**
-- **Primera Femenina**
-
-Cada uno conserva:
-- pareja;
-- máximo ELO;
-- defensas asociadas;
-- fecha del récord.
-
----
-
-## 22. Liga continua
-
-LA RED no tiene temporadas que reinicien nada.
-
-El cambio de año no reinicia:
-
-- ranking;
-- ELO;
-- rachas;
-- deuda;
-- récords;
-- historial.
-
-Los años pueden existir como filtros estadísticos, nunca como resets.
-
-Zona horaria oficial:
-`America/Argentina/Buenos_Aires`.
-
----
-
-## 23. Legal y seguridad como parte del producto
-
-Se reconoció que LA RED organiza una actividad deportiva real y debe tratar seguridad/legal como parte central del lanzamiento.
-
-Al registrarse, el usuario debe aceptar de forma clara y versionada:
-
-- Términos y Condiciones;
-- reglas de participación;
-- asunción informada de riesgos;
-- Código de Conducta;
-- Política de Privacidad;
-- comunicaciones operativas por WhatsApp.
-
-Principios:
-
-- solo mayores de 18 años en la primera versión;
-- pádel implica riesgos físicos propios de actividad deportiva;
-- LA RED no publica ni solicita diagnósticos médicos;
-- violencia, amenazas y conductas graves se tratan como disciplina individual y, si corresponde, por vías externas;
-- ninguna cláusula debe intentar prometer una exención absoluta de responsabilidad;
-- la versión final debe ser revisada por abogado argentino antes del lanzamiento;
-- también debe evaluarse seguro de responsabilidad civil / accidentes deportivos adecuado al rol real de LA RED.
-
-Este documento no sustituye asesoramiento legal profesional.
-
----
-
-## 24. Dirección comercial
-
-Se decidió **no definir LA RED como “sin fines de lucro”**.
-
-La estrategia es:
-
-- lanzar gratis para facilitar adopción;
-- no prometer gratuidad permanente;
-- convertir la comunidad y el volumen de partidos en valor comercial;
-- negociar con canchas/sedes;
-- en el futuro permitir reservar y pagar turnos desde LA RED;
-- cobrar una comisión B2B a la cancha o sede por reservas originadas en la plataforma.
-
-Ejemplo conceptual:
-- jugador paga el turno;
-- proveedor de pagos procesa;
-- cancha recibe su parte;
-- LA RED recibe su comisión.
-
-La dirección técnica debe evitar que LA RED se convierta innecesariamente en custodio de fondos de terceros.
-
-Futuras reglas de pago deberán contemplar:
-- reserva;
-- pago;
-- cancelación;
-- reintegro;
-- políticas por sede;
-- comisión;
-- liquidación;
-- facturación;
-- chargebacks;
-- precio final informado.
-
-Antes de activar monetización habrá que revisar términos legales, tributarios y contractuales con profesionales locales.
-
----
-
-## 25. Android, iPhone y web
-
-LA RED debe pensarse como un mismo producto disponible en:
-
-- web;
-- Android;
-- iPhone.
-
-El motor, reglas, cuenta e historial son los mismos en todas las plataformas.
-
-La experiencia puede evolucionar desde PWA/web hacia apps móviles, pero no deben existir motores competitivos distintos por plataforma.
-
----
-
-## 26. Auditoría y explicabilidad
-
-Cada acción importante debe dejar un evento:
-
-- asignación;
-- propuesta;
-- aceptación;
-- cambio de fecha;
-- cambio de lugar;
-- prórroga;
-- no-show;
-- resultado;
-- penalización;
-- movimiento de categoría;
-- disciplina;
-- verificación de identidad;
-- acción administrativa.
-
-El objetivo es que un jugador pueda entender “por qué pasó esto” y que administración pueda reconstruir los hechos sin tocar la base manualmente.
-
----
-
-## 27. Filosofía que queda al final de este tramo
-
-LA RED debe ser:
-
-- competitiva sin ser arbitraria;
-- autónoma sin ser opaca;
-- simple para el jugador aunque internamente sea rigurosa;
-- transparente en cada movimiento;
-- segura con los datos;
-- apta para crecer a negocio;
-- útil tanto para quien juega como para quien sigue la liga;
-- capaz de funcionar durante años sin depender de decisiones manuales constantes.
-
-La conversación puede seguir evolucionando, pero este recorrido ya forma parte de la identidad del proyecto.
+La próxima etapa no es “seguir construyendo por construir”; es buscar inconsistencias y bugs de forma ordenada empezando por **pareja → rueda → programación → resultado → ranking**.

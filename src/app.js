@@ -1,498 +1,85 @@
-import express from "express";
-import cors from "cors";
-import bcrypt from "bcrypt";
-
-import { pool } from "./db.js";
-import { auth, admin, sign } from "./auth.js";
-
-import {
-  reportPair,
-  adminReports,
-  adminReportHistory,
-} from "./league.js";
-
-import {
-  availablePlayers,
-  myPair,
-  challengeInbox,
-  playerChallenges,
-} from "./playerArea.js";
-
-import { updateReportStatus } from "./adminReports.js";
-
-import {
-  createMatchSubmission,
-  myMatchSubmissions,
-  disputeMatchSubmission,
-  adminDisputedMatchSubmissions,
-} from "./matchResults.js";
-
-import {
-  confirmMatchSubmission,
-  adminResolveMatchSubmission,
-} from "./matchResolution.js";
-
-import {
-  createChallenge,
-  acceptChallenge,
-  maintenance,
-  ranking,
-  opponents,
-  firstDivisionRecords,
-  recalculateAllElos,
-} from "./competition.js";
-
-import {
-  registerStablePair,
-  dissolveCurrentPair,
-} from "./pairLifecycle.js";
-
-import { pairManagement } from "./pairManagement.js";
-
-export const app = express();
-
-app.use(
-  cors({
-    origin:
-      process.env.FRONTEND_URL ||
-      "http://localhost:5173",
-  })
-);
-
-app.use(
-  express.json({
-    limit: "1mb",
-  })
-);
-
-const wrap =
-  (fn) =>
-  (req, res, next) =>
-    Promise.resolve(fn(req, res, next)).catch(next);
-
-app.get("/api/health", (req, res) => {
-  res.json({
-    ok: true,
-    name: "LA RED Pádel",
-  });
-});
-
-app.post(
-  "/api/auth/register",
-  wrap(async (req, res) => {
-    const {
-      firstName,
-      lastName,
-      email,
-      phone,
-      password,
-      gender,
-    } = req.body;
-
-    if (
-      !firstName ||
-      !lastName ||
-      !email ||
-      !phone ||
-      !password ||
-      !["male", "female"].includes(gender)
-    ) {
-      return res.status(400).json({
-        error: "Datos incompletos",
-      });
-    }
-
-    const hash = await bcrypt.hash(password, 10);
-
-    const user = (
-      await pool.query(
-        `
-          INSERT INTO users(
-            first_name,
-            last_name,
-            email,
-            phone,
-            password_hash,
-            gender
-          )
-          VALUES($1,$2,lower($3),$4,$5,$6)
-          RETURNING
-            id,
-            first_name,
-            last_name,
-            email,
-            gender,
-            role,
-            current_category_number
-        `,
-        [
-          firstName,
-          lastName,
-          email,
-          phone,
-          hash,
-          gender,
-        ]
-      )
-    ).rows[0];
-
-    res.status(201).json({
-      token: sign(user),
-      user,
-    });
-  })
-);
-
-app.post(
-  "/api/auth/login",
-  wrap(async (req, res) => {
-    const user = (
-      await pool.query(
-        `
-          SELECT *
-          FROM users
-          WHERE email = lower($1)
-        `,
-        [req.body.email]
-      )
-    ).rows[0];
-
-    const validPassword =
-      user &&
-      (await bcrypt.compare(
-        req.body.password || "",
-        user.password_hash
-      ));
-
-    if (!user || !validPassword) {
-      return res.status(401).json({
-        error: "Credenciales inválidas",
-      });
-    }
-
-    res.json({
-      token: sign(user),
-      user: {
-        id: user.id,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        email: user.email,
-        gender: user.gender,
-        role: user.role,
-        current_category_number:
-          user.current_category_number,
-      },
-    });
-  })
-);
-
-app.get(
-  "/api/players",
-  auth,
-  wrap(async (req, res) => {
-    res.json(await availablePlayers(req.user.id));
-  })
-);
-
-app.get(
-  "/api/me/pair",
-  auth,
-  wrap(async (req, res) => {
-    res.json(await myPair(req.user.id));
-  })
-);
-
-app.get(
-  "/api/me/pair-management",
-  auth,
-  wrap(async (req, res) => {
-    res.json(await pairManagement(req.user.id));
-  })
-);
-
-app.get(
-  "/api/opponents",
-  auth,
-  wrap(async (req, res) => {
-    res.json(await opponents(req.user.id));
-  })
-);
-
-app.post(
-  "/api/pairs",
-  auth,
-  wrap(async (req, res) => {
-    const pair = await registerStablePair(
-      req.user.id,
-      Number(req.body.partnerId),
-      Number(req.body.category)
-    );
-
-    await recalculateAllElos();
-
-    res.status(201).json(pair);
-  })
-);
-
-app.delete(
-  "/api/pairs/current",
-  auth,
-  wrap(async (req, res) => {
-    const result = await dissolveCurrentPair(
-      req.user.id
-    );
-
-    await recalculateAllElos();
-
-    res.json(result);
-  })
-);
-
-app.get(
-  "/api/elo-records",
-  wrap(async (req, res) => {
-    res.json(await firstDivisionRecords());
-  })
-);
-
-app.get(
-  "/api/ranking",
-  wrap(async (req, res) => {
-    res.json(await ranking());
-  })
-);
-
-app.get(
-  "/api/challenges/mine",
-  auth,
-  wrap(async (req, res) => {
-    await maintenance();
-    res.json(await playerChallenges(req.user.id));
-  })
-);
-
-app.get(
-  "/api/challenges/inbox",
-  auth,
-  wrap(async (req, res) => {
-    await maintenance();
-    res.json(await challengeInbox(req.user.id));
-  })
-);
-
-app.post(
-  "/api/challenges",
-  auth,
-  wrap(async (req, res) => {
-    await maintenance();
-
-    res.status(201).json(
-      await createChallenge(
-        req.user.id,
-        Number(req.body.targetPairId)
-      )
-    );
-  })
-);
-
-app.patch(
-  "/api/challenges/:id/accept",
-  auth,
-  wrap(async (req, res) => {
-    await maintenance();
-
-    res.json(
-      await acceptChallenge(
-        req.user.id,
-        Number(req.params.id)
-      )
-    );
-  })
-);
-
-app.post(
-  "/api/matches",
-  auth,
-  wrap(async (req, res) => {
-    await maintenance();
-
-    res.status(201).json(
-      await createMatchSubmission(
-        req.user.id,
-        Number(req.body.challengeId),
-        Number(req.body.winnerPairId),
-        req.body.score
-      )
-    );
-  })
-);
-
-app.get(
-  "/api/match-submissions/mine",
-  auth,
-  wrap(async (req, res) => {
-    res.json(
-      await myMatchSubmissions(req.user.id)
-    );
-  })
-);
-
-app.patch(
-  "/api/match-submissions/:id/confirm",
-  auth,
-  wrap(async (req, res) => {
-    res.json(
-      await confirmMatchSubmission(
-        req.user.id,
-        Number(req.params.id)
-      )
-    );
-  })
-);
-
-app.patch(
-  "/api/match-submissions/:id/dispute",
-  auth,
-  wrap(async (req, res) => {
-    res.json(
-      await disputeMatchSubmission(
-        req.user.id,
-        Number(req.params.id),
-        req.body.note
-      )
-    );
-  })
-);
-
-app.post(
-  "/api/reports",
-  auth,
-  wrap(async (req, res) => {
-    res.status(201).json(
-      await reportPair(
-        req.user.id,
-        req.body.challengeId,
-        req.body.reason,
-        req.body.details
-      )
-    );
-  })
-);
-
-app.get(
-  "/api/admin/reports",
-  auth,
-  admin,
-  wrap(async (req, res) => {
-    await maintenance();
-    res.json(await adminReports());
-  })
-);
-
-app.get(
-  "/api/admin/reports/:pairId/history",
-  auth,
-  admin,
-  wrap(async (req, res) => {
-    const pairId = Number(req.params.pairId);
-
-    if (!Number.isInteger(pairId) || pairId <= 0) {
-      return res.status(400).json({
-        error: "Pareja inválida",
-      });
-    }
-
-    res.json(await adminReportHistory(pairId));
-  })
-);
-
-app.patch(
-  "/api/admin/reports/:reportId",
-  auth,
-  admin,
-  wrap(async (req, res) => {
-    const reportId = Number(req.params.reportId);
-
-    if (!Number.isInteger(reportId) || reportId <= 0) {
-      return res.status(400).json({
-        error: "Denuncia inválida",
-      });
-    }
-
-    const status = req.body.status;
-
-    if (!["reviewed", "dismissed"].includes(status)) {
-      return res.status(400).json({
-        error: "Estado de denuncia inválido",
-      });
-    }
-
-    res.json(
-      await updateReportStatus(
-        req.user.id,
-        reportId,
-        status
-      )
-    );
-  })
-);
-
-app.get(
-  "/api/admin/match-submissions/disputed",
-  auth,
-  admin,
-  wrap(async (req, res) => {
-    res.json(await adminDisputedMatchSubmissions());
-  })
-);
-
-app.patch(
-  "/api/admin/match-submissions/:id/resolve",
-  auth,
-  admin,
-  wrap(async (req, res) => {
-    const submissionId = Number(req.params.id);
-
-    if (
-      !Number.isInteger(submissionId) ||
-      submissionId <= 0
-    ) {
-      return res.status(400).json({
-        error: "Resultado inválido",
-      });
-    }
-
-    res.json(
-      await adminResolveMatchSubmission(
-        submissionId,
-        req.body.action
-      )
-    );
-  })
-);
-
-app.post(
-  "/api/admin/maintenance",
-  auth,
-  admin,
-  wrap(async (req, res) => {
-    res.json(await maintenance());
-  })
-);
-
-app.use((err, req, res, next) => {
-  console.error(err);
-
-  const message =
-    err.code === "23505"
-      ? "Ese dato ya existe"
-      : err.message || "Error interno";
-
-  const status =
-    err.statusCode ||
-    (err.code?.startsWith?.("23") ? 400 : 500);
-
-  res.status(status).json({
-    error: message,
-  });
-});
+import express from 'express';
+import cors from 'cors';
+import multer from 'multer';
+import {pool} from './db.js';
+import {auth,admin,sign} from './auth.js';
+import {register,findLogin,publicUser,replaceIdentityDocuments,requestPasswordRecovery,resetPassword,requestPhoneChange,confirmPhoneChange,notificationsForUser,markNotificationRead,LEGAL_VERSIONS} from './account.js';
+import {pairHub,invitePartner,cancelInvitation,acceptInvitation,requestPause,reactivatePair,requestDissolution} from './pairs.js';
+import {myLeague,proposeSchedule,acceptSchedule,voteExtension,reportNoShow,contestNoShow,submitResult,confirmResult,publicUpcoming,recentResults,ranking,records,pairProfile,maintenance} from './wheel.js';
+import {reportDiscipline} from './discipline.js';
+import {pendingUsers,searchUsers,setUserVerification,updateUserDni,identityDocument,requestIdentityResubmission,listVenues,createVenue,updateVenue,disputes,resolveDispute,disciplineQueue,resolveDiscipline,systemStatus,auditLog,setLeagueClockPause,retryWhatsApp,verifyTotp} from './admin.js';
+import {problem} from './core.js';
+
+export const app=express();
+app.set('trust proxy',1);
+app.use(cors({origin:process.env.FRONTEND_URL?.split(',').map(s=>s.trim()).filter(Boolean)||['http://localhost:5173']}));
+app.use(express.json({limit:'1mb'}));
+const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
+const identityUpload=multer({
+  storage:multer.memoryStorage(),
+  limits:{fileSize:5*1024*1024,files:2},
+  fileFilter:(req,file,cb)=>cb(null,['image/jpeg','image/png','image/webp'].includes(file.mimetype))
+}).fields([{name:'dniFront',maxCount:1},{name:'dniBack',maxCount:1}]);
+
+const attempts=new Map();
+function rateLimit(req,res,next){const key=req.ip||'unknown',now=Date.now(),window=15*60*1000,max=25;let v=attempts.get(key);if(!v||v.reset<=now)v={count:0,reset:now+window};v.count++;attempts.set(key,v);if(v.count>max)return res.status(429).json({error:'Demasiados intentos. Probá nuevamente en unos minutos.'});next();}
+
+app.get('/api/health',(req,res)=>res.json({ok:true,name:'LA RED Pádel',engine:'wheel-v2',timezone:'America/Argentina/Buenos_Aires'}));
+app.get('/api/legal/versions',(req,res)=>res.json(LEGAL_VERSIONS));
+app.get('/api/ranking',wrap(async(req,res)=>res.json(await ranking())));
+app.get('/api/records',wrap(async(req,res)=>res.json(await records())));
+app.get('/api/upcoming',wrap(async(req,res)=>res.json(await publicUpcoming())));
+app.get('/api/results/recent',wrap(async(req,res)=>res.json(await recentResults())));
+app.get('/api/pairs/:id/profile',wrap(async(req,res)=>res.json(await pairProfile(Number(req.params.id)))));
+app.get('/api/venues',wrap(async(req,res)=>res.json((await listVenues()).filter(v=>v.active))));
+
+app.post('/api/auth/register',rateLimit,identityUpload,wrap(async(req,res)=>{let legalAcceptances=req.body.legalAcceptances;try{if(typeof legalAcceptances==='string')legalAcceptances=JSON.parse(legalAcceptances);}catch{throw problem('Aceptaciones legales inválidas');}const user=await register({...req.body,legalAcceptances},{ip:req.ip,userAgent:req.get('user-agent')||null,identityDocuments:{front:req.files?.dniFront?.[0],back:req.files?.dniBack?.[0]}});res.status(201).json({token:sign(user),user});}));
+app.post('/api/auth/login',rateLimit,wrap(async(req,res)=>{const user=await findLogin(req.body.dni,req.body.password);if(user.role==='admin')throw problem('Credenciales inválidas',401);res.json({token:sign(user),user:publicUser(user)});}));
+app.post('/api/auth/admin-login',rateLimit,wrap(async(req,res)=>{const user=await findLogin(req.body.dni,req.body.password);if(user.role!=='admin')throw problem('Credenciales inválidas',401);if(process.env.ADMIN_TOTP_SECRET&&!verifyTotp(process.env.ADMIN_TOTP_SECRET,req.body.totp))throw problem('Credenciales inválidas',401);res.json({token:sign(user),user:publicUser(user)});}));
+app.post('/api/auth/recovery/request',rateLimit,wrap(async(req,res)=>res.json(await requestPasswordRecovery(req.body.dni))));
+app.post('/api/auth/recovery/reset',rateLimit,wrap(async(req,res)=>res.json(await resetPassword(req.body.dni,req.body.code,req.body.password))));
+app.get('/api/me',auth,wrap(async(req,res)=>{const u=(await pool.query(`SELECT * FROM users WHERE id=$1`,[req.user.id])).rows[0];if(!u)throw problem('Usuario inexistente',404);res.json(publicUser(u));}));
+app.post('/api/me/identity-documents',auth,identityUpload,wrap(async(req,res)=>res.json(await replaceIdentityDocuments(req.user.id,{front:req.files?.dniFront?.[0],back:req.files?.dniBack?.[0]}))));
+app.post('/api/me/phone/request',auth,wrap(async(req,res)=>res.json(await requestPhoneChange(req.user.id,req.body.phone))));
+app.post('/api/me/phone/confirm',auth,wrap(async(req,res)=>res.json(await confirmPhoneChange(req.user.id,req.body.code))));
+app.get('/api/me/notifications',auth,wrap(async(req,res)=>res.json(await notificationsForUser(req.user.id))));
+app.patch('/api/me/notifications/:id/read',auth,wrap(async(req,res)=>res.json(await markNotificationRead(req.user.id,Number(req.params.id)))));
+
+app.get('/api/me/pair',auth,wrap(async(req,res)=>res.json(await pairHub(req.user.id))));
+app.post('/api/pair-invitations',auth,wrap(async(req,res)=>res.status(201).json(await invitePartner(req.user.id,Number(req.body.inviteeUserId),req.body.category))));
+app.patch('/api/pair-invitations/:id/cancel',auth,wrap(async(req,res)=>res.json(await cancelInvitation(req.user.id,Number(req.params.id)))));
+app.patch('/api/pair-invitations/:id/accept',auth,wrap(async(req,res)=>{const r=await acceptInvitation(req.user.id,Number(req.params.id));await maintenance();res.json(r);}));
+app.post('/api/me/pair/pause',auth,wrap(async(req,res)=>res.json(await requestPause(req.user.id,Boolean(req.body.afterCurrent)))));
+app.post('/api/me/pair/reactivate',auth,wrap(async(req,res)=>{const r=await reactivatePair(req.user.id);await maintenance();res.json(r);}));
+app.post('/api/me/pair/dissolve',auth,wrap(async(req,res)=>res.json(await requestDissolution(req.user.id))));
+
+app.get('/api/me/league',auth,wrap(async(req,res)=>res.json(await myLeague(req.user.id))));
+app.post('/api/assignments/:id/schedule-proposals',auth,wrap(async(req,res)=>res.status(201).json(await proposeSchedule(req.user.id,Number(req.params.id),req.body))));
+app.patch('/api/assignments/:id/schedule-proposals/:proposalId/accept',auth,wrap(async(req,res)=>res.json(await acceptSchedule(req.user.id,Number(req.params.id),Number(req.params.proposalId)))));
+app.post('/api/assignments/:id/extension-vote',auth,wrap(async(req,res)=>res.json(await voteExtension(req.user.id,Number(req.params.id)))));
+app.post('/api/assignments/:id/no-show',auth,wrap(async(req,res)=>res.status(201).json(await reportNoShow(req.user.id,Number(req.params.id)))));
+app.patch('/api/assignments/:id/no-show/contest',auth,wrap(async(req,res)=>{const r=await contestNoShow(req.user.id,Number(req.params.id));await maintenance();res.json(r);}));
+app.post('/api/assignments/:id/results',auth,wrap(async(req,res)=>{const r=await submitResult(req.user.id,Number(req.params.id),req.body);await maintenance();res.json(r);}));
+app.patch('/api/assignments/:id/results/confirm',auth,wrap(async(req,res)=>{const r=await confirmResult(req.user.id,Number(req.params.id));await maintenance();res.json(r);}));
+app.post('/api/discipline-reports',auth,wrap(async(req,res)=>res.status(201).json(await reportDiscipline(req.user.id,req.body))));
+
+app.get('/api/admin/status',auth,admin,wrap(async(req,res)=>res.json(await systemStatus())));
+app.get('/api/admin/audit',auth,admin,wrap(async(req,res)=>res.json(await auditLog(req.query.limit))));
+app.post('/api/admin/maintenance',auth,admin,wrap(async(req,res)=>res.json(await maintenance())));
+app.post('/api/admin/whatsapp/retry',auth,admin,wrap(async(req,res)=>res.json(await retryWhatsApp())));
+app.patch('/api/admin/system/clock',auth,admin,wrap(async(req,res)=>res.json(await setLeagueClockPause(req.user.id,Boolean(req.body.paused)))));
+app.get('/api/admin/identity/pending',auth,admin,wrap(async(req,res)=>res.json(await pendingUsers())));
+app.get('/api/admin/identity/search',auth,admin,wrap(async(req,res)=>res.json(await searchUsers(req.query.q))));
+app.patch('/api/admin/identity/:id',auth,admin,wrap(async(req,res)=>res.json(await setUserVerification(req.user.id,Number(req.params.id),req.body.status))));
+app.patch('/api/admin/identity/:id/dni',auth,admin,wrap(async(req,res)=>res.json(await updateUserDni(req.user.id,Number(req.params.id),req.body.dni))));
+app.get('/api/admin/identity/:id/document/:side',auth,admin,wrap(async(req,res)=>{const d=await identityDocument(Number(req.params.id),req.params.side);res.setHeader('Content-Type',d.mime);res.setHeader('Cache-Control','no-store, private');res.send(d.data);}));
+app.post('/api/admin/identity/:id/resubmit',auth,admin,wrap(async(req,res)=>res.json(await requestIdentityResubmission(req.user.id,Number(req.params.id),req.body.reason))));
+app.get('/api/admin/venues',auth,admin,wrap(async(req,res)=>res.json(await listVenues())));
+app.post('/api/admin/venues',auth,admin,wrap(async(req,res)=>res.status(201).json(await createVenue(req.user.id,req.body))));
+app.patch('/api/admin/venues/:id',auth,admin,wrap(async(req,res)=>res.json(await updateVenue(req.user.id,Number(req.params.id),req.body))));
+app.get('/api/admin/disputes',auth,admin,wrap(async(req,res)=>res.json(await disputes())));
+app.patch('/api/admin/disputes/:id',auth,admin,wrap(async(req,res)=>{const r=await resolveDispute(req.user.id,Number(req.params.id),req.body);await maintenance();res.json(r);}));
+app.get('/api/admin/discipline',auth,admin,wrap(async(req,res)=>res.json(await disciplineQueue())));
+app.patch('/api/admin/discipline/:id',auth,admin,wrap(async(req,res)=>{const r=await resolveDiscipline(req.user.id,Number(req.params.id),req.body.status);await maintenance();res.json(r);}));
+
+app.use((err,req,res,next)=>{console.error(err);let message=err.message||'Error interno';if(err.code==='LIMIT_FILE_SIZE')message='Cada foto del DNI puede pesar hasta 5 MB';if(err.code==='LIMIT_FILE_COUNT')message='Solo se permiten frente y dorso del DNI';if(err.code==='23505'){if(err.constraint==='users_dni_key')message='Ya existe una cuenta con ese DNI. Usá la recuperación de acceso.';else message='Ese dato ya existe o la operación ya fue realizada';}const status=err.statusCode||(String(err.code||'').startsWith('23')?400:500);res.status(status).json({error:message});});

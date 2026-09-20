@@ -1,169 +1,69 @@
-# LA RED Pádel — Legal, seguridad y dirección comercial
+# LA RED Pádel — Legal, seguridad y negocio
 
-> Documento de producto y requisitos. No sustituye asesoramiento jurídico, contable, tributario ni de seguros. Antes del lanzamiento público y antes de activar pagos debe revisarse con profesionales en Argentina.
+> Este documento define requisitos de producto. Los textos legales finales deben ser revisados por abogado argentino antes del lanzamiento público y nuevamente antes de activar pagos.
 
-## 1. Rol de LA RED
+## Rol
+LA RED es una plataforma/organización de liga amateur que administra identidad, rueda, ranking, resultados, coordinación, disciplina, notificaciones y publicación deportiva.
 
-LA RED se diseña como plataforma/organización de liga amateur de pádel que:
+Las sedes/canchas son terceros independientes salvo acuerdo expreso.
 
-- administra cuentas e identidad;
-- organiza una rueda competitiva;
-- registra ranking, resultados y coordinación;
-- publica información deportiva;
-- facilita contacto y notificaciones;
-- puede, en una etapa posterior, facilitar reservas y pagos de canchas.
+## Participación
+- voluntaria;
+- primera versión: mayores de 18 años;
+- actividad física con riesgos inherentes;
+- no se pretende una renuncia absoluta de responsabilidad;
+- emergencias, violencia o posibles delitos requieren canales externos apropiados.
 
-El rol exacto frente a sedes, jugadores y proveedores de pago debe quedar claro en los contratos y términos finales.
+## Documentos aceptados
+Antes de competir, cada usuario acepta versiones concretas de:
+1. Términos y Condiciones;
+2. Riesgos deportivos;
+3. Código de Conducta;
+4. Política de Privacidad;
+5. comunicaciones operativas por WhatsApp.
 
-## 2. Participación y riesgos
+La aceptación guarda versión, timestamp, IP y user-agent.
 
-La participación es voluntaria.
+## Privacidad
+Datos clave: DNI, teléfono, credenciales, actividad y disciplina.
 
-La primera versión está orientada exclusivamente a mayores de 18 años.
-
-Al registrarse, el usuario debe recibir información clara sobre que el pádel implica riesgos propios de una actividad física, entre ellos golpes, caídas, choques, lesiones musculares/articulares y eventos de salud graves.
-
-La aceptación de riesgos:
-- debe ser clara;
-- no debe esconderse en letra chica;
-- no debe pretender eliminar toda responsabilidad de LA RED;
-- debe convivir con una operación razonable, código de conducta y medidas de seguridad.
-
-## 3. Documentos a aceptar
-
-Antes de competir, el usuario debe aceptar y quedar asociado a una versión concreta de:
-
-1. Términos y Condiciones.
-2. Reglas de participación.
-3. Asunción informada de riesgos.
-4. Código de Conducta.
-5. Política de Privacidad.
-6. Consentimiento para comunicaciones operativas por WhatsApp.
-
-Registrar:
-- versión del documento;
-- fecha/hora;
-- usuario;
-- evidencia técnica de aceptación.
-
-## 4. Código de conducta
-
-Debe contemplar, como mínimo:
-
-- agresiones físicas;
-- amenazas;
-- hostigamiento;
-- discriminación;
-- conductas deliberadamente peligrosas;
-- falsificación de resultados;
-- suplantación de identidad;
-- abuso del sistema de reportes.
-
-La disciplina individual persiste aunque el jugador cambie de pareja.
-
-Una emergencia o posible delito no debe ser “resuelto” por el motor deportivo: corresponde usar servicios de emergencia/autoridades según el caso.
-
-## 5. Privacidad y datos
-
-Datos especialmente importantes:
-- DNI;
-- teléfono;
-- credenciales;
-- historial de actividad;
-- disciplina.
-
-Principios:
+Reglas:
 - recolectar solo lo necesario;
-- no publicar DNI/teléfono/email;
-- no guardar foto de DNI salvo decisión legal/operativa posterior que lo justifique;
+- no publicar DNI/teléfono/email/disciplinas/mensajes;
 - no almacenar diagnósticos médicos;
-- usar `LESIÓN / ABANDONO` sin detalles de salud;
-- mantener seguridad, auditoría y acceso restringido;
-- definir política de conservación y eliminación de datos cuando corresponda.
+- una lesión se registra solo como `Lesión / abandono`;
+- corrección de DNI es admin + auditoría;
+- seguridad, backups y acceso restringido son requisitos operativos.
 
-## 6. Identidad y acceso
+## Seguro
+Antes del lanzamiento público debe evaluarse con productor/aseguradora una cobertura adecuada de responsabilidad civil y/o accidentes deportivos según el rol real de LA RED.
 
-- DNI único.
-- Login con DNI + contraseña.
-- Verificación antes de competir.
-- Corrección de DNI solo administrativamente y con auditoría.
-- Recuperación por WhatsApp.
-- La cuenta debe poder distinguir estado de identidad de estado competitivo y disciplinario.
+## Modelo comercial
+LA RED no se declara sin fines de lucro y no promete gratuidad permanente.
 
-## 7. WhatsApp
+Fases posibles:
+1. adopción sin cobro de acceso;
+2. acuerdos con canchas;
+3. reservas dentro de LA RED;
+4. pago de turnos mediante proveedor registrado;
+5. comisión B2B a la sede;
+6. patrocinios/beneficios comerciales futuros.
 
-WhatsApp es canal operativo principal de avisos.
-
-Los términos deben explicar:
-- qué tipos de mensajes puede recibir el jugador;
-- que la app es la fuente oficial;
-- que el teléfono no es público;
-- que el contacto entre rivales se habilita solo durante un compromiso abierto.
-
-## 8. Sedes/canchas
-
-Las sedes pueden ser:
-- lugar disponible;
-- sede asociada;
-- sede recomendada;
-- sede con reservas/pagos habilitados.
-
-Debe quedar claro cuándo una sede es un tercero independiente y cuándo existe un acuerdo comercial específico.
-
-Desactivar una sede no elimina historial.
-
-## 9. Monetización futura
-
-LA RED no se define como “sin fines de lucro”.
-
-Estrategia:
-- etapa inicial de adopción sin cobro de acceso al jugador;
-- crecimiento de comunidad;
-- negociación con canchas;
-- futura reserva y pago de turnos desde LA RED;
-- comisión comercial a la sede por reservas originadas en la plataforma.
-
-El sistema no debe prometer gratuidad perpetua.
-
-## 10. Pagos
-
-Antes de activar pagos:
-
-- seleccionar proveedor de pagos adecuado;
-- evitar custodiar fondos de terceros innecesariamente;
-- definir quién cobra y quién factura;
-- definir comisión;
-- definir cancelación/reintegro;
-- definir chargebacks;
-- definir política de reservas;
-- informar claramente precio total;
-- definir liquidación a la cancha;
-- firmar acuerdo comercial con cada sede.
-
-Revisión obligatoria:
-- contador/impuestos;
-- abogado;
+## Pagos futuros
+Antes de activar:
 - proveedor de pagos;
-- seguro.
+- contrato con sedes;
+- comisión/liquidación;
+- facturación/impuestos;
+- cancelaciones/reintegros;
+- chargebacks;
+- precio total transparente;
+- revisión legal y contable.
 
-## 11. Seguro
+LA RED debe evitar custodiar fondos de terceros innecesariamente.
 
-Antes del lanzamiento público conviene evaluar:
 
-- responsabilidad civil;
-- accidentes deportivos;
-- cobertura del rol de organizador/plataforma;
-- relación con coberturas de las sedes.
+## Tratamiento documental de DNI — estado de producto
+La verificación inicial usa frente/dorso temporales. No se publican ni se usan como contenido social/deportivo. La fila activa se elimina al verificar/rechazar y el reenvío reemplaza el conjunto anterior.
 
-## 12. Cambios futuros
-
-Si cambia cualquiera de estos puntos:
-- se empieza a cobrar al jugador;
-- LA RED pasa a operar canchas;
-- incorpora menores;
-- vende seguros;
-- retiene fondos;
-- organiza eventos presenciales propios;
-- contrata entrenadores o árbitros;
-
-la capa legal debe revisarse nuevamente antes de activar esa función.
+Antes del lanzamiento público, este tratamiento, su base legal, períodos de backup del proveedor y textos de privacidad deben revisarse con asesoramiento profesional aplicable en Argentina.
