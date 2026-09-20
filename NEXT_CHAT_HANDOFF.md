@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 20/20 tests puros + 19/19 integración PostgreSQL, CI verde en Node 22/PostgreSQL 16.
+Suite actual: 20/20 tests puros + 29/29 integración PostgreSQL, CI verde en Node 22/PostgreSQL 16.
 
 ## Metodología
 
@@ -106,4 +106,4 @@ Se detectaron y corrigieron tres desvíos de implementación sin cambiar reglas:
 - atribución incorrecta cuando ambas parejas actuaron pero una lo hizo tarde;
 - ELO no recalculado al confirmar pausa voluntaria.
 
-Se agregaron 10 escenarios PostgreSQL sobre vencimientos/extensión/no-show/pausa/disolución. Confirmar CI antes de cerrar. Si queda verde, el corazón deportivo automatizado queda cubierto y pasan a primer plano configuración real (WhatsApp/TOTP/deploy/backups) + smoke UX/legal.
+Se agregaron 10 escenarios PostgreSQL sobre vencimientos/extensión/no-show/pausa/disolución. CI confirmado: 20/20 tests puros + 29/29 integración PostgreSQL, Node 22/PostgreSQL 16 y frontend build verdes. El corazón deportivo automatizado queda cubierto. Pasan a primer plano hardening restante: disciplina, pausa global de relojes, schema/verify, outbox/TOTP y configuración real de WhatsApp/deploy/backups; smoke UX/legal al final.

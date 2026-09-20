@@ -97,3 +97,9 @@ Después del primer push limpio se dejó de depender de pruebas manuales largas 
 
 ## Validación longitudinal ampliada
 La primera válvula de equilibrio no se dio por buena solo por una corrida a 20 años. Se amplió el modelo para medir 5/10/20 años, conservar las mismas semillas y comparar alternativas de ascenso/descenso. La hipótesis de cinco derrotas quedó descartada con matemática de rachas y Monte Carlo; endurecer el ascenso a cuatro victorias mostró la sobrecorrección opuesta. Entre gaps 4/5/6, el gap 5 vigente quedó como el compromiso más estable a largo plazo. La regla no cambió: cambió la calidad de la evidencia y quedaron regresiones automáticas para impedir que una futura edición reintroduzca la deriva.
+
+
+## Cierre automatizado del corazón deportivo
+La estabilización dejó de depender de recorridas manuales largas. El ciclo pareja → rueda → programación → resultado → ranking → movimiento de categoría → vencimientos → pausa/disolución quedó cubierto por PostgreSQL real en CI, incluyendo concurrencia e idempotencia. Los tests automáticos encontraron y corrigieron problemas que una simulación pura no podía revelar: orden de locks, posiciones transitorias, atribución tardía, ventana de extensión, strikes de no-show y ELO stale al pausar.
+
+El checkpoint alcanza 20/20 tests puros y 29/29 tests PostgreSQL en Node 22/PostgreSQL 16. Desde aquí el trabajo cambia de foco: hardening de módulos laterales y operación real, seguido por smoke UX en vez de años de liga manuales.

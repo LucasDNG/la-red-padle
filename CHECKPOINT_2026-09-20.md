@@ -110,4 +110,4 @@ Se agregaron 7 escenarios PostgreSQL end-to-end para programación, revisión de
 
 
 ## Bloque edge cases competitivos en validación
-Se prepararon correcciones para límite superior de la ventana de extensión, atribución cuando ambas parejas actuaron pero una tarde y recálculo ELO al pausar voluntariamente. Se agregaron 10 escenarios PostgreSQL de vencimiento, extensión, no-show, pausa y disolución. Estado: pendiente del primer CI de este bloque.
+Se prepararon correcciones para límite superior de la ventana de extensión, atribución cuando ambas parejas actuaron pero una tarde y recálculo ELO al pausar voluntariamente. Se agregaron 10 escenarios PostgreSQL de vencimiento, extensión, no-show, pausa y disolución. CI confirmado: 20/20 tests puros + 29/29 integración PostgreSQL verdes en Node 22/PostgreSQL 16; frontend build verde.
