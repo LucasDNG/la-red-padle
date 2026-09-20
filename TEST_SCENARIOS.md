@@ -1,121 +1,159 @@
 # LA RED Pádel — Escenarios obligatorios de validación
 
-Estos casos deben conservarse al modificar reglas, base de datos o backend.
-
 ## Alta y onboarding
 
-1. Un usuario puede registrarse sin formar pareja inmediatamente.
+1. Registrarse no obliga a formar pareja.
 2. Después del registro aparecen FORMAR PAREJA y MÁS TARDE.
-3. MÁS TARDE mantiene la sesión iniciada y permite navegar.
+3. MÁS TARDE mantiene la sesión.
 4. MI LIGA permite volver a la gestión de pareja.
-5. No deben existir dos formularios distintos compitiendo para formar/disolver pareja.
+5. No deben coexistir dos experiencias distintas para gestionar la pareja.
 
 ## Categorías ilimitadas
 
-1. Una categoría puede tener 10, 30, 100 o más parejas activas sin cerrarse por capacidad.
-2. Crear una pareja nueva siempre la coloca en la última posición estructural disponible.
-3. No existe espera por cupo.
+1. Una categoría puede tener 10, 30, 100 o más parejas.
+2. Nunca se cierra por capacidad.
+3. Una pareja nueva entra al fondo.
+4. No existe espera por cupo.
 
-## Selección de categoría
+## Categoría de una nueva pareja
 
-1. Nuevo + nuevo => pueden elegir cualquier categoría 1ª–7ª.
-2. Jugador de 3ª + nuevo => nueva pareja en 3ª.
-3. Jugador de 2ª + jugador de 4ª => nueva pareja en 2ª.
-4. Jugador que descendió legítimamente de 2ª a 4ª + nuevo => nueva pareja en 4ª.
-5. El sistema no debe usar la mejor categoría histórica si la categoría vigente es otra.
+1. Nuevo + nuevo => pueden elegir 1ª–7ª.
+2. 3ª + nuevo => 3ª.
+3. 2ª + 4ª => 2ª.
+4. Jugador que descendió legítimamente de 2ª a 4ª + nuevo => 4ª.
+5. No se usa la mejor categoría histórica.
 
-## Disolución de pareja
+## Escalera
 
-1. La pareja pasa a `inactive` y sigue existiendo en la base.
-2. Sus miembros quedan libres para formar nuevas parejas.
-3. Sus desafíos `pending` y `accepted` pasan a `cancelled`.
-4. Partidos, reportes y movimientos históricos siguen consultables.
-5. El ELO no se transfiere.
-6. La posición no se transfiere.
-7. Las rachas no se transfieren.
-8. Cada jugador conserva su categoría vigente individual.
+1. #7 vence a #4 => #7 pasa a #4 y la antigua #4 pasa a #7.
+2. #4 vence a #7 => no cambian posiciones.
+3. Las estadísticas acumuladas no reordenan por sí solas toda la categoría.
+4. Una penalización de posición sí puede mover una pareja sin contar como derrota deportiva.
 
-## Ascensos
+## Parejas nuevas y actividad
 
-1. Una pareja que no es líder no asciende aunque tenga 3 victorias seguidas.
-2. Líder + 3 victorias seguidas => intercambio con la última pareja de la categoría superior.
-3. El #1 de Primera no asciende.
-4. Después del intercambio se reinicia la racha que provocó el ascenso.
-5. Las posiciones de ambas categorías quedan normalizadas y sin duplicados.
-6. La categoría vigente individual de los cuatro jugadores queda actualizada.
+1. Varias parejas con 0 partidos pueden tener ELO 0 simultáneamente.
+2. Entre parejas nuevas sin actividad, la más antigua aparece antes.
+3. Una pareja que juega su primer partido pasa por delante de parejas que nunca jugaron, incluso si pierde.
+4. Ese ajuste inicial no debe destruir posiciones previamente conquistadas por desafíos o penalizaciones.
 
-## Descensos
+## ELO
 
-1. Una pareja que no es última no desciende aunque tenga 3 derrotas seguidas.
-2. Última + 3 derrotas seguidas => intercambio con la líder de la categoría inferior.
-3. Una pareja de 7ª no desciende.
-4. Después del intercambio se reinicia la racha que provocó el descenso.
-5. Las posiciones de ambas categorías quedan normalizadas y sin duplicados.
-6. La categoría vigente individual queda actualizada.
+1. Se permiten decimales.
+2. Una pareja sin partidos muestra 0.
+3. Al cambiar la cantidad de parejas de una categoría, el ELO base se recalcula.
+4. El ELO no reordena por sí solo el ranking.
+5. Un empate deportivo permitido puede mostrar el mismo ELO.
 
-## Desafíos
+## Récord de Primera
 
-1. Una pareja puede aceptar más de un desafío simultáneamente.
-2. Cada desafío aceptado conserva su propio plazo de 30 días.
-3. Aceptar un desafío no modifica el plazo de otro.
-4. Un desafío vencido aplica la penalización una sola vez.
-5. El vencimiento no asigna culpa automática.
+1. Conquistar el #1 de Primera => ELO base 2000 y 0 defensas.
+2. El #1 gana su siguiente partido y conserva la punta => 2001 y 1 defensa.
+3. Quince defensas => 2015.
+4. Perder la punta detiene la acumulación.
+5. El máximo histórico alcanzado sobrevive a futuras derrotas y al archivado.
+6. Un #1 de 2ª, 3ª, etc. nunca crea el récord público de Primera.
+
+## Ascenso
+
+1. No ser #1 + 3 victorias => no asciende.
+2. Ser #1 + 3 victorias => asciende.
+3. #1 de Primera => no asciende.
+4. La cantidad de parejas de las categorías no cambia la regla.
+5. La racha que produjo el ascenso se reinicia.
+6. Auditar después del push que la entrada al fondo de la categoría superior sea la política definitiva.
+
+## Descenso
+
+1. No ser último + 3 derrotas => no desciende.
+2. Ser último + 3 derrotas => desciende.
+3. 7ª => no desciende.
+4. La pareja descendida no desplaza al #1 de la categoría inferior.
+5. Sin deuda y con categoría inferior ocupada => entrada #2.
+6. Deuda 1 => intenta entrar #3.
+7. Deuda 3 => intenta entrar #5.
+8. Si no hay suficientes posiciones, entra lo más abajo posible y conserva la deuda sobrante.
+9. Auditar el caso extremo de una categoría inferior completamente vacía.
+
+## Desafíos pendientes: 30 días para aceptar
+
+1. Crear desafío => `response_deadline_at = created_at + 30 días`.
+2. Aceptar antes del vencimiento => desafío `accepted`.
+3. No aceptar a tiempo => `expired`.
+4. Solo la pareja desafiada recibe 1 penalización de posición.
+5. La penalización es idempotente.
+6. Si está última => no se inventa una posición; suma deuda.
+
+## Desafíos aceptados: 90 días
+
+1. Aceptar => `play_deadline_at = accepted_at + 90 días`.
+2. Pueden coexistir varios desafíos aceptados con plazos independientes.
+3. Si vence sin resolución => ambas parejas reciben 1 penalización de posición.
+4. Si una está última => suma deuda.
+5. La penalización es idempotente.
+6. Una carga de resultado pendiente/disputada congela la expiración automática porque el partido ya fue reportado como jugado.
+7. Ya no existe `-10 ELO` por vencimiento.
+
+## Penalización de posición
+
+1. #4 penalizada en una categoría con #5 => pasa a #5; la antigua #5 sube a #4.
+2. No suma derrota deportiva.
+3. No modifica directamente la racha de derrotas.
+4. Última penalizada => deuda +1.
+5. Si la #1 de Primera pierde un puesto por sanción, termina su reinado actual; el récord histórico alcanzado se conserva.
+6. Si dos parejas adyacentes son penalizadas por el mismo desafío, la aplicación debe ser simultánea: nunca pueden intercambiar dos veces y terminar donde empezaron.
+7. Ejemplo con #4 y #5 penalizadas y una #6 no penalizada: #6 sube a #4, la antigua #4 queda #5 y la antigua #5 queda #6.
+8. Si un bloque completo de parejas penalizadas ya toca el fondo y no puede bajar sin beneficiar a otra penalizada, sus integrantes conservan posición y cada uno suma deuda.
 
 ## Resultados
 
-1. Una pareja carga un resultado y queda `pending`.
-2. La misma pareja que lo cargó no puede auto-confirmarlo.
-3. La otra pareja puede confirmar y recién entonces se crea el partido oficial.
-4. La otra pareja puede objetar y el resultado queda `disputed`.
-5. Un resultado disputado no modifica rachas ni categorías hasta resolución.
-6. Confirmar un partido actualiza rachas y evalúa ascenso/descenso.
+1. Cargar resultado => `pending`.
+2. El cargador no puede auto-confirmar.
+3. Confirmar crea el partido oficial.
+4. Objetar => `disputed` y no modifica ranking.
+5. Confirmación administrativa aplica las mismas reglas competitivas que una confirmación normal.
+6. Rechazo administrativo restaura el plazo original del desafío aceptado.
+
+## Disolución
+
+1. La pareja queda `inactive`.
+2. Sus miembros quedan libres.
+3. Pending/accepted => cancelled.
+4. Históricos permanecen.
+5. ELO, posición y rachas no se transfieren.
+6. Los jugadores conservan categoría vigente.
 
 ## Disciplina
 
-1. Tres reportes válidos provenientes de tres parejas distintas dentro de 180 días => `observed`.
-2. Cinco reportes válidos provenientes de cinco parejas distintas dentro de 180 días => `review`.
-3. Cinco reportes de una misma pareja denunciante cuentan como una sola pareja denunciante.
-4. Reportes `dismissed` no cuentan para los umbrales.
-5. Reportes anteriores a 180 días permanecen en el historial pero salen del cálculo móvil.
+1. 3 denunciantes distintos válidos en 180 días => observed.
+2. 5 => review.
+3. Repeticiones del mismo denunciante cuentan una vez.
+4. dismissed no cuenta.
+5. Más de 180 días sale del cálculo pero no del historial.
 
-## ELO posicional — invariantes confirmados
+## Simulación de longevidad
 
-1. Dentro de una categoría, si posición A < posición B, entonces ELO(A) > ELO(B).
-2. Nunca existen dos ELO iguales entre parejas activas de la misma categoría.
-3. Se permiten decimales cuando son necesarios para mantener la distribución.
-4. Cuando cambia la cantidad de parejas activas, se recalculan los valores de la escala base 0–2000.
-5. El líder tiene 2000 como base antes de cualquier acumulación de récord.
-6. Un líder puede superar 2000 mientras mantiene la punta.
-7. El máximo histórico de una pareja permanece aunque después pierda ELO o sea archivada.
-8. Al perder la punta, el exlíder no puede quedar con el mismo ELO de otra pareja.
-9. En el caso definido de bajar a la posición que ocupaba el segundo, queda 1 punto por debajo del ELO que tenía ese segundo antes del cambio.
-10. Una nueva pareja no hereda el ELO de parejas anteriores.
+Antes de una versión candidata a producción, simular varios años incluyendo:
 
-## ELO posicional — pendientes antes de implementación completa
+- altas masivas;
+- muchas parejas por categoría;
+- disoluciones/recreaciones;
+- miles de desafíos;
+- pendientes vencidos a 30 días;
+- aceptados vencidos a 90 días;
+- deuda de posición acumulada;
+- ascensos/descensos repetidos;
+- defensas prolongadas del #1 de Primera;
+- resultados disputados;
+- denuncias dentro/fuera de 180 días.
 
-1. Definir exactamente cuánto acumula el líder por cada evento que corresponda mientras sigue #1.
-2. Definir cómo aplicar el -10 por desafío vencido sin romper orden, unicidad ni distribución posicional.
+Comprobar al menos:
 
-## Prueba de longevidad
-
-Antes de una versión candidata a producción, ejecutar una simulación larga que incluya:
-
-- altas continuas de jugadores y parejas;
-- categorías con gran cantidad de parejas;
-- disolución y recreación de parejas;
-- ascensos y descensos repetidos;
-- múltiples desafíos simultáneos;
-- desafíos vencidos;
-- resultados confirmados y disputados;
-- reportes dentro y fuera de la ventana de 180 días;
-- líderes que superan 2000;
-- archivo de una pareja que posee un récord histórico.
-
-La simulación debe comprobar, como mínimo:
-
-- ningún jugador pertenece a dos parejas activas;
-- no hay posiciones activas duplicadas en una categoría;
-- no hay ELO activos duplicados en una categoría;
-- las categorías individuales coinciden con el nivel vigente de los jugadores;
-- los históricos sobreviven al archivado de parejas;
-- las penalizaciones idempotentes no se duplican.
+- ningún jugador está en dos parejas activas;
+- no hay posiciones activas duplicadas;
+- las penalizaciones se aplican una sola vez;
+- las deudas no desaparecen silenciosamente;
+- el #1 de la categoría inferior no es desplazado por un descenso;
+- el récord de Primera permanece;
+- no se reintroduce el viejo `-10 ELO`;
+- no existen cupos de categoría.

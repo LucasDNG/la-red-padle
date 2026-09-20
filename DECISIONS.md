@@ -1,50 +1,84 @@
 # LA RED Pádel — Historial de decisiones
 
-Este archivo registra cambios de criterio. `PROJECT_RULES.md` contiene únicamente las reglas vigentes.
+`PROJECT_RULES.md` contiene las reglas vigentes. Este archivo registra cómo fueron cambiando.
 
 ## 2026-09-20
 
-### Categorías sin límite
+### Categorías ilimitadas
 
-Se eliminan los cupos máximos anteriores de 1ª–3ª y 4ª–6ª. Todas las categorías 1ª a 7ª pasan a admitir una cantidad ilimitada de parejas.
+Se eliminan todos los cupos máximos. 1ª a 7ª admiten cualquier cantidad de parejas.
 
-Motivo funcional: evitar que un jugador con categoría vigente quede bloqueado esperando una vacante al formar una nueva pareja.
+### Categoría vigente individual
 
-### Categoría de una nueva pareja
-
-- Dos jugadores sin categoría previa: eligen libremente la categoría inicial.
-- Si alguno posee categoría vigente, la nueva pareja entra en la categoría vigente más fuerte de los dos.
-- La categoría vigente es el nivel actual, no el mejor nivel histórico.
+- Nuevo + nuevo: eligen categoría.
+- Si alguno posee categoría vigente, manda el nivel actual más fuerte.
+- No se usa la mejor categoría histórica.
 
 ### Parejas archivadas
 
-Una pareja disuelta se archiva como `inactive`; no se elimina. Conserva historial y récords. Se cancelan desafíos pendientes/aceptados y no se transfieren ELO, posición ni rachas a una nueva pareja.
+Una pareja disuelta pasa a `inactive`; conserva historial. No transfiere ELO, posición ni rachas.
 
 ### Onboarding
 
-Después del registro se debe ofrecer FORMAR PAREJA / MÁS TARDE. Elegir MÁS TARDE no bloquea la navegación. La gestión de pareja debe estar centralizada en una sola experiencia desde MI LIGA.
+Después del registro: `FORMAR PAREJA` / `MÁS TARDE`. La gestión de pareja debe estar centralizada desde `MI LIGA`.
 
-### ELO posicional
+### Ranking por escalera
 
-Se reafirma que no se utilizará ELO clásico tipo K-factor ni una base fija de 1500.
+Se reafirma que el corazón del ranking no son las estadísticas acumuladas: una pareja de abajo que vence a una de arriba intercambia posición con ella. Si gana la que ya estaba arriba, no hay intercambio.
 
-El ELO es una representación de la posición y se distribuye porcentualmente en una escala base 0–2000 dentro de cada categoría. Debe ser estrictamente único entre posiciones y puede usar decimales. Al cambiar la cantidad de parejas, se recalcula la distribución.
+Los criterios de victorias, diferencia de games y antigüedad son auxiliares de desempate/inicialización y no reordenan globalmente la escalera.
 
-El líder tiene base 2000 y puede acumular por encima de 2000 mientras conserva la punta. El máximo alcanzado forma parte del récord histórico permanente.
+### Nuevas parejas y ELO 0
 
-Cuando el líder pierde la punta, no puede copiar el ELO de otra posición. En el caso definido de pasar a la posición que ocupaba el segundo, queda 1 punto por debajo del ELO que tenía ese segundo antes del cambio.
+Las parejas sin partidos oficiales quedan al fondo con ELO 0. La antigüedad ordena inicialmente a las parejas todavía sin actividad. Jugar el primer partido, incluso perderlo, permite dejar atrás a quienes nunca jugaron.
 
-Quedan pendientes de definición cerrada antes de implementar esta parte:
+Se admite ELO repetido cuando existe un empate deportivo definido por las reglas; varias parejas sin partidos pueden compartir ELO 0.
 
-- mecanismo exacto de acumulación del líder por encima de 2000;
-- convivencia de la penalización -10 por vencimiento con la distribución posicional sin producir duplicados ni invertir el orden.
+### ELO porcentual
+
+No se usa ELO clásico tipo K-factor. El ELO acompaña la posición y se recalcula proporcionalmente según la cantidad de parejas de la categoría. Se permiten decimales.
+
+### Defensas del #1 de Primera
+
+Solo el #1 de Primera puede superar 2000. Cada victoria obtenida mientras ya era #1 y conserva la punta suma +1. Conquistar la punta no cuenta como defensa.
+
+El máximo histórico de Primera queda guardado permanentemente y se mostrará en la portada.
+
+### Ascenso y descenso
+
+- #1 + 3 victorias seguidas => ascenso.
+- Último + 3 derrotas seguidas => descenso.
+- La cantidad de parejas por categoría no afecta la regla.
+- La pareja que desciende no entra por encima del líder de la categoría inferior.
+
+La versión candidata inserta al ascendido al fondo de la categoría superior. Se auditará luego del siguiente push.
+
+### Nuevos plazos de desafío
+
+Se reemplaza el esquema anterior de 30 días desde la aceptación y `-10 ELO`.
+
+Nuevo esquema:
+
+- 30 días para aceptar el desafío;
+- no aceptar => la pareja desafiada pierde 1 puesto;
+- después de aceptar => 90 días para jugar/resolver;
+- vencer el plazo aceptado => ambas parejas pierden 1 puesto;
+- si una pareja ya está última, la pérdida se convierte en deuda de posición.
+
+### Deuda de posición
+
+Las penalizaciones que no pueden materializarse por estar último se guardan. Al descender, la entrada base es #2 y la deuda empuja hacia #3, #4, #5, etc. Si no hay suficientes puestos, la deuda no consumida continúa guardada.
+
+### Transición de desafíos ya existentes
+
+La migración no aplica plazos nuevos de forma retroactiva. Los desafíos que ya estaban pendientes reciben 30 días desde la migración y los que ya estaban aceptados reciben 90 días desde la migración.
 
 ### Documentación como fuente de verdad
 
-A partir de esta fecha, las decisiones del proyecto deben quedar reflejadas en:
+Se mantienen:
 
-- `PROJECT_RULES.md` — reglas vigentes;
-- `DECISIONS.md` — historial de decisiones;
-- `TEST_SCENARIOS.md` — escenarios obligatorios de validación.
+- `PROJECT_RULES.md`
+- `DECISIONS.md`
+- `TEST_SCENARIOS.md`
 
-Antes de cambios funcionales se deben revisar estos archivos.
+como documentación obligatoria del comportamiento vigente.

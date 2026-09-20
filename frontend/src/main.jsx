@@ -1,8 +1,6 @@
 import React from "react";
 
-import {
-  createRoot,
-} from "react-dom/client";
+import { createRoot } from "react-dom/client";
 
 import {
   BrowserRouter,
@@ -15,16 +13,17 @@ import App from "./App.jsx";
 import AdminReports from "./AdminReports.jsx";
 import Results from "./Results.jsx";
 import PairManager from "./PairManager.jsx";
+import LeagueV2 from "./LeagueV2.jsx";
+import HomeRecord from "./HomeRecord.jsx";
 
 import "./styles.css";
 import "./layout-fixes.css";
+import "./competition-ui.css";
 
 function getUser() {
   try {
     return JSON.parse(
-      localStorage.getItem(
-        "user"
-      )
+      localStorage.getItem("user")
     );
   } catch {
     return null;
@@ -32,16 +31,9 @@ function getUser() {
 }
 
 function logout() {
-  localStorage.removeItem(
-    "token"
-  );
-  localStorage.removeItem(
-    "user"
-  );
-  localStorage.removeItem(
-    "justRegistered"
-  );
-
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+  localStorage.removeItem("justRegistered");
   window.location.href = "/";
 }
 
@@ -50,44 +42,28 @@ function RegisterChoice() {
   const user = getUser();
 
   function choose(path) {
-    localStorage.removeItem(
-      "justRegistered"
-    );
+    localStorage.removeItem("justRegistered");
     navigate(path);
   }
 
   return (
     <div className="app">
       <header className="header">
-        <Link
-          to="/"
-          className="brand"
-        >
+        <Link to="/" className="brand">
           <span>LA RED</span>
-          <small>
-            PÁDEL · SAN PEDRO
-          </small>
+          <small>PÁDEL · SAN PEDRO</small>
         </Link>
 
         <nav className="nav">
-          <Link to="/">
-            Inicio
-          </Link>
-          <Link to="/ranking">
-            Ranking
-          </Link>
-          <Link to="/liga">
-            Mi liga
-          </Link>
-          <Link to="/instalar">
-            Instalar
-          </Link>
+          <Link to="/">Inicio</Link>
+          <Link to="/ranking">Ranking</Link>
+          <Link to="/liga">Mi liga</Link>
+          <Link to="/instalar">Instalar</Link>
         </nav>
 
         <div className="header-actions">
           <span className="header-user">
-            {user?.first_name ||
-              "Mi cuenta"}
+            {user?.first_name || "Mi cuenta"}
           </span>
           <button
             className="header-link"
@@ -105,9 +81,7 @@ function RegisterChoice() {
               CUENTA CREADA
             </div>
 
-            <h1>
-              Ya estás en La Red.
-            </h1>
+            <h1>Ya estás en La Red.</h1>
 
             <p>
               Podés formar tu pareja ahora o seguir recorriendo la app y hacerlo más adelante desde Mi liga.
@@ -116,18 +90,14 @@ function RegisterChoice() {
             <div className="welcome-actions">
               <button
                 className="button button-green"
-                onClick={() =>
-                  choose("/pareja")
-                }
+                onClick={() => choose("/pareja")}
               >
                 FORMAR PAREJA
               </button>
 
               <button
                 className="button button-outline"
-                onClick={() =>
-                  choose("/")
-                }
+                onClick={() => choose("/")}
               >
                 MÁS TARDE
               </button>
@@ -140,62 +110,39 @@ function RegisterChoice() {
 }
 
 function Root() {
-  const location =
-    useLocation();
+  const location = useLocation();
+  const user = getUser();
 
-  const user =
-    getUser();
-
-  if (
-    location.pathname ===
-    "/admin/reportes"
-  ) {
-    return (
-      <AdminReports />
-    );
+  if (location.pathname === "/admin/reportes") {
+    return <AdminReports />;
   }
 
-  if (
-    location.pathname ===
-    "/resultados"
-  ) {
-    return (
-      <Results />
-    );
+  if (location.pathname === "/resultados") {
+    return <Results />;
   }
 
-  if (
-    location.pathname ===
-    "/pareja"
-  ) {
-    return (
-      <PairManager />
-    );
+  if (location.pathname === "/pareja") {
+    return <PairManager />;
   }
 
-  if (
-    user &&
-    location.pathname ===
-      "/liga" &&
-    localStorage.getItem(
-      "justRegistered"
-    ) === "1"
-  ) {
-    return (
-      <RegisterChoice />
-    );
+  if (location.pathname === "/liga") {
+    if (
+      user &&
+      localStorage.getItem("justRegistered") === "1"
+    ) {
+      return <RegisterChoice />;
+    }
+
+    return <LeagueV2 />;
   }
 
-  const onHome =
-    location.pathname === "/";
-
-  const onLeague =
-    location.pathname ===
-    "/liga";
+  const onHome = location.pathname === "/";
 
   return (
     <>
       <App />
+
+      {onHome && <HomeRecord />}
 
       {user && onHome && (
         <Link
@@ -205,81 +152,33 @@ function Root() {
           MI LIGA
         </Link>
       )}
-
-      {user && onLeague && (
-        <div className="league-tools">
-          <Link
-            className="league-tool league-tool-pair"
-            to="/pareja"
-          >
-            PAREJA
-          </Link>
-
-          <Link
-            className="league-tool league-tool-results"
-            to="/resultados"
-          >
-            RESULTADOS
-          </Link>
-
-          {user.role ===
-            "admin" && (
-            <Link
-              className="league-tool league-tool-admin"
-              to="/admin/reportes"
-            >
-              ADMIN
-            </Link>
-          )}
-        </div>
-      )}
     </>
   );
 }
 
-if (
-  "serviceWorker" in
-  navigator
-) {
-  if (
-    import.meta.env.PROD
-  ) {
-    window.addEventListener(
-      "load",
-      () => {
-        navigator
-          .serviceWorker
-          .register(
-            "/sw.js"
-          )
-          .catch(
-            () => {}
-          );
-      }
-    );
+if ("serviceWorker" in navigator) {
+  if (import.meta.env.PROD) {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .catch(() => {});
+    });
   } else {
-    navigator
-      .serviceWorker
+    navigator.serviceWorker
       .getRegistrations()
-      .then(
-        (registrations) =>
-          Promise.all(
-            registrations.map(
-              (registration) =>
-                registration.unregister()
-            )
+      .then((registrations) =>
+        Promise.all(
+          registrations.map((registration) =>
+            registration.unregister()
           )
+        )
       )
-      .catch(
-        () => {}
-      );
+      .catch(() => {});
   }
 }
 
 createRoot(
-  document.getElementById(
-    "root"
-  )
+  document.getElementById("root")
 ).render(
   <BrowserRouter>
     <Root />

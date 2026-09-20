@@ -3,17 +3,10 @@ import cors from "cors";
 import bcrypt from "bcrypt";
 
 import { pool } from "./db.js";
-import {
-  auth,
-  admin,
-  sign,
-} from "./auth.js";
+import { auth, admin, sign } from "./auth.js";
 
 import {
-  createChallenge,
   reportPair,
-  maintenance,
-  ranking,
   adminReports,
   adminReportHistory,
 } from "./league.js";
@@ -21,31 +14,40 @@ import {
 import {
   availablePlayers,
   myPair,
-  opponents,
   challengeInbox,
   playerChallenges,
-  acceptPendingChallenge,
 } from "./playerArea.js";
 
-import {
-  updateReportStatus,
-} from "./adminReports.js";
+import { updateReportStatus } from "./adminReports.js";
 
 import {
   createMatchSubmission,
   myMatchSubmissions,
-  confirmMatchSubmission,
   disputeMatchSubmission,
   adminDisputedMatchSubmissions,
-  adminResolveMatchSubmission,
 } from "./matchResults.js";
 
 import {
-  pairManagement,
+  confirmMatchSubmission,
+  adminResolveMatchSubmission,
+} from "./matchResolution.js";
+
+import {
+  createChallenge,
+  acceptChallenge,
+  maintenance,
+  ranking,
+  opponents,
+  firstDivisionRecords,
+  recalculateAllElos,
+} from "./competition.js";
+
+import {
   registerStablePair,
   dissolveCurrentPair,
-  eloRecords,
 } from "./pairLifecycle.js";
+
+import { pairManagement } from "./pairManagement.js";
 
 export const app = express();
 
@@ -66,19 +68,14 @@ app.use(
 const wrap =
   (fn) =>
   (req, res, next) =>
-    Promise.resolve(
-      fn(req, res, next)
-    ).catch(next);
+    Promise.resolve(fn(req, res, next)).catch(next);
 
-app.get(
-  "/api/health",
-  (req, res) => {
-    res.json({
-      ok: true,
-      name: "LA RED Pádel",
-    });
-  }
-);
+app.get("/api/health", (req, res) => {
+  res.json({
+    ok: true,
+    name: "LA RED Pádel",
+  });
+});
 
 app.post(
   "/api/auth/register",
@@ -98,24 +95,14 @@ app.post(
       !email ||
       !phone ||
       !password ||
-      ![
-        "male",
-        "female",
-      ].includes(gender)
+      !["male", "female"].includes(gender)
     ) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Datos incompletos",
-        });
+      return res.status(400).json({
+        error: "Datos incompletos",
+      });
     }
 
-    const hash =
-      await bcrypt.hash(
-        password,
-        10
-      );
+    const hash = await bcrypt.hash(password, 10);
 
     const user = (
       await pool.query(
@@ -128,14 +115,7 @@ app.post(
             password_hash,
             gender
           )
-          VALUES(
-            $1,
-            $2,
-            lower($3),
-            $4,
-            $5,
-            $6
-          )
+          VALUES($1,$2,lower($3),$4,$5,$6)
           RETURNING
             id,
             first_name,
@@ -180,44 +160,25 @@ app.post(
     const validPassword =
       user &&
       (await bcrypt.compare(
-        req.body.password ||
-          "",
+        req.body.password || "",
         user.password_hash
       ));
 
-    if (
-      !user ||
-      !validPassword
-    ) {
-      return res
-        .status(401)
-        .json({
-          error:
-            "Credenciales inválidas",
-        });
+    if (!user || !validPassword) {
+      return res.status(401).json({
+        error: "Credenciales inválidas",
+      });
     }
 
     res.json({
       token: sign(user),
-
       user: {
         id: user.id,
-
-        first_name:
-          user.first_name,
-
-        last_name:
-          user.last_name,
-
-        email:
-          user.email,
-
-        gender:
-          user.gender,
-
-        role:
-          user.role,
-
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        gender: user.gender,
+        role: user.role,
         current_category_number:
           user.current_category_number,
       },
@@ -229,11 +190,7 @@ app.get(
   "/api/players",
   auth,
   wrap(async (req, res) => {
-    res.json(
-      await availablePlayers(
-        req.user.id
-      )
-    );
+    res.json(await availablePlayers(req.user.id));
   })
 );
 
@@ -241,11 +198,7 @@ app.get(
   "/api/me/pair",
   auth,
   wrap(async (req, res) => {
-    res.json(
-      await myPair(
-        req.user.id
-      )
-    );
+    res.json(await myPair(req.user.id));
   })
 );
 
@@ -253,11 +206,7 @@ app.get(
   "/api/me/pair-management",
   auth,
   wrap(async (req, res) => {
-    res.json(
-      await pairManagement(
-        req.user.id
-      )
-    );
+    res.json(await pairManagement(req.user.id));
   })
 );
 
@@ -265,11 +214,7 @@ app.get(
   "/api/opponents",
   auth,
   wrap(async (req, res) => {
-    res.json(
-      await opponents(
-        req.user.id
-      )
-    );
+    res.json(await opponents(req.user.id));
   })
 );
 
@@ -277,17 +222,15 @@ app.post(
   "/api/pairs",
   auth,
   wrap(async (req, res) => {
-    res.status(201).json(
-      await registerStablePair(
-        req.user.id,
-        Number(
-          req.body.partnerId
-        ),
-        Number(
-          req.body.category
-        )
-      )
+    const pair = await registerStablePair(
+      req.user.id,
+      Number(req.body.partnerId),
+      Number(req.body.category)
     );
+
+    await recalculateAllElos();
+
+    res.status(201).json(pair);
   })
 );
 
@@ -295,29 +238,27 @@ app.delete(
   "/api/pairs/current",
   auth,
   wrap(async (req, res) => {
-    res.json(
-      await dissolveCurrentPair(
-        req.user.id
-      )
+    const result = await dissolveCurrentPair(
+      req.user.id
     );
+
+    await recalculateAllElos();
+
+    res.json(result);
   })
 );
 
 app.get(
   "/api/elo-records",
   wrap(async (req, res) => {
-    res.json(
-      await eloRecords()
-    );
+    res.json(await firstDivisionRecords());
   })
 );
 
 app.get(
   "/api/ranking",
   wrap(async (req, res) => {
-    res.json(
-      await ranking()
-    );
+    res.json(await ranking());
   })
 );
 
@@ -326,12 +267,7 @@ app.get(
   auth,
   wrap(async (req, res) => {
     await maintenance();
-
-    res.json(
-      await playerChallenges(
-        req.user.id
-      )
-    );
+    res.json(await playerChallenges(req.user.id));
   })
 );
 
@@ -340,12 +276,7 @@ app.get(
   auth,
   wrap(async (req, res) => {
     await maintenance();
-
-    res.json(
-      await challengeInbox(
-        req.user.id
-      )
-    );
+    res.json(await challengeInbox(req.user.id));
   })
 );
 
@@ -353,11 +284,12 @@ app.post(
   "/api/challenges",
   auth,
   wrap(async (req, res) => {
+    await maintenance();
+
     res.status(201).json(
       await createChallenge(
         req.user.id,
-        req.body
-          .targetPairId
+        Number(req.body.targetPairId)
       )
     );
   })
@@ -367,12 +299,12 @@ app.patch(
   "/api/challenges/:id/accept",
   auth,
   wrap(async (req, res) => {
+    await maintenance();
+
     res.json(
-      await acceptPendingChallenge(
+      await acceptChallenge(
         req.user.id,
-        Number(
-          req.params.id
-        )
+        Number(req.params.id)
       )
     );
   })
@@ -387,17 +319,8 @@ app.post(
     res.status(201).json(
       await createMatchSubmission(
         req.user.id,
-
-        Number(
-          req.body
-            .challengeId
-        ),
-
-        Number(
-          req.body
-            .winnerPairId
-        ),
-
+        Number(req.body.challengeId),
+        Number(req.body.winnerPairId),
         req.body.score
       )
     );
@@ -409,9 +332,7 @@ app.get(
   auth,
   wrap(async (req, res) => {
     res.json(
-      await myMatchSubmissions(
-        req.user.id
-      )
+      await myMatchSubmissions(req.user.id)
     );
   })
 );
@@ -423,9 +344,7 @@ app.patch(
     res.json(
       await confirmMatchSubmission(
         req.user.id,
-        Number(
-          req.params.id
-        )
+        Number(req.params.id)
       )
     );
   })
@@ -438,11 +357,7 @@ app.patch(
     res.json(
       await disputeMatchSubmission(
         req.user.id,
-
-        Number(
-          req.params.id
-        ),
-
+        Number(req.params.id),
         req.body.note
       )
     );
@@ -456,12 +371,8 @@ app.post(
     res.status(201).json(
       await reportPair(
         req.user.id,
-
-        req.body
-          .challengeId,
-
+        req.body.challengeId,
         req.body.reason,
-
         req.body.details
       )
     );
@@ -473,9 +384,8 @@ app.get(
   auth,
   admin,
   wrap(async (req, res) => {
-    res.json(
-      await adminReports()
-    );
+    await maintenance();
+    res.json(await adminReports());
   })
 );
 
@@ -484,30 +394,15 @@ app.get(
   auth,
   admin,
   wrap(async (req, res) => {
-    const pairId =
-      Number(
-        req.params.pairId
-      );
+    const pairId = Number(req.params.pairId);
 
-    if (
-      !Number.isInteger(
-        pairId
-      ) ||
-      pairId <= 0
-    ) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Pareja inválida",
-        });
+    if (!Number.isInteger(pairId) || pairId <= 0) {
+      return res.status(400).json({
+        error: "Pareja inválida",
+      });
     }
 
-    res.json(
-      await adminReportHistory(
-        pairId
-      )
-    );
+    res.json(await adminReportHistory(pairId));
   })
 );
 
@@ -516,40 +411,20 @@ app.patch(
   auth,
   admin,
   wrap(async (req, res) => {
-    const reportId =
-      Number(
-        req.params.reportId
-      );
+    const reportId = Number(req.params.reportId);
 
-    if (
-      !Number.isInteger(
-        reportId
-      ) ||
-      reportId <= 0
-    ) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Denuncia inválida",
-        });
+    if (!Number.isInteger(reportId) || reportId <= 0) {
+      return res.status(400).json({
+        error: "Denuncia inválida",
+      });
     }
 
-    const status =
-      req.body.status;
+    const status = req.body.status;
 
-    if (
-      ![
-        "reviewed",
-        "dismissed",
-      ].includes(status)
-    ) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Estado de denuncia inválido",
-        });
+    if (!["reviewed", "dismissed"].includes(status)) {
+      return res.status(400).json({
+        error: "Estado de denuncia inválido",
+      });
     }
 
     res.json(
@@ -567,9 +442,7 @@ app.get(
   auth,
   admin,
   wrap(async (req, res) => {
-    res.json(
-      await adminDisputedMatchSubmissions()
-    );
+    res.json(await adminDisputedMatchSubmissions());
   })
 );
 
@@ -578,23 +451,15 @@ app.patch(
   auth,
   admin,
   wrap(async (req, res) => {
-    const submissionId =
-      Number(
-        req.params.id
-      );
+    const submissionId = Number(req.params.id);
 
     if (
-      !Number.isInteger(
-        submissionId
-      ) ||
+      !Number.isInteger(submissionId) ||
       submissionId <= 0
     ) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "Resultado inválido",
-        });
+      return res.status(400).json({
+        error: "Resultado inválido",
+      });
     }
 
     res.json(
@@ -611,39 +476,23 @@ app.post(
   auth,
   admin,
   wrap(async (req, res) => {
-    res.json({
-      expired:
-        await maintenance(),
-    });
+    res.json(await maintenance());
   })
 );
 
-app.use(
-  (err, req, res, next) => {
-    console.error(err);
+app.use((err, req, res, next) => {
+  console.error(err);
 
-    const message =
-      err.code ===
-      "23505"
-        ? "Ese dato ya existe"
-        : err.message ||
-          "Error interno";
+  const message =
+    err.code === "23505"
+      ? "Ese dato ya existe"
+      : err.message || "Error interno";
 
-    const status =
-      err.statusCode ||
-      (
-        err.code?.startsWith?.(
-          "23"
-        )
-          ? 400
-          : 500
-      );
+  const status =
+    err.statusCode ||
+    (err.code?.startsWith?.("23") ? 400 : 500);
 
-    res
-      .status(status)
-      .json({
-        error:
-          message,
-      });
-  }
-);
+  res.status(status).json({
+    error: message,
+  });
+});
