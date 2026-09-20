@@ -136,3 +136,7 @@ En categorías impares, `createAssignmentsForCategory()` reserva primero como by
 
 ## Resolución de disputas y notificaciones
 Una disputa mantiene el assignment abierto y bloqueado para nuevas asignaciones hasta resolución. Si Admin selecciona una versión, el motor aplica el resultado deportivo dentro de la misma transacción y luego cierra el assignment; si lo declara `void`, se cierra sin crear un match. Ambos caminos encolan una notificación idempotente a todos los integrantes afectados y registran auditoría Admin.
+
+
+## Vencimientos y ventana extraordinaria
+La atribución de vencimiento distingue entre “actuó” y “actuó con margen suficiente”. Un único actor con margen puede dejar al rival como único responsable solo si el rival no actuó en absoluto. Si ambos actuaron sin resolver, ambos son penalizados. La extensión extraordinaria solo acepta votos en las 48 horas posteriores al deadline original; si se activa, su deadline es exactamente 15 días después del original. Su vencimiento genera penalización posicional sin derrota deportiva ni strike atribuible.

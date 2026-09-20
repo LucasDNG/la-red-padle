@@ -107,3 +107,7 @@ Se prepararon correcciones de orden de locks en `acceptInvitation()`, serializac
 
 ## Bloque programación → resultado en validación
 Se agregaron 7 escenarios PostgreSQL end-to-end para programación, revisión de resultado, confirmación rival, versiones coincidentes/incompatibles, resolución Admin, auto-validación por silencio y deadline de 30 días. También se corrigió la falta de notificación al resolver una disputa administrativa. CI confirmado: 20/20 tests puros + 19/19 integración PostgreSQL verdes en Node 22/PostgreSQL 16; frontend build verde.
+
+
+## Bloque edge cases competitivos en validación
+Se prepararon correcciones para límite superior de la ventana de extensión, atribución cuando ambas parejas actuaron pero una tarde y recálculo ELO al pausar voluntariamente. Se agregaron 10 escenarios PostgreSQL de vencimiento, extensión, no-show, pausa y disolución. Estado: pendiente del primer CI de este bloque.

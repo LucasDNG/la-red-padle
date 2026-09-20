@@ -294,3 +294,17 @@ Estos escenarios deben recorrerse manualmente y luego convertirse/confirmarse co
 - resolución Admin notifica a los cuatro jugadores afectados;
 - silencio durante 15 días auto-valida la única versión;
 - después del deadline deportivo de 30 días no se admite una nueva carga de resultado.
+
+
+## Vencimientos, extensión, no-show, pausa y disolución PostgreSQL
+- una sola pareja propone con margen y el rival no actúa => solo rival penalizado;
+- una propone con margen y la otra actúa tarde => ambas penalizadas;
+- penalización administrativa no suma derrota deportiva;
+- extensión solo puede votarse durante las 48 h posteriores al deadline original;
+- doble voto dentro de ventana activa exactamente 15 días desde el deadline original;
+- vencimiento de extensión penaliza posición/deuda a ambas sin sumar `monthly_miss_streak` ni derrota;
+- no-show sin objeción penaliza solo a la reportada y puede disparar auto-pausa al segundo strike atribuible;
+- pausa voluntaria conserva strike previo y recalcula ELO de la categoría;
+- `pause_after_current` mantiene la pareja activa hasta cerrar el resultado y recién entonces pausa;
+- disolución vencida con assignment sin jugar aplica forfeit deportivo antes de archivar;
+- disolución con versión de resultado cargada espera que el resultado se resuelva antes de archivar.

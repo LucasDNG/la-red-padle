@@ -98,3 +98,12 @@ Se agregaron 5 escenarios PostgreSQL: altas simultáneas, invitaciones compartie
 Se agregaron 7 escenarios PostgreSQL que cubren propuesta/aceptación, conservación de programación oficial, revisión de la primera versión, confirmación, matching versions, disputa + resolución Admin, auto-validación a 15 días y rechazo después de 30 días.
 
 También se corrigió que la resolución Admin de disputa no notificaba a ambas parejas. CI confirmado: 20/20 tests puros + 19/19 integración PostgreSQL, Node 22/PostgreSQL 16 y frontend build verdes. Siguiente paso: edge cases de vencimiento/extensión/no-show/pausa/disolución y luego smoke UX.
+
+
+### Edge cases competitivos en validación
+Se detectaron y corrigieron tres desvíos de implementación sin cambiar reglas:
+- voto de extensión fuera de las 48 h técnicas;
+- atribución incorrecta cuando ambas parejas actuaron pero una lo hizo tarde;
+- ELO no recalculado al confirmar pausa voluntaria.
+
+Se agregaron 10 escenarios PostgreSQL sobre vencimientos/extensión/no-show/pausa/disolución. Confirmar CI antes de cerrar. Si queda verde, el corazón deportivo automatizado queda cubierto y pasan a primer plano configuración real (WhatsApp/TOTP/deploy/backups) + smoke UX/legal.
