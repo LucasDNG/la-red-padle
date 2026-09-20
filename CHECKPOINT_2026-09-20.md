@@ -103,3 +103,7 @@ Se incorpora un job de CI con PostgreSQL 16 y `npm run test:integration`. El blo
 
 ## Bloque pareja → rueda concurrente
 Se prepararon correcciones de orden de locks en `acceptInvitation()`, serialización por categoría de destino y prioridad explícita de bye por antigüedad. Se agregaron 5 pruebas PostgreSQL adicionales: la integración queda en 12/12 escenarios verdes en CI sobre Node 22 + PostgreSQL 16; frontend build verde.
+
+
+## Bloque programación → resultado en validación
+Se agregaron 7 escenarios PostgreSQL end-to-end para programación, revisión de resultado, confirmación rival, versiones coincidentes/incompatibles, resolución Admin, auto-validación por silencio y deadline de 30 días. También se corrigió la falta de notificación al resolver una disputa administrativa. Estado: pendiente del primer CI de este bloque antes de declararlo verde.

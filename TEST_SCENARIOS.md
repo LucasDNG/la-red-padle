@@ -279,3 +279,18 @@ Estos escenarios deben recorrerse manualmente y luego convertirse/confirmarse co
 - assignment nuevo conserva deadline de 30 días;
 - con cantidad impar, el bye corresponde a la pareja con menor antigüedad de espera;
 - una sola pareja elegible sigue esperando sin deadline, deuda ni strike.
+
+
+## Programación → resultado PostgreSQL
+- propuesta crea ventana de respuesta de 48 h;
+- una propuesta nueva no reemplaza la programación oficial anterior hasta doble aceptación;
+- Próximos partidos solo publica una programación confirmada;
+- primera versión abre exactamente una ventana de confirmación de 15 días;
+- la primera versión puede editarse antes de respuesta sin reiniciar esa ventana;
+- confirmación rival oficializa exactamente un match y aplica ladder una sola vez;
+- dos versiones idénticas confirman automáticamente;
+- dos versiones incompatibles llevan el assignment a `disputed`;
+- Admin puede seleccionar una versión o cerrar sin resultado;
+- resolución Admin notifica a los cuatro jugadores afectados;
+- silencio durante 15 días auto-valida la única versión;
+- después del deadline deportivo de 30 días no se admite una nueva carga de resultado.

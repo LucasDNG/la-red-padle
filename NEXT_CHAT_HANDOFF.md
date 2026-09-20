@@ -92,3 +92,9 @@ Se corrigieron dos riesgos detectados por auditoría:
 - prioridad de espera en categorías impares antes del matching de rival.
 
 Se agregaron 5 escenarios PostgreSQL: altas simultáneas, invitaciones compartiendo jugador, `assignWheel()` concurrente, bye impar y pareja sola. CI confirmado: 20/20 tests puros + 12/12 PostgreSQL, Node 22 y frontend build verdes. El siguiente bloque es programación + resultado end-to-end sobre PostgreSQL.
+
+
+### Bloque programación → resultado en validación
+Se agregaron 7 escenarios PostgreSQL que cubren propuesta/aceptación, conservación de programación oficial, revisión de la primera versión, confirmación, matching versions, disputa + resolución Admin, auto-validación a 15 días y rechazo después de 30 días.
+
+También se corrigió que la resolución Admin de disputa no notificaba a ambas parejas. Confirmar CI antes de cerrar el bloque. Si queda verde, el siguiente paso es edge cases de vencimiento/extensión/no-show/pausa/disolución y luego smoke UX.

@@ -132,3 +132,7 @@ Producción objetivo: Node 22. Las pruebas que se hayan ejecutado accidentalment
 `acceptInvitation()` toma locks de usuarios en orden estable antes de bloquear/revalidar la invitación. Luego bloquea la categoría de destino antes de crear o reactivar la pareja y renumerar posiciones. Esto evita deadlocks cuando dos invitaciones comparten jugador y evita colisiones de posición cuando dos parejas distintas ingresan simultáneamente a la misma categoría.
 
 En categorías impares, `createAssignmentsForCategory()` reserva primero como bye a la pareja elegible con menor antigüedad de espera. Sobre las restantes se mantiene la prioridad de rival nunca enfrentado y luego cruce más antiguo. Así la selección de rival no puede quitarle turno a una pareja que lleva más tiempo esperando.
+
+
+## Resolución de disputas y notificaciones
+Una disputa mantiene el assignment abierto y bloqueado para nuevas asignaciones hasta resolución. Si Admin selecciona una versión, el motor aplica el resultado deportivo dentro de la misma transacción y luego cierra el assignment; si lo declara `void`, se cierra sin crear un match. Ambos caminos encolan una notificación idempotente a todos los integrantes afectados y registran auditoría Admin.
