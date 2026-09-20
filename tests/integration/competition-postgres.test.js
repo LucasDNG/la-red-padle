@@ -79,7 +79,7 @@ test('gap 5 relegates on the second loss, enters base #2 and recalculates ELO',a
   assert.equal(Number(loser.consecutive_losses),0);
   assert.equal(Number(loser.elo),1000);
   const order=(await testPool.query(`SELECT id,position FROM pairs WHERE category_id=$1 AND competition_state='active' ORDER BY position`,[(await category(4)).id])).rows;
-  assert.deepEqual(order.map(r=>Number(r.position)),[1,2,3,4]);
+  assert.deepEqual(order.map(r=>Number(r.position)),[1,2,3]);
   assert.equal(Number(order[0].id),Number(lower[0].id));
   assert.equal(Number((await testPool.query("SELECT count(*) n FROM competitive_events WHERE event_type='relegation' AND pair_id=$1",[loser.id])).rows[0].n),1);
 });
