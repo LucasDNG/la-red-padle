@@ -38,6 +38,14 @@ CREATE TABLE users (
       )
     ),
 
+  current_category_number SMALLINT
+    CHECK (
+      current_category_number IS NULL
+      OR
+      current_category_number
+      BETWEEN 1 AND 7
+    ),
+
   created_at TIMESTAMPTZ
     NOT NULL
     DEFAULT now()
@@ -123,6 +131,14 @@ CREATE TABLE pairs (
     NOT NULL
     DEFAULT 1500,
 
+  peak_elo INTEGER
+    NOT NULL
+    DEFAULT 1500,
+
+  peak_elo_at TIMESTAMPTZ
+    NOT NULL
+    DEFAULT now(),
+
   status VARCHAR(20)
     NOT NULL
     DEFAULT 'active'
@@ -143,15 +159,20 @@ CREATE TABLE pairs (
     NOT NULL
     DEFAULT 0,
 
+  archived_at TIMESTAMPTZ,
+
   created_at TIMESTAMPTZ
     NOT NULL
-    DEFAULT now(),
-
-  UNIQUE(
-    category_id,
-    position
-  )
+    DEFAULT now()
 );
+
+CREATE UNIQUE INDEX
+  idx_pairs_active_category_position
+ON pairs(
+  category_id,
+  position
+)
+WHERE status <> 'inactive';
 
 CREATE TABLE pair_members (
   pair_id BIGINT
@@ -503,6 +524,122 @@ CREATE TABLE category_movements (
     NOT NULL
     DEFAULT now()
 );
+
+CREATE TABLE elo_record_history (
+  id BIGSERIAL PRIMARY KEY,
+
+  pair_id BIGINT
+    REFERENCES pairs(id)
+    ON DELETE SET NULL,
+
+  pair_name TEXT
+    NOT NULL,
+
+  elo INTEGER
+    NOT NULL,
+
+  achieved_at TIMESTAMPTZ
+    NOT NULL,
+
+  recorded_at TIMESTAMPTZ
+    NOT NULL
+    DEFAULT now()
+);
+
+CREATE INDEX
+  idx_elo_record_history_elo
+ON elo_record_history(
+  elo DESC,
+  achieved_at ASC,
+  id ASC
+);
+
+CREATE OR REPLACE FUNCTION la_red_keep_peak_elo()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  IF NEW.elo > COALESCE(OLD.peak_elo, OLD.elo) THEN
+    NEW.peak_elo := NEW.elo;
+    NEW.peak_elo_at := now();
+  ELSE
+    NEW.peak_elo := GREATEST(
+      COALESCE(OLD.peak_elo, OLD.elo),
+      NEW.elo
+    );
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_pairs_keep_peak_elo
+BEFORE UPDATE OF elo
+ON pairs
+FOR EACH ROW
+EXECUTE FUNCTION la_red_keep_peak_elo();
+
+CREATE OR REPLACE FUNCTION la_red_sync_member_category()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  category_number SMALLINT;
+BEGIN
+  SELECT c.number
+  INTO category_number
+  FROM pairs p
+  JOIN categories c
+    ON c.id = p.category_id
+  WHERE p.id = NEW.pair_id;
+
+  IF category_number IS NOT NULL THEN
+    UPDATE users
+    SET current_category_number = category_number
+    WHERE id = NEW.user_id;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_pair_members_sync_category
+AFTER INSERT
+ON pair_members
+FOR EACH ROW
+EXECUTE FUNCTION la_red_sync_member_category();
+
+CREATE OR REPLACE FUNCTION la_red_sync_pair_category_change()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+  category_number SMALLINT;
+BEGIN
+  IF NEW.status <> 'inactive' THEN
+    SELECT c.number
+    INTO category_number
+    FROM categories c
+    WHERE c.id = NEW.category_id;
+
+    UPDATE users u
+    SET current_category_number = category_number
+    WHERE u.id IN (
+      SELECT pm.user_id
+      FROM pair_members pm
+      WHERE pm.pair_id = NEW.id
+    );
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_pairs_sync_category_change
+AFTER UPDATE OF category_id
+ON pairs
+FOR EACH ROW
+EXECUTE FUNCTION la_red_sync_pair_category_change();
 
 INSERT INTO leagues(
   slug,

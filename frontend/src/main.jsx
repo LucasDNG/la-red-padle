@@ -8,13 +8,16 @@ import {
   BrowserRouter,
   Link,
   useLocation,
+  useNavigate,
 } from "react-router-dom";
 
 import App from "./App.jsx";
 import AdminReports from "./AdminReports.jsx";
 import Results from "./Results.jsx";
+import PairManager from "./PairManager.jsx";
 
 import "./styles.css";
+import "./layout-fixes.css";
 
 function getUser() {
   try {
@@ -26,6 +29,114 @@ function getUser() {
   } catch {
     return null;
   }
+}
+
+function logout() {
+  localStorage.removeItem(
+    "token"
+  );
+  localStorage.removeItem(
+    "user"
+  );
+  localStorage.removeItem(
+    "justRegistered"
+  );
+
+  window.location.href = "/";
+}
+
+function RegisterChoice() {
+  const navigate = useNavigate();
+  const user = getUser();
+
+  function choose(path) {
+    localStorage.removeItem(
+      "justRegistered"
+    );
+    navigate(path);
+  }
+
+  return (
+    <div className="app">
+      <header className="header">
+        <Link
+          to="/"
+          className="brand"
+        >
+          <span>LA RED</span>
+          <small>
+            PÁDEL · SAN PEDRO
+          </small>
+        </Link>
+
+        <nav className="nav">
+          <Link to="/">
+            Inicio
+          </Link>
+          <Link to="/ranking">
+            Ranking
+          </Link>
+          <Link to="/liga">
+            Mi liga
+          </Link>
+          <Link to="/instalar">
+            Instalar
+          </Link>
+        </nav>
+
+        <div className="header-actions">
+          <span className="header-user">
+            {user?.first_name ||
+              "Mi cuenta"}
+          </span>
+          <button
+            className="header-link"
+            onClick={logout}
+          >
+            Salir
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section className="internal-page welcome-page">
+          <div className="welcome-card">
+            <div className="section-label">
+              CUENTA CREADA
+            </div>
+
+            <h1>
+              Ya estás en La Red.
+            </h1>
+
+            <p>
+              Podés formar tu pareja ahora o seguir recorriendo la app y hacerlo más adelante desde Mi liga.
+            </p>
+
+            <div className="welcome-actions">
+              <button
+                className="button button-green"
+                onClick={() =>
+                  choose("/pareja")
+                }
+              >
+                FORMAR PAREJA
+              </button>
+
+              <button
+                className="button button-outline"
+                onClick={() =>
+                  choose("/")
+                }
+              >
+                MÁS TARDE
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  );
 }
 
 function Root() {
@@ -53,95 +164,73 @@ function Root() {
     );
   }
 
+  if (
+    location.pathname ===
+    "/pareja"
+  ) {
+    return (
+      <PairManager />
+    );
+  }
+
+  if (
+    user &&
+    location.pathname ===
+      "/liga" &&
+    localStorage.getItem(
+      "justRegistered"
+    ) === "1"
+  ) {
+    return (
+      <RegisterChoice />
+    );
+  }
+
+  const onHome =
+    location.pathname === "/";
+
+  const onLeague =
+    location.pathname ===
+    "/liga";
+
   return (
     <>
       <App />
 
-      {user && (
-        <div
-          style={{
-            position:
-              "fixed",
-
-            right: 18,
-
-            bottom: 18,
-
-            zIndex: 100,
-
-            display:
-              "grid",
-
-            gap: 8,
-
-            justifyItems:
-              "end",
-          }}
+      {user && onHome && (
+        <Link
+          className="home-league-entry"
+          to="/liga"
         >
+          MI LIGA
+        </Link>
+      )}
+
+      {user && onLeague && (
+        <div className="league-tools">
+          <Link
+            className="league-tool league-tool-pair"
+            to="/pareja"
+          >
+            PAREJA
+          </Link>
+
+          <Link
+            className="league-tool league-tool-results"
+            to="/resultados"
+          >
+            RESULTADOS
+          </Link>
+
           {user.role ===
             "admin" && (
             <Link
+              className="league-tool league-tool-admin"
               to="/admin/reportes"
-              style={{
-                padding:
-                  "11px 16px",
-
-                borderRadius:
-                  999,
-
-                background:
-                  "var(--blue-light)",
-
-                color:
-                  "#032333",
-
-                boxShadow:
-                  "0 12px 30px rgba(0,0,0,.28)",
-
-                fontSize:
-                  11,
-
-                fontWeight:
-                  900,
-
-                letterSpacing:
-                  ".08em",
-              }}
             >
               ADMIN
             </Link>
           )}
-
-          <Link
-            to="/resultados"
-            style={{
-              padding:
-                "11px 16px",
-
-              borderRadius:
-                999,
-
-              background:
-                "var(--green)",
-
-              color:
-                "#032333",
-
-              boxShadow:
-                "0 12px 30px rgba(0,0,0,.28)",
-
-              fontSize:
-                11,
-
-              fontWeight:
-                900,
-
-              letterSpacing:
-                ".08em",
-            }}
-          >
-            RESULTADOS
-          </Link>
         </div>
       )}
     </>

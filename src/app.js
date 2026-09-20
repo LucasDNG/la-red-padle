@@ -10,7 +10,6 @@ import {
 } from "./auth.js";
 
 import {
-  registerPair,
   createChallenge,
   reportPair,
   maintenance,
@@ -40,6 +39,13 @@ import {
   adminDisputedMatchSubmissions,
   adminResolveMatchSubmission,
 } from "./matchResults.js";
+
+import {
+  pairManagement,
+  registerStablePair,
+  dissolveCurrentPair,
+  eloRecords,
+} from "./pairLifecycle.js";
 
 export const app = express();
 
@@ -136,7 +142,8 @@ app.post(
             last_name,
             email,
             gender,
-            role
+            role,
+            current_category_number
         `,
         [
           firstName,
@@ -210,6 +217,9 @@ app.post(
 
         role:
           user.role,
+
+        current_category_number:
+          user.current_category_number,
       },
     });
   })
@@ -240,6 +250,18 @@ app.get(
 );
 
 app.get(
+  "/api/me/pair-management",
+  auth,
+  wrap(async (req, res) => {
+    res.json(
+      await pairManagement(
+        req.user.id
+      )
+    );
+  })
+);
+
+app.get(
   "/api/opponents",
   auth,
   wrap(async (req, res) => {
@@ -256,13 +278,36 @@ app.post(
   auth,
   wrap(async (req, res) => {
     res.status(201).json(
-      await registerPair(
+      await registerStablePair(
         req.user.id,
-        req.body.partnerId,
+        Number(
+          req.body.partnerId
+        ),
         Number(
           req.body.category
         )
       )
+    );
+  })
+);
+
+app.delete(
+  "/api/pairs/current",
+  auth,
+  wrap(async (req, res) => {
+    res.json(
+      await dissolveCurrentPair(
+        req.user.id
+      )
+    );
+  })
+);
+
+app.get(
+  "/api/elo-records",
+  wrap(async (req, res) => {
+    res.json(
+      await eloRecords()
     );
   })
 );
@@ -585,11 +630,14 @@ app.use(
           "Error interno";
 
     const status =
-      err.code?.startsWith?.(
-        "23"
-      )
-        ? 400
-        : 500;
+      err.statusCode ||
+      (
+        err.code?.startsWith?.(
+          "23"
+        )
+          ? 400
+          : 500
+      );
 
     res
       .status(status)

@@ -23,3 +23,22 @@ api.interceptors.request.use(
     return config;
   }
 );
+
+api.interceptors.response.use(
+  (response) => {
+    if (
+      response.config?.url ===
+        "/auth/register" &&
+      response.status === 201
+    ) {
+      localStorage.setItem(
+        "justRegistered",
+        "1"
+      );
+    }
+
+    return response;
+  },
+  (error) =>
+    Promise.reject(error)
+);
