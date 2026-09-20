@@ -919,6 +919,86 @@ select:focus {
   color: var(--muted);
 }
 
+/* Ajustes de Mi liga */
+.league-page .page-title-row {
+  margin-bottom: 62px;
+}
+
+.league-page .page-title-row h1 {
+  margin: 14px 0 18px;
+}
+
+.league-page .page-title-row p {
+  line-height: 1.55;
+}
+
+/*
+  Si todavía no hay otro jugador disponible para formar pareja,
+  dejamos claro que el registro ya terminó correctamente y que
+  la elección de compañero se hace después, desde Mi liga.
+*/
+.league-page
+  .league-dashboard
+  > .dashboard-card:first-child:has(label:first-of-type select option:only-child)
+  .dashboard-number {
+  font-size: 0;
+}
+
+.league-page
+  .league-dashboard
+  > .dashboard-card:first-child:has(label:first-of-type select option:only-child)
+  .dashboard-number::after {
+  content: "CUENTA CREADA";
+  font-size: 10px;
+}
+
+.league-page
+  .league-dashboard
+  > .dashboard-card:first-child:has(label:first-of-type select option:only-child)
+  > h2 {
+  margin-top: 14px;
+  font-size: 0;
+}
+
+.league-page
+  .league-dashboard
+  > .dashboard-card:first-child:has(label:first-of-type select option:only-child)
+  > h2::after {
+  content: "Ya estás adentro";
+  font-size: 31px;
+}
+
+.league-page
+  .league-dashboard
+  > .dashboard-card:first-child:has(label:first-of-type select option:only-child)
+  > p,
+.league-page
+  .league-dashboard
+  > .dashboard-card:first-child:has(label:first-of-type select option:only-child)
+  > label,
+.league-page
+  .league-dashboard
+  > .dashboard-card:first-child:has(label:first-of-type select option:only-child)
+  > .dashboard-button {
+  display: none;
+}
+
+.league-page
+  .league-dashboard
+  > .dashboard-card:first-child:has(label:first-of-type select option:only-child)::after {
+  content: "Tu cuenta ya está lista. Cuando se registre otro jugador de tu liga vas a poder elegir compañero/a y categoría desde esta misma pantalla.";
+  display: block;
+  max-width: 460px;
+  margin-top: 22px;
+  padding: 22px;
+  border: 1px solid rgba(98, 239, 77, 0.26);
+  border-radius: 12px;
+  background: rgba(98, 239, 77, 0.07);
+  color: #d8f7d2;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
 @media (max-width: 1050px) {
   .header {
     grid-template-columns: 1fr auto;
@@ -1104,6 +1184,14 @@ select:focus {
 
   .page-title-row h1 {
     font-size: 62px;
+  }
+
+  .league-page .page-title-row {
+    margin-bottom: 48px;
+  }
+
+  .league-page .page-title-row h1 {
+    margin-bottom: 15px;
   }
 
   .gender-switch {
