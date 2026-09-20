@@ -55,7 +55,7 @@ Este checkpoint representa el estado real de LA RED inmediatamente antes del pr�
 - auditoría/canchas/disputas/disciplina/salud del sistema están implementados y pendientes de recorrido completo con datos reales.
 
 ### Tests
-- suite pura/simulación: 15/15 verde en el candidato actual.
+- suite pura/simulación: 20/20 verde en el candidato actual.
 - simulación larga incluida en la suite.
 - los tests automáticos todavía no sustituyen las pruebas de integración PostgreSQL/concurrencia que faltan.
 
@@ -91,3 +91,7 @@ Los `.md` son la memoria oficial del proyecto. Si chat y documentación difieren
 
 ## Post-push: equilibrio de categorías
 La auditoría por simulación cambió una regla: el descenso deja de ser completamente independiente de población. Mantiene 3 derrotas consecutivas como base, pero baja a 2 cuando la categoría tiene al menos 5 parejas activas más que la inmediatamente inferior. Ver `SIMULATION_AUDIT_2026-09-20.md`.
+
+
+## Post-push: validación ampliada de equilibrio
+La auditoría ampliada a 5/10/20 años confirmó la válvula vigente `gap >= 5 => 2 derrotas` frente a P3/R3, P3/R5, gaps 4/6 y P4/R3. R5 queda descartado. La suite sube a 20/20 con regresiones longitudinales. El siguiente bloque es integración PostgreSQL del movimiento real.

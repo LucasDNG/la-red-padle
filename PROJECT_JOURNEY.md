@@ -93,3 +93,7 @@ La próxima etapa no es “seguir construyendo por construir”; es buscar incon
 
 ## Ajuste longitudinal de descenso
 Después del primer push limpio se dejó de depender de pruebas manuales largas y se empezó a simular años completos. La regla 3/3 mostró una deriva de población hacia arriba. Se consideró bajar con 5 derrotas, pero el cálculo de rachas demostró que cinco consecutivas harían el descenso mucho más raro. Se adoptó una válvula más conservadora: 3 derrotas por defecto y 2 únicamente cuando la categoría superior inmediata acumula una diferencia de cinco o más parejas activas sobre la inferior.
+
+
+## Validación longitudinal ampliada
+La primera válvula de equilibrio no se dio por buena solo por una corrida a 20 años. Se amplió el modelo para medir 5/10/20 años, conservar las mismas semillas y comparar alternativas de ascenso/descenso. La hipótesis de cinco derrotas quedó descartada con matemática de rachas y Monte Carlo; endurecer el ascenso a cuatro victorias mostró la sobrecorrección opuesta. Entre gaps 4/5/6, el gap 5 vigente quedó como el compromiso más estable a largo plazo. La regla no cambió: cambió la calidad de la evidencia y quedaron regresiones automáticas para impedir que una futura edición reintroduzca la deriva.

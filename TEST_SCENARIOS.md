@@ -250,4 +250,8 @@ Estos escenarios deben recorrerse manualmente y luego convertirse/confirmarse co
 - 7ª nunca desciende;
 - el cambio de umbral no mueve parejas por sí mismo: solo afecta una derrota deportiva posterior de la última;
 - al bajar la diferencia por debajo de 5, el umbral vuelve a 3;
-- la simulación reproducible `npm run simulate:balance` debe comparar la regla anterior contra la válvula nueva a 20 años.
+- `npm run simulate:balance` compara P3/R3, P3/R5, gaps 4/5/6 y P4/R3 a 5/10/20 años;
+- la simulación conserva las 84 parejas y mide población, ascensos, descensos, categorías vacías y RMSE de estabilidad;
+- R5 debe permanecer como regresión negativa: a 20 años no puede comportarse mejor que la válvula vigente;
+- test automático: gap 5 debe balancear ascensos/descensos y superar a gap 4/6 como compromiso a 20 años bajo las semillas de auditoría;
+- siguiente bloque de integración PostgreSQL: frontera exacta 4/5, descenso exactamente una vez, entrada base #2/deuda, renumeración, ELO e idempotencia/concurrencia.

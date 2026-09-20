@@ -21,7 +21,7 @@ Si el chat anterior y los `.md` difieren, prevalece el estado documentado más r
 ## Estado de producto al cerrar este chat
 
 - Motor activo: `wheel-v2`.
-- Candidato de referencia antes de esta auditoría: package `5.0.8`.
+- Package actual: `5.0.9`.
 - Neon nueva activa; la Neon histórica fue eliminada y no existe como backup.
 - Registro con DNI + frente/dorso: probado.
 - Admin privado `/admin-la-red`: probado.
@@ -29,42 +29,38 @@ Si el chat anterior y los `.md` difieren, prevalece el estado documentado más r
 - Purga de documentación temporal: probada.
 - Reenvío de DNI: implementado.
 - CI del checkpoint anterior en Node 22: verde.
-- Suite conocida: 14/14 tests verdes antes de la auditoría longitudinal.
+- Suite actual después de la auditoría ampliada: 20/20 tests verdes.
 - No asumir todavía que el ciclo deportivo completo está validado en integración real.
 
 ## Auditoría longitudinal ya realizada
 
-Se corrieron simulaciones largas sobre el modelo competitivo.
+La deriva de categorías fue simulada y la regla vigente quedó validada con una auditoría ampliada a 5, 10 y 20 años.
 
-Hallazgos principales:
-
-1. La escalera básica, selección de rivales y ELO posicional mantuvieron sus invariantes en cientos de miles de operaciones.
-2. En simulaciones de 7 categorías apareció una posible deriva de población hacia categorías superiores, especialmente Primera.
-3. El problema todavía NO está resuelto ni debe considerarse una regla modificada.
-4. Existe un bug/inconsistencia probable: un no-show objetado e indeterminado puede incrementar `monthly_miss_streak` a ambas parejas aunque la regla exige que la auto-pausa dependa de incumplimientos atribuibles.
+Hallazgos:
+1. P3/R3 fijo deriva hacia categorías superiores.
+2. La hipótesis de 5 derrotas para descender fue medida y descartada: reduce demasiado el flujo descendente y agrava fuertemente la acumulación en Primera.
+3. P4/R3 sobrecorrige hacia categorías inferiores.
+4. Entre válvulas adaptativas gap 4/5/6, gap 5 da el mejor compromiso medido a 20 años.
+5. La regla vigente queda sin cambios: 3 derrotas normalmente; 2 si la categoría tiene al menos 5 parejas activas más que la inferior.
+6. El simulador ahora mide población, ascensos, descensos, categorías vacías y RMSE de estabilidad en 5/10/20 años.
+7. Sigue pendiente auditar la inconsistencia probable de no-show objetado/indeterminado y `monthly_miss_streak`.
 
 ## Próximo problema a resolver
 
-Analizar matemáticamente y por simulación cómo estabilizar la distribución entre categorías SIN romper la filosofía de escalera.
+Pasar a integración PostgreSQL del ascenso/descenso y la válvula de equilibrio, sin pedir pruebas manuales largas.
 
-Regla vigente de referencia:
-- #1 + 3 victorias consecutivas => asciende una categoría.
-- último + 3 derrotas consecutivas => desciende una categoría.
-- Primera no asciende.
-- 7ª no desciende.
+El próximo bloque debe:
+1. probar diferencia poblacional 4 => umbral de descenso 3;
+2. probar diferencia 5 => umbral 2;
+3. confirmar que el cambio de población no mueve parejas por sí solo;
+4. confirmar que una derrota deportiva posterior de la última dispara el movimiento exactamente una vez;
+5. validar entrada base #2, deuda, renumeración y ELO;
+6. validar ascenso al fondo activo;
+7. probar retries/concurrencia/idempotencia;
+8. recién después hacer smoke manual de UX.
 
-Propuesta del usuario AÚN NO APROBADA:
-- considerar que el último necesite 5 derrotas para descender.
-
-Importante: esa propuesta puede empeorar la deriva hacia arriba porque reduciría descensos. No adoptarla sin simularla.
-
-El próximo chat debe:
-1. construir/usar simulaciones reproducibles;
-2. comparar varias reglas de ascenso/descenso;
-3. medir población por categoría, flujos de ascenso/descenso, categorías vacías y estabilidad a 5/10/20 años;
-4. explicar cuál variante estabiliza mejor y por qué;
-5. recién después proponer un cambio de regla;
-6. actualizar `.md` + tests junto con cualquier cambio aceptado.
+Simulación reproducible: `npm run simulate:balance`.
+Suite actual: 20/20.
 
 ## Metodología
 

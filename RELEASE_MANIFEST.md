@@ -31,11 +31,11 @@
 ## Cambios posteriores al checkpoint
 
 - válvula longitudinal de descenso 2/3 según diferencia de población adyacente;
-- simulador reproducible de balance a 20 años.
+- simulador reproducible de balance a 5/10/20 años con variantes P3/R3, P3/R5, gaps 4/5/6 y P4/R3;
 
 ## Validación conocida
 - backend syntax/check en candidatos previos: verde;
-- suite actual: 15/15 tests verdes;
+- suite actual: 20/20 tests verdes;
 - verificación de identidad probada manualmente con éxito;
 - base Neon nueva conectada.
 
