@@ -126,3 +126,9 @@ Producción objetivo: Node 22. Las pruebas que se hayan ejecutado accidentalment
 
 ## Concurrencia de resultados deportivos
 `applySportingResult()` serializa por `wheel_assignments.id` antes de comprobar idempotencia y bloquea en orden la categoría del partido y sus adyacentes. Esto evita que dos retries simultáneos apliquen el mismo match dos veces y que ascensos/descensos concurrentes hacia una misma categoría choquen por posiciones transitorias. El bloqueo es transaccional y no cambia ninguna regla deportiva.
+
+
+## Concurrencia de formación de pareja y prioridad de bye
+`acceptInvitation()` toma locks de usuarios en orden estable antes de bloquear/revalidar la invitación. Luego bloquea la categoría de destino antes de crear o reactivar la pareja y renumerar posiciones. Esto evita deadlocks cuando dos invitaciones comparten jugador y evita colisiones de posición cuando dos parejas distintas ingresan simultáneamente a la misma categoría.
+
+En categorías impares, `createAssignmentsForCategory()` reserva primero como bye a la pareja elegible con menor antigüedad de espera. Sobre las restantes se mantiene la prioridad de rival nunca enfrentado y luego cruce más antiguo. Así la selección de rival no puede quitarle turno a una pareja que lleva más tiempo esperando.

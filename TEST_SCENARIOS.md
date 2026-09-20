@@ -268,3 +268,14 @@ Estos escenarios deben recorrerse manualmente y luego convertirse/confirmarse co
 - promoción y descenso concurrentes hacia una misma categoría conservan posiciones únicas y contiguas;
 - no-show objetado penaliza posición a ambas sin sumar `monthly_miss_streak`;
 - estos casos corren en PostgreSQL 16 dentro de CI, no mediante simulación manual.
+
+
+## Pareja y rueda bajo concurrencia
+- dos aceptaciones independientes en la misma categoría pueden completarse en paralelo y terminan con posiciones únicas/contiguas;
+- dos invitaciones concurrentes que comparten un jugador no producen deadlock y solo una puede crear membresía vigente;
+- un usuario conserva como máximo una fila en `active_pair_memberships`;
+- dos ejecuciones simultáneas de `assignWheel()` no duplican assignments;
+- cada pareja aparece como máximo en un assignment abierto;
+- assignment nuevo conserva deadline de 30 días;
+- con cantidad impar, el bye corresponde a la pareja con menor antigüedad de espera;
+- una sola pareja elegible sigue esperando sin deadline, deuda ni strike.

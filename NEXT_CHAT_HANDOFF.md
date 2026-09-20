@@ -84,3 +84,11 @@ Antes de seguir con otro bloque:
 2. probar concurrencia de dos aceptaciones/altas en la misma categoría y máxima una membresía vigente;
 3. probar assignWheel concurrente, máximo un assignment por pareja, odd/byes y waiting time;
 4. después programación/resultado end-to-end.
+
+
+### Bloque pareja → rueda en validación
+Se corrigieron dos riesgos detectados por auditoría:
+- orden de locks/posición transitoria al aceptar parejas concurrentemente;
+- prioridad de espera en categorías impares antes del matching de rival.
+
+Se agregaron 5 escenarios PostgreSQL: altas simultáneas, invitaciones compartiendo jugador, `assignWheel()` concurrente, bye impar y pareja sola. Confirmar CI antes de marcar este bloque como cerrado. Si queda verde, el siguiente bloque es programación + resultado end-to-end sobre PostgreSQL.
