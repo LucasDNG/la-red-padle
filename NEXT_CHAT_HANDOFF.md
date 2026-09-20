@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 20/20 tests puros + 7/7 integración PostgreSQL, CI verde en Node 22/PostgreSQL 16.
+Suite actual: 20/20 tests puros + 12/12 integración PostgreSQL, CI verde en Node 22/PostgreSQL 16.
 
 ## Metodología
 
@@ -91,4 +91,4 @@ Se corrigieron dos riesgos detectados por auditoría:
 - orden de locks/posición transitoria al aceptar parejas concurrentemente;
 - prioridad de espera en categorías impares antes del matching de rival.
 
-Se agregaron 5 escenarios PostgreSQL: altas simultáneas, invitaciones compartiendo jugador, `assignWheel()` concurrente, bye impar y pareja sola. Confirmar CI antes de marcar este bloque como cerrado. Si queda verde, el siguiente bloque es programación + resultado end-to-end sobre PostgreSQL.
+Se agregaron 5 escenarios PostgreSQL: altas simultáneas, invitaciones compartiendo jugador, `assignWheel()` concurrente, bye impar y pareja sola. CI confirmado: 20/20 tests puros + 12/12 PostgreSQL, Node 22 y frontend build verdes. El siguiente bloque es programación + resultado end-to-end sobre PostgreSQL.
