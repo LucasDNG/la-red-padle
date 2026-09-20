@@ -255,3 +255,16 @@ Estos escenarios deben recorrerse manualmente y luego convertirse/confirmarse co
 - R5 debe permanecer como regresión negativa: a 20 años no puede comportarse mejor que la válvula vigente;
 - test automático: gap 5 debe balancear ascensos/descensos y superar a gap 4/6 como compromiso a 20 años bajo las semillas de auditoría;
 - siguiente bloque de integración PostgreSQL: frontera exacta 4/5, descenso exactamente una vez, entrada base #2/deuda, renumeración, ELO e idempotencia/concurrencia.
+
+
+## Integración PostgreSQL automática
+- gap 4 + segunda derrota de la última => no desciende;
+- gap 5 + segunda derrota de la última => desciende;
+- descenso entra base #2;
+- deuda empuja la entrada y conserva deuda no materializable;
+- ELO se recalcula después del movimiento;
+- ascenso entra al fondo activo;
+- dos retries simultáneos del mismo resultado crean exactamente un match/evento y una sola actualización de rachas;
+- promoción y descenso concurrentes hacia una misma categoría conservan posiciones únicas y contiguas;
+- no-show objetado penaliza posición a ambas sin sumar `monthly_miss_streak`;
+- estos casos corren en PostgreSQL 16 dentro de CI, no mediante simulación manual.

@@ -95,3 +95,7 @@ La auditoría por simulación cambió una regla: el descenso deja de ser complet
 
 ## Post-push: validación ampliada de equilibrio
 La auditoría ampliada a 5/10/20 años confirmó la válvula vigente `gap >= 5 => 2 derrotas` frente a P3/R3, P3/R5, gaps 4/6 y P4/R3. R5 queda descartado. La suite sube a 20/20 con regresiones longitudinales. El siguiente bloque es integración PostgreSQL del movimiento real.
+
+
+## Integración PostgreSQL automatizada
+Se incorpora un job de CI con PostgreSQL 16 y `npm run test:integration`. El bloque cubre frontera gap 4/5, entrada de descenso #2, deuda remanente, ELO, ascenso al fondo, retry concurrente exactamente una vez, movimientos concurrentes hacia la misma categoría y no-show objetado sin strike atribuible. Estado de este commit: pendiente de confirmar el primer run del nuevo job.

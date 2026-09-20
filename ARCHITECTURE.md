@@ -122,3 +122,7 @@ Producción objetivo: Node 22. Las pruebas que se hayan ejecutado accidentalment
 
 ## Válvula de equilibrio entre categorías
 `core.relegationLossThreshold()` concentra el umbral puro de descenso. `competitionEngine.applySportingResult()` consulta cantidades activas de la categoría actual e inferior y aplica 2 o 3 derrotas según la diferencia. No existe job que mueva parejas por población: el movimiento ocurre únicamente al confirmar un resultado deportivo.
+
+
+## Concurrencia de resultados deportivos
+`applySportingResult()` serializa por `wheel_assignments.id` antes de comprobar idempotencia y bloquea en orden la categoría del partido y sus adyacentes. Esto evita que dos retries simultáneos apliquen el mismo match dos veces y que ascensos/descensos concurrentes hacia una misma categoría choquen por posiciones transitorias. El bloqueo es transaccional y no cambia ninguna regla deportiva.

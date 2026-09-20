@@ -14,7 +14,8 @@
     "admin:promote": "node scripts/promote-admin.js",
     "admin:totp-secret": "node scripts/totp-secret.js",
     "admin:bootstrap": "node scripts/promote-admin.js",
-    "simulate:balance": "node scripts/simulate-category-balance.js"
+    "simulate:balance": "node scripts/simulate-category-balance.js",
+    "test:integration": "node --test --test-concurrency=1 tests/integration/*.test.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

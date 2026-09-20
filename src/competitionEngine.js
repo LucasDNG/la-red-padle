@@ -5,6 +5,12 @@ export async function event(client,sourceKey,eventType,{pairId=null,userId=null,
   return (await q(client,`INSERT INTO competitive_events(source_key,event_type,pair_id,user_id,assignment_id,data) VALUES($1,$2,$3,$4,$5,$6::jsonb) ON CONFLICT(source_key) DO NOTHING RETURNING *`,[sourceKey,eventType,pairId,userId,assignmentId,JSON.stringify(data)])).rows[0]||null;
 }
 export async function pairName(client,pairId){return (await q(client,`SELECT string_agg(u.first_name||' '||u.last_name,' / ' ORDER BY u.id) name FROM pair_members pm JOIN users u ON u.id=pm.user_id WHERE pm.pair_id=$1`,[pairId])).rows[0].name;}
+async function lockSportingScope(client,categoryId){
+  const current=(await q(client,`SELECT league_id,number FROM categories WHERE id=$1`,[categoryId])).rows[0];
+  if(!current)throw new Error('Categoría inexistente');
+  const low=Math.max(1,Number(current.number)-1),high=Math.min(7,Number(current.number)+1);
+  await q(client,`SELECT id FROM categories WHERE league_id=$1 AND number BETWEEN $2 AND $3 ORDER BY number FOR UPDATE`,[current.league_id,low,high]);
+}
 export async function renumberCategory(client,categoryId){
   const rows=(await q(client,`SELECT id,competition_state FROM pairs WHERE category_id=$1 AND competition_state<>'inactive' ORDER BY CASE WHEN competition_state='active' THEN 0 ELSE 1 END,position,id FOR UPDATE`,[categoryId])).rows;
   if(!rows.length)return;
@@ -67,7 +73,10 @@ export async function applyPositionPenalties(client,pairIds,{sourceKey='penalty'
   for(const id of ids)await event(client,`${sourceKey}:pair:${id}`,'position_penalty',{pairId:id,data:{reason:sourceKey}});
 }
 export async function applySportingResult(client,{assignment,winnerPairId,resultType,score,playedAt,source}){
-  const key=`match:${assignment.id}`; const exists=(await q(client,`SELECT id FROM matches WHERE assignment_id=$1`,[assignment.id])).rows[0]; if(exists)return exists;
+  const key=`match:${assignment.id}`;
+  await q(client,`SELECT id FROM wheel_assignments WHERE id=$1 FOR UPDATE`,[assignment.id]);
+  const exists=(await q(client,`SELECT id FROM matches WHERE assignment_id=$1`,[assignment.id])).rows[0]; if(exists)return exists;
+  await lockSportingScope(client,assignment.category_id);
   const pairIds=[Number(assignment.pair_a_id),Number(assignment.pair_b_id)]; const loserPairId=pairIds.find(x=>x!==Number(winnerPairId));
   const locked=(await q(client,`SELECT id,category_id,position,consecutive_wins,consecutive_losses,first_place_defenses FROM pairs WHERE id=ANY($1::bigint[]) FOR UPDATE`,[pairIds])).rows; const before=Object.fromEntries(locked.map(r=>[r.id,{...r}]));
   const games=resultType==='normal'?scoreGames(score):{a:0,b:0};

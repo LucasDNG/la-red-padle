@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 20/20.
+Suite pura actual: 20/20. Se agregó suite PostgreSQL separada; confirmar su primer run de CI antes de declararla verde.
 
 ## Metodología
 
@@ -74,3 +74,12 @@ Suite actual: 20/20.
 ## Regla de continuidad
 
 Los `.md` son la memoria oficial del proyecto. El objetivo de este archivo es que un chat nuevo pueda reconstruir el contexto sin depender de un resumen informal del chat anterior.
+
+
+### Cambio en curso: integración PostgreSQL
+Se agregó `npm run test:integration` y PostgreSQL 16 como service de GitHub Actions. También se corrigió el bug de no-show objetado que sumaba strikes no atribuibles y se endureció la concurrencia de `applySportingResult()`.
+
+Antes de seguir con otro bloque:
+1. confirmar CI del commit que introdujo estos cambios;
+2. si está verde, actualizar este handoff/checkpoint con el resultado;
+3. después continuar pareja/rueda y demás integración real.
