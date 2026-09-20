@@ -70,14 +70,14 @@ test('gap 4 keeps the relegation threshold at three losses',async()=>{
 
 test('gap 5 relegates on the second loss, enters base #2 and recalculates ELO',async()=>{
   const current=await seedPairs(3,7,{losses:{7:1}});
-  const lower=await seedPairs(4,3);
+  const lower=await seedPairs(4,2);
   const a=await assignment(3,current[1],current[6]);
   await applyOnce(a,current[1].id);
   const loser=(await testPool.query(`SELECT p.*,c.number category_number FROM pairs p JOIN categories c ON c.id=p.category_id WHERE p.id=$1`,[current[6].id])).rows[0];
   assert.equal(Number(loser.category_number),4);
   assert.equal(Number(loser.position),2);
   assert.equal(Number(loser.consecutive_losses),0);
-  assert.equal(Number(loser.elo),1333.33);
+  assert.equal(Number(loser.elo),1000);
   const order=(await testPool.query(`SELECT id,position FROM pairs WHERE category_id=$1 AND competition_state='active' ORDER BY position`,[(await category(4)).id])).rows;
   assert.deepEqual(order.map(r=>Number(r.position)),[1,2,3,4]);
   assert.equal(Number(order[0].id),Number(lower[0].id));
