@@ -195,3 +195,110 @@ Los umbrales de 180 días pueden abrir/escalar disciplina, pero un estado discip
 ### Calidad técnica a cargo del sistema
 
 Se decide resolver como requisitos técnicos internos: restricciones de base para denuncias, prevención de duplicados concurrentes, tests automáticos del motor y demás invariantes de integridad. No requieren decisiones operativas del usuario salvo que cambien una regla deportiva.
+
+
+### Autonomía administrativa como principio de diseño
+
+Se fija como objetivo que administración intervenga únicamente en excepciones no deterministas. Asignaciones, vencimientos, penalizaciones, auto-validación, pausas automáticas, movimientos y estadísticas deben resolverse sin intervención humana.
+
+### Consentimiento para formar pareja
+
+Seleccionar a otro jugador ya no debe crear unilateralmente una pareja. El flujo final usa invitación + aceptación. La base debe impedir doble pertenencia concurrente. Si exactamente los mismos dos jugadores vuelven a jugar juntos tras haber archivado su pareja, se reactiva esa identidad histórica en vez de crear una identidad paralela.
+
+### Coordinación objetiva de la rueda
+
+Las propuestas y respuestas de fecha/hora se registran dentro de la app. Esto permite resolver la mayoría de los vencimientos de 30 días sin administrador: ninguno actuó => ambos incumplen; solo uno actuó y el otro nunca respondió => incumple el no respondedor; ambos actuaron pero no acordaron/jugaron => incumplen ambos.
+
+Los no-show sobre una fecha acordada tienen una ventana breve de contestación. Solo una contradicción real pasa a administración.
+
+### Pausa programada después del compromiso
+
+Se incorpora `pausar al terminar este partido`. No cancela ni altera el compromiso actual y evita que la rueda asigne uno nuevo inmediatamente después. Resuelve viajes/vacaciones planificados sin crear una vía de escape.
+
+Una pausa voluntaria no borra un incumplimiento mensual previo. La pausa automática por dos incumplimientos sí inicia un nuevo ciclo de contador al reactivar.
+
+### Disciplina sin reapertura automática
+
+Al resolver un caso disciplinario se registra un punto de corte (`discipline_resolved_at`). Los umbrales futuros se calculan con hechos posteriores a esa resolución, conservando el historial pero evitando que el mismo conjunto de denuncias reabra el caso inmediatamente.
+
+Una pareja con disciplina abierta tampoco puede disolverse por autoservicio para escapar del caso.
+
+### Ascenso, descenso vacío y ELO en pausa
+
+- El ascendido entra al fondo del bloque competitivo activo de la categoría superior.
+- Si la categoría inferior está completamente vacía de parejas activas, una pareja descendida entra #1 porque no desplaza a nadie.
+- Las parejas `paused` quedan fuera del denominador del ELO y muestran 0.
+- Las parejas competitivamente `active` siguen dentro del bloque/ELO aunque tengan disciplina temporalmente bloqueada.
+- Se reemplaza la idea de un récord absoluto único: Primera Masculina y Primera Femenina tienen récords históricos independientes.
+
+### Resultado y marcador
+
+La primera versión de resultado puede corregirse hasta que responda el rival, sin reiniciar el reloj de 15 días y dejando auditoría. Si administración rechaza ambas versiones, la asignación se cierra `void`: no crea partido ni sanción deportiva automática.
+
+Los nuevos marcadores se guardan estructurados; un super tie-break se identifica como tal y no suma sus puntos a la diferencia de games.
+
+### Récord de Primera separado por circuito
+
+Se corrige la decisión anterior de un récord absoluto único. Existen dos récords históricos permanentes: Primera Masculina y Primera Femenina. Cada uno guarda su propia pareja, máximo ELO y defensas. La portada muestra ambos por separado.
+
+### Cartelera pública de próximos partidos
+
+La web incorpora una cartelera pública. Un compromiso solo aparece cuando ambas parejas acordaron fecha, hora y lugar. La aceptación de la segunda pareja publica/actualiza automáticamente el partido; no requiere aprobación administrativa. La cartelera no expone contactos ni notas privadas.
+
+### Lugares administrables
+
+Los lugares/canchas se gestionan desde administración y no quedan codificados en el frontend. Administración puede agregar, editar y retirar de disponibilidad. Si un lugar ya tiene historial se archiva en vez de borrarse físicamente. Puede marcarse como sede asociada/recomendada para acuerdos comerciales.
+
+Una desactivación impide nuevas selecciones pero no borra ni cambia silenciosamente partidos históricos o programaciones ya confirmadas.
+
+
+### Ronda de producto: autonomía, identidad y UX
+
+Se incorporan como decisiones vigentes:
+
+- WhatsApp como canal fundamental de notificación; LA RED sigue siendo la fuente oficial.
+- `MI LIGA` se diseña alrededor de “¿Qué me toca hacer ahora?”.
+- La liga es continua y no se reinicia por año.
+- Zona horaria oficial: `America/Argentina/Buenos_Aires`.
+- Registro con DNI único; login con DNI + contraseña; verificación administrativa previa a competir.
+- Recuperación de contraseña y cambio de teléfono mediante validación por WhatsApp; DNI modificable solo por administración con auditoría.
+- Invitación de formación de pareja única, cancelable y con vencimiento de 10 días.
+- El teléfono/WhatsApp del rival solo está disponible mientras existe el compromiso abierto.
+- Dentro de los 30 días se pueden cambiar fecha/hora/lugar por acuerdo mutuo sin consumir prórroga; la última programación confirmada sigue vigente hasta que ambos acepten otra.
+- Al vencer los 30 días, una causa externa confirmada por ambas parejas habilita una única extensión extraordinaria de 15 días.
+- Si la prórroga extraordinaria también vence sin resolución, ambas parejas pierden una posición/deuda; no cuenta como derrota deportiva ni como falta para pausa automática.
+- No-show: 48 horas para objetar. Silencio => incumplimiento atribuible; contradicción operativa no debe frenar la liga y se resuelve por penalización de posición según regla automática.
+- Resultado `LESIÓN / ABANDONO`: victoria/derrota deportiva normal, sin sets parciales, sin games y sin penalización extra.
+- La pausa voluntaria requiere a ambos; la disolución puede iniciarla cualquiera y se resuelve en hasta 7 días, sin borrar obligaciones.
+- Una asignación todavía sin jugar que siga abierta al cumplirse el plazo de disolución se resuelve como derrota deportiva de la pareja que se disuelve; un resultado ya cargado sigue su flujo normal.
+- Formar pareja con alguien de categoría más fuerte no cambia automáticamente la categoría individual del jugador arrastrado. Solo movimientos deportivos reales cambian categorías individuales.
+- Disciplina individual y disciplina de pareja son dimensiones separadas; la individual sigue al jugador al cambiar de compañero.
+- Historial explicativo, perfiles deportivos y microexplicaciones pasan a ser parte de la experiencia obligatoria.
+- Las acciones administrativas importantes quedan auditadas y, cuando sea seguro, son corregibles sin editar la base manualmente.
+
+
+### Legal, seguridad y modelo comercial futuro
+
+Se decide que la capa legal y de seguridad forma parte obligatoria del producto, no del acabado final.
+
+- Primera versión: mayores de 18 años.
+- Registro con aceptación versionada de términos, riesgos, conducta, privacidad y WhatsApp.
+- No se intentará una renuncia absoluta de responsabilidad.
+- La versión final será revisada por abogado argentino antes del lanzamiento.
+- Se evaluará seguro de responsabilidad civil/accidentes deportivos.
+- No se almacenarán diagnósticos médicos.
+- LA RED no se definirá como “sin fines de lucro” ni prometerá gratuidad permanente.
+- La etapa inicial puede ser gratuita para adopción.
+- Dirección comercial futura: acuerdos con canchas, reservas/pagos desde LA RED y comisión B2B a sedes.
+- La arquitectura debe evitar custodiar fondos de terceros innecesariamente y deberá apoyarse en un proveedor de pagos apropiado.
+- Antes de monetizar: revisión legal, contable, tributaria y contractual.
+
+### Producto multiplataforma y notificaciones
+
+LA RED se diseña como el mismo producto en web, Android e iPhone.
+
+WhatsApp es canal operativo principal y los eventos relevantes de la pareja se notifican a ambos integrantes. Las apps móviles podrán sumar push, sin cambiar la fuente oficial ni el motor competitivo.
+
+### El recorrido del proyecto se documenta
+
+Se crea `PROJECT_JOURNEY.md` para conservar la evolución, problemas descubiertos, principios y decisiones que forman parte del camino de LA RED.

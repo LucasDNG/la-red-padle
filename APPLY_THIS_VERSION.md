@@ -1,21 +1,26 @@
-# Aplicar esta versión — ARCHIVO HISTÓRICO
+# Aplicar checkpoint del camino de LA RED
 
-> Este archivo correspondía al bloque del motor candidato `0c8b7764...` y **no describe las reglas vigentes de la rueda mensual**.
->
-> No usar este archivo como guía para nuevos cambios funcionales.
+Este paquete es documental. No contiene runtime ni SQL.
 
-La migración `database/2026-09-20-competition-rules.sql` pertenece a un hito ya aplicado durante el desarrollo del motor candidato.
+Reemplaza al checkpoint de producto anterior si todavía no fue aplicado.
 
-Para continuar el proyecto leer:
+Copiar estos archivos a la raíz del proyecto:
 
-1. `PROJECT_RULES.md`
-2. `TEST_SCENARIOS.md`
-3. `CHECKPOINT_2026-09-20.md`
-4. `AUDIT_2026-09-20.md`
-5. `FINALIZATION_PLAN.md`
+- PROJECT_RULES.md
+- PRODUCT_VISION.md
+- PROJECT_JOURNEY.md
+- LEGAL_AND_BUSINESS.md
+- DECISIONS.md
+- TEST_SCENARIOS.md
+- CHECKPOINT_2026-09-20.md
+- AUDIT_2026-09-20.md
+- FINALIZATION_PLAN.md
+- README.md
+- APPLY_THIS_VERSION.md
 
-Regla permanente de base:
+Después revisar el diff y hacer un único commit documental.
 
-- `database/schema.sql` es solo para una instalación nueva.
-- Nunca ejecutar `database/schema.sql` sobre la base de producción existente.
-- Toda modificación futura de producción debe llegar en una migración fechada nueva.
+No ejecutar `database/schema.sql` ni ninguna migración por este checkpoint.
+
+A partir de este punto, antes de cambios funcionales importantes se deben releer:
+`PROJECT_RULES.md`, `PRODUCT_VISION.md`, `PROJECT_JOURNEY.md`, `LEGAL_AND_BUSINESS.md`, `TEST_SCENARIOS.md` y el checkpoint vigente.

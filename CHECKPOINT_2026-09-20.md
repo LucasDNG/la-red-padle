@@ -14,6 +14,7 @@ A partir de este checkpoint, el desarrollo competitivo debe partir de los docume
 2. `TEST_SCENARIOS.md` — invariantes y casos que deben sobrevivir cualquier cambio.
 3. `DECISIONS.md` — historial de cómo se llegó a las reglas actuales.
 4. `CHECKPOINT_2026-09-20.md` — foto de control de este hito.
+5. `PRODUCT_VISION.md` — experiencia pública/administrativa y alcance de producto.
 
 Si hay contradicción entre código viejo y `PROJECT_RULES.md`, manda `PROJECT_RULES.md` hasta que el código sea corregido.
 
@@ -89,17 +90,13 @@ Si hay contradicción entre código viejo y `PROJECT_RULES.md`, manda `PROJECT_R
 11. Definir ventana temporal para denuncias tardías.
 12. Reducir/eliminar el motor competitivo viejo para que no pueda reactivarse por error.
 
-## PENDIENTES que NO deben inventarse en código
+## Pendientes vigentes que no deben inventarse en código
 
 - Fórmula proporcional definitiva de ELO para posiciones normales.
-- Posición exacta de entrada del ascendido en la categoría superior.
-- Descenso hacia una categoría inferior completamente vacía.
-- Regla exacta de deuda al entrar/salir de `paused`.
-- Qué ocurre al pedir pausa voluntaria con un partido abierto.
-- Mecanismo objetivo para atribuir responsabilidad de un partido mensual no jugado.
-- Formato oficial del marcador y tratamiento de super tie-break/abandono.
-- Límite temporal para presentar una denuncia respecto del hecho.
-- Algoritmo final de selección de rival de la rueda después de la simulación de largo plazo.
+- Entrega externa de notificaciones (push/email) como mejora de release; la notificación interna sí es obligatoria.
+- Cualquier formato excepcional de partido que no pueda expresarse con sets normales + super tie-break estructurado.
+
+Todo lo demás que antes aparecía en esta lista quedó cerrado en las decisiones posteriores a la auditoría.
 
 ## Próximo bloque de trabajo
 
@@ -147,3 +144,124 @@ Estos archivos no reemplazan `PROJECT_RULES.md`; registran bugs confirmados, rie
 ## Siguiente bloque congelado
 
 Construir el núcleo de datos y rueda definitiva con estas decisiones. No hacer todavía limpieza visual ni borrar historial. El motor viejo puede permanecer físicamente durante la transición, pero debe quedar desconectado antes del release.
+
+
+## Revisión de autonomía posterior al push `65cd63dda05d736290045b32420aaa046c42b1a6`
+
+Se verificó que ese push fue documental y que Vercel reportó despliegue exitoso. El runtime competitivo continúa siendo transitorio hasta el bloque funcional definitivo.
+
+Nuevos cierres para evitar depender del chat:
+
+- formación de pareja por invitación + aceptación;
+- restricción de base contra doble pareja vigente;
+- coordinación de fecha/hora registrada para atribuir incumplimiento automáticamente;
+- `pause_after_current` para viajes planificados;
+- pausa voluntaria no borra una falta previa;
+- pausa automática cumplida reinicia el contador al reactivar;
+- disciplina resuelta usa `discipline_resolved_at` para no reabrirse con los mismos hechos;
+- disciplina abierta bloquea también la disolución por autoservicio;
+- ascendido entra al fondo activo de la categoría superior;
+- descenso a categoría inferior sin activos => #1;
+- `paused` no participa del ELO proporcional; `active` disciplinariamente bloqueada conserva lugar;
+- récord de Primera separado por circuito masculino y femenino;
+- resultado editable solo antes de respuesta rival, sin extender plazo;
+- rechazo administrativo de ambas versiones => `void`;
+- marcador nuevo estructurado, con super tie-break separado de games;
+- administración trabaja como cola de excepciones, no como operador cotidiano.
+
+## Hallazgos nuevos incorporados
+
+- el flujo actual permite crear una pareja sin consentimiento del compañero;
+- la base actual no garantiza por constraint que un jugador no quede en dos parejas vigentes bajo concurrencia;
+- una pausa voluntaria después de una primera falta podía usarse para resetear el contador;
+- una disciplina limpiada podía reabrirse inmediatamente por los mismos reportes del período móvil;
+- resolver un partido y asignar el siguiente instantáneamente dejaba sin ventana a quien quería comenzar vacaciones después del partido.
+
+## Consolidación posterior — récords, cartelera y sedes
+
+Este checkpoint consolidado parte del último push realmente aplicado `65cd63dda05d736290045b32420aaa046c42b1a6` e incorpora además todas las decisiones del checkpoint de autonomía que todavía no había sido copiado al repositorio.
+
+Se corrige una decisión: no existe un récord absoluto único entre hombres y mujeres. Hay dos récords históricos independientes, Primera Masculina y Primera Femenina.
+
+Se agrega producto público:
+
+- sección pública `PRÓXIMOS PARTIDOS`;
+- solo aparecen partidos con fecha, hora y lugar aceptados por ambas parejas;
+- la cartelera se alimenta y actualiza automáticamente;
+- no se publican contactos ni coordinación privada.
+
+Se agrega administración de lugares/canchas:
+
+- alta y edición desde panel;
+- retirar/desactivar de disponibilidad;
+- conservación histórica en vez de borrado destructivo;
+- marca opcional de sede asociada/recomendada;
+- la lista de lugares no requiere deploy de código.
+
+La lista concreta de lugares se cargará más adelante desde el panel administrativo.
+
+
+## Checkpoint de producto y autonomía — conversación consolidada
+
+Este checkpoint incorpora todas las decisiones aprobadas después del checkpoint anterior. A partir de aquí no deben recuperarse del chat: deben leerse de `PROJECT_RULES.md`, `PRODUCT_VISION.md`, `DECISIONS.md` y `TEST_SCENARIOS.md`.
+
+### Identidad
+
+- DNI único y privado.
+- Login con DNI + contraseña.
+- Verificación administrativa única antes de competir.
+- Recuperación/cambio de teléfono por WhatsApp.
+- Disciplina individual separada de disciplina de pareja.
+
+### Parejas
+
+- Invitación para formar pareja: una activa, cancelable, vence a los 10 días.
+- La categoría de pareja puede arrastrar a un jugador hacia arriba sin cambiar automáticamente su categoría individual.
+- Categoría individual solo cambia por movimientos deportivos reales.
+- Pausa voluntaria requiere a ambos.
+- Disolución puede iniciarla cualquiera; plazo de salida 7 días y las obligaciones se resuelven antes.
+
+### Partido y coordinación
+
+- Una programación oficial vigente.
+- Cambios consensuados ilimitados dentro de los 30 días.
+- La programación anterior sigue vigente hasta aceptar una nueva.
+- Una sola extensión extraordinaria de 15 días por causa externa confirmada por ambas.
+- Si la extensión falla: ambas pierden una posición/deuda, sin derrota deportiva ni strike de pausa.
+- No-show: 48 horas para objetar.
+- WhatsApp disponible solo entre rivales con compromiso abierto.
+- `LESIÓN / ABANDONO`: derrota deportiva normal, sin sets/games parciales.
+
+### Producto
+
+- Liga continua, sin temporadas/reset.
+- Zona horaria `America/Argentina/Buenos_Aires`.
+- `MI LIGA` responde “¿Qué me toca hacer ahora?”.
+- Historial explicativo y línea de tiempo.
+- Perfil deportivo de pareja, sin funciones de red social.
+- Página pública con próximos partidos, filtros simples y dos récords separados de Primera.
+- Microexplicaciones contextuales para no obligar a leer el reglamento.
+- Auditoría/corrección de acciones administrativas.
+- Administración como cola de excepciones, no como operador diario.
+
+### Siguiente tramo de conversación
+
+Continuar pantalla por pantalla: partido/coordinación → resultado → ranking → perfil → panel admin → notificaciones/WhatsApp → accesibilidad/seguridad. No empezar todavía limpieza visual ni el motor final hasta que esta ronda quede congelada y subida.
+
+
+## Checkpoint del camino de LA RED
+
+A partir de esta ronda se incorpora `PROJECT_JOURNEY.md` como memoria narrativa del proyecto y `LEGAL_AND_BUSINESS.md` como registro de requisitos legales/comerciales.
+
+Nuevas decisiones consolidadas:
+
+- WhatsApp notifica a ambos integrantes.
+- LA RED se diseña para web, Android e iPhone con un único motor.
+- La primera versión competitiva es para mayores de 18 años.
+- El registro tendrá aceptación versionada de términos, riesgos, conducta, privacidad y comunicaciones.
+- Se evita recolectar datos médicos innecesarios.
+- Revisión legal profesional y evaluación de seguros antes del lanzamiento.
+- LA RED no se presenta como “sin fines de lucro”.
+- No se promete gratuidad permanente.
+- Estrategia comercial futura: reservas y pagos de canchas, acuerdos con sedes y comisión B2B.
+- El recorrido y razonamiento del proyecto quedan documentados para no depender del chat.

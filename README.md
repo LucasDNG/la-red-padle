@@ -33,7 +33,7 @@ La dirección vigente es:
 - `paused` después de dos incumplimientos consecutivos atribuibles;
 - `inactive` reservado para pareja disuelta;
 - #1 de Primera: 2000 + 1 por defensa exitosa;
-- récord histórico permanente de Primera.
+- récord histórico permanente de Primera, independiente para masculino y femenino.
 
 Los detalles todavía abiertos están listados como `PENDIENTE` en `PROJECT_RULES.md` y `AUDIT_2026-09-20.md`.
 
@@ -90,3 +90,40 @@ Render:
 ```text
 FRONTEND_URL=https://la-red-padle.vercel.app
 ```
+
+
+## Dirección funcional vigente
+
+La versión final se está construyendo como una rueda autónoma:
+
+- rival asignado automáticamente;
+- un compromiso abierto por pareja;
+- 30 días para jugar/cargar;
+- 15 días para confirmar;
+- penalizaciones y pausas automáticas;
+- administración solo para excepciones reales;
+- documentos de reglas/auditoría mandan sobre el motor transitorio actual.
+
+- cartelera pública de próximos partidos una vez que ambas parejas acuerdan fecha/hora/lugar;
+- lugares/canchas administrables desde el panel, sin listas hardcodeadas.
+
+
+## Checkpoint de producto vigente
+
+Además del motor competitivo, la versión final debe incluir identidad por DNI verificada, WhatsApp, coordinación de fecha/lugar, liga continua, categoría individual separada de la categoría temporal de pareja, historial explicativo y perfiles deportivos públicos sin datos privados.
+
+Las reglas detalladas viven en `PROJECT_RULES.md`; la experiencia en `PRODUCT_VISION.md`.
+
+
+## Memoria del proyecto
+
+Además de las reglas, el repositorio conserva el camino del producto:
+
+- `PROJECT_JOURNEY.md` — evolución y principios;
+- `PRODUCT_VISION.md` — experiencia;
+- `LEGAL_AND_BUSINESS.md` — requisitos legales/comerciales;
+- `PROJECT_RULES.md` — reglas vigentes;
+- `DECISIONS.md` — decisiones;
+- `TEST_SCENARIOS.md` — invariantes.
+
+La conversación sirve para explorar. Los documentos son la memoria persistente del proyecto.

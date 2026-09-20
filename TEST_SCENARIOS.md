@@ -56,7 +56,10 @@ Estos escenarios son invariantes. El objetivo de las simulaciones es intentar ro
 3. Quince defensas => 2015.
 4. Perder la punta detiene la acumulación.
 5. El máximo histórico sobrevive a futuras derrotas y al archivado.
-6. Un #1 de 2ª, 3ª, etc. nunca crea el récord público de Primera.
+6. Un #1 de 2ª, 3ª, etc. nunca crea un récord público de Primera.
+7. Primera Masculina y Primera Femenina conservan récords independientes.
+8. Un nuevo máximo masculino no reemplaza ni altera el máximo femenino y viceversa.
+9. La portada puede mostrar simultáneamente ambos récords.
 
 ## Ascenso
 
@@ -65,7 +68,7 @@ Estos escenarios son invariantes. El objetivo de las simulaciones es intentar ro
 3. #1 de Primera => no asciende.
 4. La cantidad de parejas de las categorías no cambia la regla.
 5. La racha que produjo el ascenso se reinicia.
-6. La posición exacta de entrada del ascendido debe permanecer marcada como pendiente hasta decisión definitiva.
+6. La pareja ascendida entra al fondo del bloque competitivo activo de la categoría superior.
 
 ## Descenso
 
@@ -77,7 +80,7 @@ Estos escenarios son invariantes. El objetivo de las simulaciones es intentar ro
 6. Deuda 1 => intenta entrar #3.
 7. Deuda 3 => intenta entrar #5.
 8. Si no hay suficientes posiciones, entra lo más abajo posible y conserva la deuda sobrante.
-9. El caso de categoría inferior completamente vacía debe mantenerse como pendiente hasta definición.
+9. Si la categoría inferior no tiene parejas activas, la descendida entra #1; si tiene al menos una, nunca desplaza al líder y parte desde #2 ajustado por deuda.
 
 ## Rueda: un solo partido abierto
 
@@ -134,7 +137,7 @@ Estos escenarios son invariantes. El objetivo de las simulaciones es intentar ro
 1. Un marcador oficial debe permitir calcular games sin ambigüedad.
 2. Un super tie-break `10-8` no debe sumar diez y ocho games si reglamentariamente representa puntos.
 3. Un marcador libre inválido no debe contaminar estadísticas oficiales.
-4. Si el formato exacto todavía no está definido, la diferencia de games debe considerarse pendiente/no confiable para desempate automático.
+4. Los nuevos partidos usan marcador estructurado; un `match_tiebreak` no suma sus puntos a la diferencia de games.
 
 ## Penalización simultánea
 
@@ -332,3 +335,202 @@ Comprobar como mínimo:
 4. Una nueva pareja activa entra al fondo del bloque activo y por encima del bloque pausado.
 5. Reactivar entra al fondo del bloque activo y reinicia `monthly_miss_streak` en 0.
 6. Pausa voluntaria con compromiso abierto es rechazada salvo intervención administrativa.
+
+
+## Formación de pareja con consentimiento
+
+1. A selecciona a B => se crea invitación, no pareja.
+2. B rechaza/ignora => no cambia ninguna categoría/posición.
+3. B acepta => la pareja se crea/reactiva exactamente una vez.
+4. Dos aceptaciones concurrentes no pueden dejar a un jugador en dos parejas vigentes.
+5. Mismos dos integrantes que vuelven juntos => se reactiva la identidad archivada, no aparece una segunda identidad paralela.
+
+## Coordinación autónoma
+
+1. Ninguno propone fecha en 30 días => ambos reciben incumplimiento.
+2. A propone y B nunca responde/contrapropone => solo B recibe incumplimiento.
+3. A y B realizan propuestas válidas pero no acuerdan/juegan => ambos reciben incumplimiento.
+4. Existe fecha acordada y A marca no-show de B; B no contesta en la ventana => B recibe incumplimiento sin intervención admin.
+5. B contradice el no-show => caso excepcional para administración.
+6. Toda propuesta/respuesta conserva timestamps y actor.
+
+## Pausa sin abuso
+
+1. Pareja con `monthly_miss_streak=1` hace pausa voluntaria y reactiva => conserva 1.
+2. Pareja pasa a pausa automática al segundo incumplimiento y luego reactiva => comienza nuevo ciclo con 0.
+3. `pausar al terminar este partido` no cancela ni modifica el partido actual.
+4. Al cerrarse el partido con `pause_after_current=true`, no recibe nueva asignación y pasa a `paused`.
+5. #1 de Primera que pasa a `paused` deja de defender la punta; su récord histórico permanece.
+
+## Disciplina persistente y resoluble
+
+1. Administración limpia una disciplina => los mismos reportes antiguos no la reabren en el siguiente mantenimiento.
+2. Reportes nuevos posteriores a `discipline_resolved_at` sí pueden volver a alcanzar umbral.
+3. Pareja con disciplina abierta no puede disolverse por autoservicio.
+4. Un compromiso aún no jugado se cancela neutralmente al abrirse disciplina; un resultado ya cargado continúa hasta cierre.
+
+## Resultado editable y cierre void
+
+1. Primera pareja corrige su versión antes de respuesta rival => permitido y auditado.
+2. Esa corrección no reinicia `confirmation_deadline_at`.
+3. Después de respuesta rival no se puede editar por autoservicio.
+4. Admin rechaza ambas versiones => assignment `void`, cero partido oficial, cero cambio de ranking/racha/ELO.
+5. Cierre `void` libera a ambas parejas si no existe otro bloqueo.
+
+## Integridad adicional
+
+1. Un usuario nunca puede quedar en dos parejas vigentes por carrera de requests.
+2. Una pareja nunca puede tener dos assignments abiertos por carrera de maintenance/requests.
+3. Toda sanción automática tiene un source/event id idempotente.
+4. Una lectura de ranking no crea eventos ni modifica filas competitivas.
+5. Paused no participa del denominador ELO; active disciplinariamente bloqueada sí conserva su lugar en el bloque.
+
+## Próximos partidos públicos
+
+1. Assignment sin fecha/lugar acordados => no aparece públicamente.
+2. A propone fecha/hora/lugar => todavía no se publica.
+3. B acepta exactamente esa programación => aparece automáticamente en Próximos partidos.
+4. La cartelera muestra circuito, categoría, parejas, fecha, hora y lugar, pero nunca contactos privados.
+5. Cambiar la programación requiere aceptación de ambas; una modificación unilateral no reemplaza lo ya publicado.
+6. Cancelar el compromiso antes de jugar => desaparece de la cartelera.
+7. Al superar la hora programada deja de listarse como futuro sin cerrar por sí solo el assignment competitivo.
+8. Resultado oficial => queda fuera de Próximos y disponible en historial/resultados.
+9. Dos actualizaciones concurrentes no pueden publicar dos horarios vigentes para el mismo assignment.
+
+## Lugares administrables
+
+1. Admin agrega un lugar activo => puede elegirse en una nueva programación.
+2. Admin lo desactiva => deja de ofrecerse para nuevas programaciones.
+3. Desactivar un lugar con historial no borra el nombre/dirección de partidos pasados.
+4. Desactivar un lugar con un futuro ya acordado no cancela automáticamente ese assignment.
+5. Editar nombre/dirección no debe deformar el snapshot histórico de partidos ya jugados.
+6. Un lugar puede marcarse como sede asociada/recomendada sin alterar la rueda ni el ranking.
+7. La lista de lugares puede cambiar desde administración sin cambio de código/despliegue.
+
+
+## Identidad y acceso
+
+1. Dos registros con el mismo DNI no crean dos usuarios.
+2. El login correcto usa DNI + contraseña.
+3. Cuenta pendiente de verificación puede entrar a su cuenta pero no formar pareja ni competir.
+4. DNI nunca aparece en endpoints/pantallas públicas.
+5. Recuperar contraseña exige control del WhatsApp registrado.
+6. Cambiar DNI no es autoservicio y deja auditoría.
+7. No iniciar sesión durante meses no pausa ni archiva por sí solo al jugador.
+
+## Invitación de pareja
+
+1. Una invitación muestra invitante y categoría resultante.
+2. Vence a los 10 días si no se acepta.
+3. Quien la envió puede cancelarla antes.
+4. No puede dejar a un jugador en dos parejas por concurrencia.
+5. Aceptarla no modifica automáticamente la categoría individual del jugador arrastrado hacia arriba.
+
+## Categoría individual versus pareja
+
+1. 5ª + 2ª => la pareja compite en 2ª; individuales siguen 5ª y 2ª.
+2. Si esa pareja se disuelve sin movimiento deportivo, vuelven a usar 5ª y 2ª para futuras formaciones.
+3. Si asciende 2ª→1ª, ambos pasan individualmente a 1ª.
+4. Si 5ª + 2ª desciende 2ª→3ª, el jugador originalmente 2ª pasa a 3ª y el originalmente 5ª sigue 5ª.
+5. Si luego cae a 6ª, ambos quedan individualmente en 6ª.
+6. Cambiar compañero nunca permite bajar por debajo del nivel individual vigente sin descenso deportivo.
+
+## Programación y reprogramación
+
+1. Solo existe una programación oficial vigente por assignment.
+2. Pedir cambio no elimina la fecha confirmada anterior.
+3. Dentro de los 30 días pueden cambiar fecha/hora/lugar múltiples veces si ambos aceptan.
+4. Si no acuerdan antes del vencimiento y no hay responsable único, ambos reciben penalización de posición/deuda.
+5. Causa externa confirmada por ambas al agotarse el plazo habilita una única extensión de 15 días.
+6. Una segunda causa externa no crea otra extensión.
+7. Si vence la extensión, ambos reciben penalización de posición/deuda, sin derrota deportiva ni incremento de la racha de incumplimientos para pausa automática.
+8. Una caída registrada del sistema no sanciona a los jugadores y extiende/suspende neutralmente el plazo.
+
+## WhatsApp y privacidad
+
+1. Rival asignado => aparece acceso privado a WhatsApp para los integrantes.
+2. Assignment cerrado => ese acceso desaparece.
+3. Visitante público nunca ve teléfono.
+4. Fallo de entrega de WhatsApp no modifica el estado oficial del assignment.
+5. Notificaciones repetidas/reintentos no deben generar mensajes duplicados por el mismo evento.
+
+## No-show
+
+1. Fecha confirmada + A denuncia no-show de B => B dispone de 48 horas.
+2. B no responde => se registra incumplimiento atribuible a B y se aplica una sola penalización.
+3. B contradice => la rueda no queda bloqueada indefinidamente; se aplica la regla automática para ambigüedad operativa.
+4. Un conflicto de no-show no inventa un resultado deportivo ni games.
+
+## Lesión / abandono
+
+1. Partido iniciado y A abandona => B victoria deportiva, A derrota.
+2. El tipo público es `LESIÓN / ABANDONO`.
+3. No se cargan sets parciales ni games.
+4. Si B estaba debajo de A y gana por abandono, se aplica el intercambio normal de escalera.
+5. La derrota cuenta para rachas y puede producir descenso.
+6. Si B ya era #1 de Primera, la victoria puede contar como defensa según las reglas normales.
+7. No existe -1 posición adicional por abandono.
+
+## Disolución con obligaciones
+
+1. Cualquiera de los integrantes puede iniciar disolución.
+2. Sin obligaciones y con acuerdo de ambos => cierre inmediato.
+3. Sin acuerdo => el vínculo puede cerrarse al día 7.
+4. Assignment no jugado que continúa abierto al día 7 => derrota deportiva de la pareja que se disuelve, luego archivo.
+5. Resultado ya cargado no se borra ni se sustituye por derrota automática; termina su flujo y luego se archiva.
+6. Disolver no limpia disciplina individual ni de pareja.
+
+## Liga continua y tiempo
+
+1. Cambio de 31 de diciembre a 1 de enero no reinicia posiciones, ELO, rachas, deuda ni récords.
+2. Estadísticas por año son filtros, no temporadas.
+3. Todos los vencimientos usan `America/Argentina/Buenos_Aires`.
+
+## Disciplina individual
+
+1. Jugador con disciplina abierta cambia de pareja => su expediente sigue existiendo.
+2. La nueva pareja no hereda el historial disciplinario como propio.
+3. Mientras el jugador siga bloqueado, su pareja no recibe assignment.
+4. Limpiar disciplina de pareja no limpia la individual y viceversa.
+
+## UX explicativa y transparencia
+
+1. Cada estado de `MI LIGA` produce una acción principal o `ESTÁS AL DÍA`.
+2. Todo movimiento de posición tiene una explicación visible.
+3. Toda deuda muestra por qué se creó.
+4. La línea de tiempo del compromiso coincide con los eventos reales de auditoría.
+5. Ninguna microexplicación contradice `PROJECT_RULES.md`.
+6. Perfil público de pareja no expone DNI, teléfono, email, disciplina ni mensajes.
+
+
+## Legal / consentimiento / privacidad
+
+1. Un jugador no puede competir si no aceptó la versión vigente de los documentos obligatorios.
+2. Cada aceptación guarda versión y timestamp.
+3. DNI, teléfono, email y disciplina nunca aparecen en vistas públicas.
+4. `LESIÓN / ABANDONO` no almacena ni expone diagnóstico médico.
+5. Cambiar términos obliga a registrar aceptación de la nueva versión cuando corresponda.
+6. La primera versión no permite competir a menores de 18 años.
+
+## WhatsApp a ambos integrantes
+
+1. Un cambio de horario genera aviso a los dos integrantes de ambas parejas.
+2. Un cambio de lugar genera aviso a los dos integrantes.
+3. Un resultado pendiente genera aviso a ambos integrantes de la pareja que debe responder.
+4. Reintentos no duplican mensajes por el mismo evento.
+5. Un fallo de WhatsApp no cambia el estado oficial de LA RED.
+
+## Multiplataforma
+
+1. Web, Android e iPhone leen/escriben los mismos estados competitivos.
+2. No existe una regla deportiva distinta por plataforma.
+3. Push móvil puede fallar sin modificar el estado oficial.
+4. La misma cuenta e historial se ven en todas las plataformas.
+
+## Preparación comercial
+
+1. Una sede puede existir sin pagos habilitados.
+2. Activar reservas/pagos no cambia la lógica de rueda ni ranking.
+3. Una comisión comercial no modifica el resultado deportivo.
+4. Desactivar pagos de una sede no borra partidos históricos.
+5. El sistema puede distinguir lugar acordado, reserva pendiente, pagada, cancelada y reintegrada cuando esa fase se implemente.

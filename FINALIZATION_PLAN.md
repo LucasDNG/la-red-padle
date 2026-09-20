@@ -24,26 +24,28 @@ Criterio de salida:
 
 ## Fase 1 — Cerrar decisiones que afectan el modelo de datos
 
-Antes de la próxima migración deben definirse:
+Estado: **CERRADA PARA EL MODELO DE RUEDA**
 
-1. posición de entrada del ascendido;
-2. descenso a categoría inferior sin parejas activas;
-3. tratamiento de deuda al pausar/reactivar;
-4. rachas al pausar/reactivar;
-5. pausa/disolución con partido o resultado abierto;
-6. criterio objetivo de responsabilidad por partido no jugado;
-7. orden de parejas pausadas respecto de nuevas/activas;
-8. si las pausadas cuentan para ELO proporcional;
-9. qué pasa si admin rechaza ambas versiones de resultado;
-10. formato oficial de marcador;
-11. límite temporal de denuncias;
-12. regla de variedad/rematch de la rueda;
-13. efecto de `review` disciplinario sobre nuevas asignaciones;
-14. récord de Primera global o separado por circuito.
+Ya quedaron definidos:
 
-Criterio de salida:
+1. ascenso al fondo del bloque activo;
+2. descenso a categoría inferior vacía => #1;
+3. deuda y rachas en pausa;
+4. pausa/disolución con compromisos abiertos;
+5. atribución objetiva básica mediante coordinación registrada;
+6. orden active/paused;
+7. paused fuera del denominador ELO;
+8. rechazo de ambas versiones => `void`;
+9. marcador estructurado;
+10. ventana ordinaria de denuncia de 15 días;
+11. variedad/rematch por nunca enfrentado + cruce más antiguo;
+12. disciplina bloquea nuevas asignaciones;
+13. récord de Primera independiente para masculino y femenino;
+14. invitaciones de pareja y restricción de membresía vigente;
+15. `pause_after_current`;
+16. `discipline_resolved_at`.
 
-- todos los puntos que cambian tablas/constraints deben estar cerrados antes de escribir la migración final de rueda.
+Queda abierta únicamente la fórmula proporcional definitiva del ELO normal. Puede cerrarse durante Fase 6 sin impedir construir el modelo de rueda.
 
 ## Fase 2 — Modelo de datos competitivo nuevo
 
@@ -230,3 +232,86 @@ LA RED no se considera terminada porque “abre y funciona”. Se considera term
 - los tests cubren las reglas críticas;
 - la simulación larga no rompe invariantes;
 - no quedan textos o rutas que ejecuten reglas obsoletas.
+
+
+## Ajuste de plan — autonomía administrativa
+
+Antes de escribir la migración de rueda, se consideran cerrados: entrada del ascendido al fondo activo, descenso a categoría inferior vacía (#1), deuda/rachas en pausa, pausa con compromiso (`pause_after_current`), criterio de rival, disciplina y rueda, resultado `void`, formato estructurado de marcador y ventana ordinaria de denuncia de 15 días.
+
+Diseño de datos adicional obligatorio:
+
+- invitaciones de pareja;
+- membresía vigente protegida por DB;
+- `competition_state` y `discipline_state`;
+- `discipline_resolved_at`;
+- `monthly_miss_streak`, `pause_after_current`, `waiting_since`;
+- assignments + participantes únicos;
+- eventos de coordinación;
+- versiones de resultado;
+- notifications/event log;
+- stats acumuladas para ranking.
+
+La cola administrativa final se limita a excepciones reales. El motor debe poder pasar días/semanas sin que el administrador tenga que asignar rivales, aplicar sanciones o validar resultados silenciosos.
+
+## Ajuste de producto — cartelera pública y sedes
+
+El modelo de datos definitivo también debe contemplar:
+
+- programación aceptada (`scheduled_at`) separada de la asignación;
+- lugar administrable (`venues`) con activo/inactivo y sede asociada opcional;
+- snapshot del lugar/programación para preservar historial;
+- doble aceptación para publicar/reprogramar;
+- endpoint público de próximos partidos de solo lectura;
+- dos consultas/récords independientes para Primera Masculina y Primera Femenina.
+
+Estos puntos forman parte del bloque funcional antes de la limpieza visual final.
+
+
+## Ajuste de modelo posterior al checkpoint de producto
+
+La migración funcional definitiva también deberá contemplar:
+
+- DNI único, estado de verificación y auditoría de identidad;
+- estado disciplinario de jugador separado del de pareja;
+- invitaciones de pareja con expiración de 10 días;
+- categoría individual independiente de la categoría temporal de pareja;
+- programación única por assignment y propuestas/cambios auditados;
+- una prórroga extraordinaria de 15 días;
+- `pause_after_current`;
+- no-show con ventana de 48 horas;
+- resultado `injury_abandonment` sin games;
+- solicitud de disolución y deadline de 7 días;
+- centro de notificaciones + outbox/idempotencia para WhatsApp;
+- eventos explicativos reutilizables por historial/UI;
+- auditoría de acciones administrativas;
+- zona horaria oficial de negocio.
+
+Antes del release, la simulación debe incluir cambios de año, fallos de entrega de WhatsApp, solicitudes de disolución con assignment abierto, cambios de fecha repetidos y disciplina individual atravesando cambios de pareja.
+
+
+## Fase legal/comercial obligatoria antes del release
+
+Antes de publicación general:
+
+- versión final de Términos y Condiciones;
+- asunción informada de riesgos;
+- Código de Conducta;
+- Política de Privacidad;
+- consentimiento de WhatsApp;
+- registro/versionado de aceptaciones;
+- revisión por abogado argentino;
+- evaluación de responsabilidad civil/accidentes;
+- revisión de tratamiento de DNI/teléfono;
+- definición del rol de LA RED frente a sedes.
+
+Antes de activar pagos/reservas comerciales:
+
+- proveedor de pagos;
+- acuerdo modelo con sedes;
+- comisión y liquidación;
+- políticas de cancelación/reintegro;
+- facturación/impuestos;
+- chargebacks;
+- revisión legal/contable/tributaria.
+
+El motor deportivo debe quedar desacoplado de estas funciones para que monetizar no cambie ranking, rueda ni resultados.
