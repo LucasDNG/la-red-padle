@@ -11,65 +11,12 @@ import {
 
 import { api } from "./api.js";
 
-const styles = {
-  grid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(230px, 1fr))",
-    gap: 14,
-  },
-
-  compactCard: {
-    minHeight: "auto",
-    padding: 22,
-  },
-
-  toolbar: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 10,
-    alignItems: "center",
-    marginBottom: 24,
-  },
-
-  history: {
-    display: "grid",
-    gap: 12,
-    marginTop: 18,
-  },
-
-  historyCard: {
-    border:
-      "1px solid rgba(72, 166, 231, 0.25)",
-    background:
-      "linear-gradient(145deg, #062b49, #041b30)",
-    padding: 20,
-  },
-
-  badge: {
-    display: "inline-flex",
-    alignItems: "center",
-    minHeight: 28,
-    padding: "0 10px",
-    borderRadius: 999,
-    border:
-      "1px solid rgba(255,255,255,.16)",
-    fontSize: 10,
-    fontWeight: 900,
-    letterSpacing: ".08em",
-  },
-
-  smallButton: {
-    minHeight: 40,
-    width: "auto",
-    padding: "0 14px",
-  },
-};
-
 function getUser() {
   try {
     return JSON.parse(
-      localStorage.getItem("user")
+      localStorage.getItem(
+        "user"
+      )
     );
   } catch {
     return null;
@@ -81,9 +28,14 @@ function formatDate(value) {
     return "-";
   }
 
-  const date = new Date(value);
+  const date =
+    new Date(value);
 
-  if (Number.isNaN(date.getTime())) {
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
     return "-";
   }
 
@@ -99,216 +51,243 @@ function formatDate(value) {
   ).format(date);
 }
 
-function pairStatusLabel(status) {
-  if (status === "review") {
+function scoreText(score) {
+  if (!score) {
+    return "Sin marcador";
+  }
+
+  if (
+    typeof score ===
+    "string"
+  ) {
+    return score;
+  }
+
+  if (score.text) {
+    return score.text;
+  }
+
+  try {
+    return JSON.stringify(
+      score
+    );
+  } catch {
+    return "Resultado";
+  }
+}
+
+function pairStatusLabel(
+  status
+) {
+  if (
+    status === "review"
+  ) {
     return "En revisión";
   }
 
-  if (status === "observed") {
+  if (
+    status === "observed"
+  ) {
     return "Observada";
   }
 
-  if (status === "inactive") {
+  if (
+    status === "inactive"
+  ) {
     return "Inactiva";
   }
 
   return "Activa";
 }
 
-function reportStatusLabel(status) {
-  if (status === "reviewed") {
+function reportStatusLabel(
+  status
+) {
+  if (
+    status === "reviewed"
+  ) {
     return "Revisada";
   }
 
-  if (status === "dismissed") {
+  if (
+    status === "dismissed"
+  ) {
     return "Descartada";
   }
 
   return "Abierta";
 }
 
-function reasonLabel(reason) {
-  if (reason === "coordination_refusal") {
+function reasonLabel(
+  reason
+) {
+  if (
+    reason ===
+    "coordination_refusal"
+  ) {
     return "Negativa para coordinar";
   }
 
-  if (reason === "no_show") {
+  if (
+    reason ===
+    "no_show"
+  ) {
     return "No se presentó";
   }
 
   return "Otro motivo";
 }
 
-function StatRow({
-  label,
-  value,
-  aside,
-}) {
-  return (
-    <div className="challenge-row">
-      <div>
-        <small>{label}</small>
-        <strong>{value}</strong>
-      </div>
-
-      {aside !== undefined && (
-        <span>{aside}</span>
-      )}
-    </div>
+function logout() {
+  localStorage.removeItem(
+    "token"
   );
+
+  localStorage.removeItem(
+    "user"
+  );
+
+  window.location.href =
+    "/";
 }
 
-function SummaryCard({
-  title,
-  headline,
-  rows,
-}) {
-  return (
-    <section
-      className="dashboard-card"
-      style={styles.compactCard}
-    >
-      <div className="dashboard-number">
-        {title}
-      </div>
+const gridStyle = {
+  display: "grid",
 
-      <h2>{headline}</h2>
+  gridTemplateColumns:
+    "repeat(auto-fit, minmax(280px, 1fr))",
 
-      <div className="challenge-list">
-        {rows.map((row) => (
-          <StatRow
-            key={row.label}
-            {...row}
-          />
-        ))}
-      </div>
-    </section>
-  );
-}
+  gap: 16,
+};
 
 export default function AdminReports() {
-  const navigate = useNavigate();
-  const user = getUser();
+  const navigate =
+    useNavigate();
 
-  const [pairs, setPairs] =
-    useState([]);
+  const user =
+    getUser();
 
   const [
-    selectedPairId,
-    setSelectedPairId,
+    pairs,
+    setPairs,
+  ] = useState([]);
+
+  const [
+    history,
+    setHistory,
   ] = useState(null);
 
-  const [history, setHistory] =
-    useState(null);
-
-  const [query, setQuery] =
-    useState("");
-
-  const [filter, setFilter] =
-    useState("all");
-
-  const [loading, setLoading] =
-    useState(true);
+  const [
+    disputes,
+    setDisputes,
+  ] = useState([]);
 
   const [
-    historyLoading,
-    setHistoryLoading,
-  ] = useState(false);
+    query,
+    setQuery,
+  ] = useState("");
 
-  const [actionKey, setActionKey] =
-    useState("");
+  const [
+    filter,
+    setFilter,
+  ] = useState("all");
 
-  const [notice, setNotice] =
-    useState(null);
+  const [
+    loading,
+    setLoading,
+  ] = useState(true);
+
+  const [
+    actionKey,
+    setActionKey,
+  ] = useState("");
+
+  const [
+    notice,
+    setNotice,
+  ] = useState(null);
 
   async function loadPairs() {
     const response =
-      await api.get("/admin/reports");
-
-    setPairs(response.data || []);
-  }
-
-  async function loadHistory(pairId) {
-    setHistoryLoading(true);
-
-    try {
-      const response =
-        await api.get(
-          `/admin/reports/${pairId}/history`
-        );
-
-      setHistory(response.data);
-
-      setSelectedPairId(
-        Number(pairId)
+      await api.get(
+        "/admin/reports"
       );
-    } finally {
-      setHistoryLoading(false);
-    }
+
+    setPairs(
+      response.data ||
+        []
+    );
   }
 
-  async function load() {
+  async function loadDisputes() {
+    const response =
+      await api.get(
+        "/admin/match-submissions/disputed"
+      );
+
+    setDisputes(
+      response.data ||
+        []
+    );
+  }
+
+  async function loadAll() {
     try {
       setLoading(true);
       setNotice(null);
 
-      await loadPairs();
+      await Promise.all([
+        loadPairs(),
+        loadDisputes(),
+      ]);
     } catch (error) {
       setNotice({
         type: "error",
 
         text:
-          error.response?.data?.error ||
-          "No se pudo cargar administración.",
+          error.response
+            ?.data
+            ?.error ||
+          "No se pudo cargar la administración.",
       });
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    if (!user) {
-      navigate("/login");
-      return;
-    }
+  async function loadHistory(
+    pairId
+  ) {
+    try {
+      setActionKey(
+        `history-${pairId}`
+      );
 
-    if (user.role !== "admin") {
-      setLoading(false);
-      return;
-    }
+      setNotice(null);
 
-    load();
-  }, []);
+      const response =
+        await api.get(
+          `/admin/reports/${pairId}/history`
+        );
 
-  const filteredPairs = useMemo(
-    () => {
-      const normalized =
-        query
-          .trim()
-          .toLowerCase();
+      setHistory(
+        response.data ||
+          null
+      );
+    } catch (error) {
+      setNotice({
+        type: "error",
 
-      return pairs.filter((pair) => {
-        if (
-          filter !== "all" &&
-          pair.status !== filter
-        ) {
-          return false;
-        }
-
-        if (!normalized) {
-          return true;
-        }
-
-        return String(
-          pair.players || ""
-        )
-          .toLowerCase()
-          .includes(normalized);
+        text:
+          error.response
+            ?.data
+            ?.error ||
+          "No se pudo cargar el historial.",
       });
-    },
-
-    [pairs, query, filter]
-  );
+    } finally {
+      setActionKey("");
+    }
+  }
 
   async function changeReportStatus(
     reportId,
@@ -330,9 +309,14 @@ export default function AdminReports() {
 
       await loadPairs();
 
-      if (selectedPairId) {
+      if (
+        history?.pair
+          ?.pair_id
+      ) {
         await loadHistory(
-          selectedPairId
+          history
+            .pair
+            .pair_id
         );
       }
 
@@ -340,8 +324,9 @@ export default function AdminReports() {
         type: "success",
 
         text:
-          status === "dismissed"
-            ? "Denuncia descartada. El estado de la pareja fue recalculado."
+          status ===
+          "dismissed"
+            ? "Denuncia descartada y disciplina recalculada."
             : "Denuncia marcada como revisada.",
       });
     } catch (error) {
@@ -349,7 +334,9 @@ export default function AdminReports() {
         type: "error",
 
         text:
-          error.response?.data?.error ||
+          error.response
+            ?.data
+            ?.error ||
           "No se pudo actualizar la denuncia.",
       });
     } finally {
@@ -357,18 +344,123 @@ export default function AdminReports() {
     }
   }
 
-  function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+  async function resolveDispute(
+    submissionId,
+    action
+  ) {
+    try {
+      setActionKey(
+        `${submissionId}-${action}`
+      );
 
-    window.location.href = "/";
+      setNotice(null);
+
+      await api.patch(
+        `/admin/match-submissions/${submissionId}/resolve`,
+        {
+          action,
+        }
+      );
+
+      await Promise.all([
+        loadDisputes(),
+        loadPairs(),
+      ]);
+
+      setNotice({
+        type: "success",
+
+        text:
+          action ===
+          "confirm"
+            ? "Resultado validado. El partido ya impactó en rachas y categorías."
+            : "Resultado rechazado. El desafío volvió a quedar disponible según su plazo original.",
+      });
+    } catch (error) {
+      setNotice({
+        type: "error",
+
+        text:
+          error.response
+            ?.data
+            ?.error ||
+          "No se pudo resolver el resultado.",
+      });
+    } finally {
+      setActionKey("");
+    }
   }
+
+  useEffect(() => {
+    if (!user) {
+      navigate(
+        "/login"
+      );
+
+      return;
+    }
+
+    if (
+      user.role ===
+      "admin"
+    ) {
+      loadAll();
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  const filteredPairs =
+    useMemo(
+      () => {
+        const search =
+          query
+            .trim()
+            .toLowerCase();
+
+        return pairs.filter(
+          (pair) => {
+            if (
+              filter !==
+                "all" &&
+              pair.status !==
+                filter
+            ) {
+              return false;
+            }
+
+            if (
+              !search
+            ) {
+              return true;
+            }
+
+            return String(
+              pair.players ||
+                ""
+            )
+              .toLowerCase()
+              .includes(
+                search
+              );
+          }
+        );
+      },
+      [
+        pairs,
+        query,
+        filter,
+      ]
+    );
 
   if (!user) {
     return null;
   }
 
-  if (user.role !== "admin") {
+  if (
+    user.role !==
+    "admin"
+  ) {
     return (
       <div className="app">
         <header className="header">
@@ -376,7 +468,9 @@ export default function AdminReports() {
             to="/"
             className="brand"
           >
-            <span>LA RED</span>
+            <span>
+              LA RED
+            </span>
 
             <small>
               PÁDEL · SAN PEDRO
@@ -387,8 +481,9 @@ export default function AdminReports() {
         <main>
           <section className="internal-page">
             <div className="empty-box">
-              Esta sección es exclusiva
-              para administradores.
+              Esta sección es
+              exclusiva para
+              administradores.
             </div>
 
             <Link
@@ -404,10 +499,12 @@ export default function AdminReports() {
   }
 
   const received =
-    history?.summary?.received;
+    history?.summary
+      ?.received;
 
   const sent =
-    history?.summary?.sent;
+    history?.summary
+      ?.sent;
 
   return (
     <div className="app">
@@ -416,7 +513,9 @@ export default function AdminReports() {
           to="/"
           className="brand"
         >
-          <span>LA RED</span>
+          <span>
+            LA RED
+          </span>
 
           <small>
             PÁDEL · SAN PEDRO
@@ -435,6 +534,10 @@ export default function AdminReports() {
           <Link to="/liga">
             Mi liga
           </Link>
+
+          <Link to="/resultados">
+            Resultados
+          </Link>
         </nav>
 
         <div className="header-actions">
@@ -442,7 +545,8 @@ export default function AdminReports() {
             className="header-user"
             to="/liga"
           >
-            {user.first_name || "Admin"}
+            {user.first_name ||
+              "Admin"}
           </Link>
 
           <button
@@ -463,14 +567,15 @@ export default function AdminReports() {
               </div>
 
               <h1>
-                Denuncias
+                Control de liga
               </h1>
 
               <p>
-                Historial completo,
-                actividad de los últimos
-                180 días y revisión de
-                cada caso.
+                Denuncias,
+                historial de
+                parejas y
+                resultados en
+                disputa.
               </p>
             </div>
           </div>
@@ -478,7 +583,8 @@ export default function AdminReports() {
           {notice && (
             <div
               className={
-                notice.type === "error"
+                notice.type ===
+                "error"
                   ? "error-message league-message"
                   : "league-message"
               }
@@ -487,538 +593,890 @@ export default function AdminReports() {
             </div>
           )}
 
-          <div style={styles.toolbar}>
-            <input
-              value={query}
-              placeholder="Buscar pareja..."
-              onChange={(event) =>
-                setQuery(
-                  event.target.value
-                )
-              }
-              style={{
-                maxWidth: 360,
-                marginTop: 0,
-              }}
-            />
-
-            <div className="gender-switch">
-              <button
-                className={
-                  filter === "all"
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  setFilter("all")
-                }
-              >
-                Todas
-              </button>
-
-              <button
-                className={
-                  filter === "observed"
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  setFilter(
-                    "observed"
-                  )
-                }
-              >
-                Observadas
-              </button>
-
-              <button
-                className={
-                  filter === "review"
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  setFilter("review")
-                }
-              >
-                En revisión
-              </button>
-            </div>
-          </div>
-
           {loading && (
             <div className="empty-box">
-              Cargando denuncias...
+              Cargando
+              administración...
             </div>
           )}
 
-          {!loading &&
-            filteredPairs.length ===
-              0 && (
-              <div className="empty-box">
-                No hay parejas para este
-                filtro.
-              </div>
-            )}
-
-          <div style={styles.grid}>
-            {filteredPairs.map(
-              (pair) => (
-                <section
-                  className="dashboard-card"
-                  style={
-                    styles.compactCard
-                  }
-                  key={pair.pair_id}
-                >
-                  <div className="dashboard-number">
-                    {pair.league_slug} ·{" "}
-                    {
-                      pair.category_number
-                    }
-                    ª · #
-                    {pair.position}
-                  </div>
-
-                  <h2>
-                    {pair.players}
-                  </h2>
-
-                  <p>
-                    Estado:{" "}
-                    <strong>
-                      {pairStatusLabel(
-                        pair.status
-                      )}
-                    </strong>
-                  </p>
-
-                  <div className="challenge-list">
-                    <StatRow
-                      label="RECIBIDAS · HISTÓRICO"
-                      value={
-                        pair.reports_received_total
-                      }
-                      aside={`${pair.distinct_reporters_total} denunciantes`}
-                    />
-
-                    <StatRow
-                      label="RECIBIDAS · 180 DÍAS"
-                      value={
-                        pair.reports_received_180d_valid
-                      }
-                      aside={`${pair.distinct_reporters_180d_valid} distintos`}
-                    />
-
-                    <StatRow
-                      label="REALIZADAS · HISTÓRICO"
-                      value={
-                        pair.reports_sent_total
-                      }
-                      aside={`${pair.distinct_reported_pairs_total} rivales`}
-                    />
-
-                    <StatRow
-                      label="REALIZADAS · 180 DÍAS"
-                      value={
-                        pair.reports_sent_180d_total
-                      }
-                      aside={`${pair.distinct_reported_pairs_180d_total} rivales`}
-                    />
-                  </div>
-
-                  <button
-                    className="button button-outline dashboard-button"
-                    onClick={() =>
-                      loadHistory(
-                        pair.pair_id
-                      )
-                    }
-                  >
-                    VER HISTORIAL
-                  </button>
-                </section>
-              )
-            )}
-          </div>
-
-          {historyLoading && (
-            <div
-              className="empty-box"
-              style={{
-                marginTop: 30,
-              }}
-            >
-              Cargando historial...
-            </div>
-          )}
-
-          {!historyLoading &&
-            history && (
+          {!loading && (
+            <>
               <section
                 style={{
-                  marginTop: 46,
+                  marginBottom:
+                    46,
                 }}
               >
                 <div className="section-label">
-                  HISTORIAL DE PAREJA
+                  RESULTADOS EN
+                  DISPUTA
                 </div>
 
                 <h2
                   style={{
-                    fontSize: 40,
+                    fontSize:
+                      34,
+
                     margin:
-                      "10px 0 8px",
+                      "10px 0 18px",
                   }}
                 >
-                  {
-                    history.pair
-                      .players
-                  }
+                  Resolución
+                  administrativa
                 </h2>
 
-                <p
-                  style={{
-                    color:
-                      "var(--muted)",
-                    marginTop: 0,
-                  }}
-                >
-                  {
-                    history.pair
-                      .league_slug
-                  }{" "}
-                  ·{" "}
-                  {
-                    history.pair
-                      .category_number
-                  }
-                  ª · posición #
-                  {
-                    history.pair
-                      .position
-                  }{" "}
-                  · ELO{" "}
-                  {history.pair.elo}
-                </p>
-
-                <div style={styles.grid}>
-                  <SummaryCard
-                    title="RECIBIDAS"
-                    headline={`${received.total} históricas`}
-                    rows={[
-                      {
-                        label:
-                          "NO DESCARTADAS",
-
-                        value:
-                          received.valid,
-                      },
-
-                      {
-                        label:
-                          "ÚLTIMOS 180 DÍAS",
-
-                        value:
-                          received
-                            .last_180_days
-                            .valid,
-                      },
-
-                      {
-                        label:
-                          "DENUNCIANTES DISTINTOS · 180 DÍAS",
-
-                        value:
-                          received
-                            .distinct_pairs_180d_valid,
-                      },
-                    ]}
-                  />
-
-                  <SummaryCard
-                    title="REALIZADAS"
-                    headline={`${sent.total} históricas`}
-                    rows={[
-                      {
-                        label:
-                          "NO DESCARTADAS",
-
-                        value:
-                          sent.valid,
-                      },
-
-                      {
-                        label:
-                          "ÚLTIMOS 180 DÍAS",
-
-                        value:
-                          sent
-                            .last_180_days
-                            .total,
-                      },
-
-                      {
-                        label:
-                          "RIVALES DISTINTOS · HISTÓRICO",
-
-                        value:
-                          sent
-                            .distinct_pairs_total,
-                      },
-                    ]}
-                  />
-                </div>
-
-                <div style={styles.history}>
-                  {history.reports
-                    .length === 0 && (
-                    <div className="empty-box">
-                      Esta pareja todavía
-                      no tiene denuncias
-                      realizadas ni
-                      recibidas.
-                    </div>
-                  )}
-
-                  {history.reports.map(
-                    (report) => {
-                      const incoming =
-                        report.direction ===
-                        "received";
-
-                      const counterpart =
-                        incoming
-                          ? report
-                              .reporter_players
-                          : report
-                              .reported_players;
-
-                      return (
-                        <article
-                          key={report.id}
-                          style={
-                            styles.historyCard
+                {disputes.length ===
+                0 ? (
+                  <div className="empty-box">
+                    No hay
+                    resultados en
+                    disputa.
+                  </div>
+                ) : (
+                  <div
+                    style={
+                      gridStyle
+                    }
+                  >
+                    {disputes.map(
+                      (
+                        item
+                      ) => (
+                        <section
+                          className="dashboard-card"
+                          key={
+                            item.id
                           }
                         >
-                          <div
-                            style={{
-                              display:
-                                "flex",
+                          <div className="dashboard-number">
+                            DESAFÍO #
+                            {
+                              item.challenge_id
+                            }
+                          </div>
 
-                              justifyContent:
-                                "space-between",
+                          <h2>
+                            {
+                              item.pair_a_players
+                            }{" "}
+                            vs{" "}
+                            {
+                              item.pair_b_players
+                            }
+                          </h2>
 
-                              alignItems:
-                                "flex-start",
+                          <div className="challenge-list">
+                            <div className="challenge-row">
+                              <div>
+                                <small>
+                                  GANADOR
+                                  CARGADO
+                                </small>
 
-                              gap: 14,
-
-                              flexWrap:
-                                "wrap",
-                            }}
-                          >
-                            <div>
-                              <div className="dashboard-number">
-                                {incoming
-                                  ? "RECIBIDA"
-                                  : "REALIZADA"}{" "}
-                                · DENUNCIA #
-                                {
-                                  report.id
-                                }
+                                <strong>
+                                  {
+                                    item.winner_players
+                                  }
+                                </strong>
                               </div>
-
-                              <h3
-                                style={{
-                                  fontSize:
-                                    22,
-
-                                  margin:
-                                    "8px 0 4px",
-                                }}
-                              >
-                                {counterpart}
-                              </h3>
-
-                              <small
-                                style={{
-                                  color:
-                                    "var(--muted)",
-                                }}
-                              >
-                                Desafío #
-                                {
-                                  report.challenge_id
-                                }{" "}
-                                ·{" "}
-                                {formatDate(
-                                  report.created_at
-                                )}
-                              </small>
                             </div>
 
-                            <div
-                              style={{
-                                display:
-                                  "flex",
+                            <div className="challenge-row">
+                              <div>
+                                <small>
+                                  RESULTADO
+                                </small>
 
-                                gap: 8,
+                                <strong>
+                                  {scoreText(
+                                    item.score
+                                  )}
+                                </strong>
+                              </div>
+                            </div>
 
-                                flexWrap:
-                                  "wrap",
-                              }}
-                            >
-                              <span
-                                style={
-                                  styles.badge
-                                }
-                              >
-                                {reportStatusLabel(
-                                  report.status
-                                )}
-                              </span>
+                            <div className="challenge-row">
+                              <div>
+                                <small>
+                                  CARGADO
+                                  POR
+                                </small>
 
-                              {report.in_last_180_days && (
-                                <span
-                                  style={
-                                    styles.badge
+                                <strong>
+                                  {
+                                    item.submitted_by_players
                                   }
-                                >
-                                  180 DÍAS
-                                </span>
-                              )}
+                                </strong>
+                              </div>
+                            </div>
+
+                            <div className="challenge-row">
+                              <div>
+                                <small>
+                                  OBJETADO
+                                  POR
+                                </small>
+
+                                <strong>
+                                  {item.responded_by_players ||
+                                    "Rival"}
+                                </strong>
+                              </div>
                             </div>
                           </div>
 
-                          <div
-                            style={{
-                              marginTop:
-                                16,
+                          <div className="error-message">
+                            {item.response_note ||
+                              "Sin detalle del desacuerdo."}
+                          </div>
 
+                          <p
+                            style={{
                               color:
                                 "var(--muted)",
-
-                              lineHeight:
-                                1.6,
                             }}
                           >
-                            <strong
-                              style={{
-                                color:
-                                  "white",
-                              }}
-                            >
-                              {reasonLabel(
-                                report.reason
+                            Cargado{" "}
+                            {formatDate(
+                              item.created_at
+                            )}
+                          </p>
+
+                          <button
+                            className="button button-green dashboard-button"
+                            disabled={
+                              actionKey ===
+                              `${item.id}-confirm`
+                            }
+                            onClick={() =>
+                              resolveDispute(
+                                item.id,
+                                "confirm"
+                              )
+                            }
+                          >
+                            {actionKey ===
+                            `${item.id}-confirm`
+                              ? "VALIDANDO..."
+                              : "VALIDAR RESULTADO"}
+                          </button>
+
+                          <button
+                            className="button button-outline dashboard-button"
+                            disabled={
+                              actionKey ===
+                              `${item.id}-reject`
+                            }
+                            onClick={() =>
+                              resolveDispute(
+                                item.id,
+                                "reject"
+                              )
+                            }
+                          >
+                            {actionKey ===
+                            `${item.id}-reject`
+                              ? "RECHAZANDO..."
+                              : "RECHAZAR RESULTADO"}
+                          </button>
+                        </section>
+                      )
+                    )}
+                  </div>
+                )}
+              </section>
+
+              <section>
+                <div className="section-label">
+                  DENUNCIAS
+                </div>
+
+                <h2
+                  style={{
+                    fontSize:
+                      34,
+
+                    margin:
+                      "10px 0 18px",
+                  }}
+                >
+                  Historial de
+                  parejas
+                </h2>
+
+                <div
+                  style={{
+                    display:
+                      "flex",
+
+                    flexWrap:
+                      "wrap",
+
+                    gap: 10,
+
+                    marginBottom:
+                      22,
+                  }}
+                >
+                  <input
+                    value={
+                      query
+                    }
+                    placeholder="Buscar pareja..."
+                    onChange={(
+                      event
+                    ) => {
+                      setQuery(
+                        event
+                          .target
+                          .value
+                      );
+                    }}
+                    style={{
+                      maxWidth:
+                        360,
+
+                      marginTop:
+                        0,
+                    }}
+                  />
+
+                  <div className="gender-switch">
+                    <button
+                      className={
+                        filter ===
+                        "all"
+                          ? "active"
+                          : ""
+                      }
+                      onClick={() =>
+                        setFilter(
+                          "all"
+                        )
+                      }
+                    >
+                      Todas
+                    </button>
+
+                    <button
+                      className={
+                        filter ===
+                        "observed"
+                          ? "active"
+                          : ""
+                      }
+                      onClick={() =>
+                        setFilter(
+                          "observed"
+                        )
+                      }
+                    >
+                      Observadas
+                    </button>
+
+                    <button
+                      className={
+                        filter ===
+                        "review"
+                          ? "active"
+                          : ""
+                      }
+                      onClick={() =>
+                        setFilter(
+                          "review"
+                        )
+                      }
+                    >
+                      En revisión
+                    </button>
+                  </div>
+                </div>
+
+                {filteredPairs.length ===
+                0 ? (
+                  <div className="empty-box">
+                    No hay parejas
+                    para este
+                    filtro.
+                  </div>
+                ) : (
+                  <div
+                    style={
+                      gridStyle
+                    }
+                  >
+                    {filteredPairs.map(
+                      (
+                        pair
+                      ) => (
+                        <section
+                          className="dashboard-card"
+                          key={
+                            pair.pair_id
+                          }
+                        >
+                          <div className="dashboard-number">
+                            {
+                              pair.league_slug
+                            }{" "}
+                            ·{" "}
+                            {
+                              pair.category_number
+                            }
+                            ª · #
+                            {
+                              pair.position
+                            }
+                          </div>
+
+                          <h2>
+                            {
+                              pair.players
+                            }
+                          </h2>
+
+                          <p>
+                            Estado:{" "}
+                            <strong>
+                              {pairStatusLabel(
+                                pair.status
                               )}
                             </strong>
+                          </p>
 
-                            {report.details && (
-                              <p
-                                style={{
-                                  margin:
-                                    "7px 0 0",
-                                }}
-                              >
+                          <div className="challenge-list">
+                            <div className="challenge-row">
+                              <div>
+                                <small>
+                                  RECIBIDAS
+                                  ·
+                                  HISTÓRICO
+                                </small>
+
+                                <strong>
+                                  {
+                                    pair.reports_received_total
+                                  }
+                                </strong>
+                              </div>
+
+                              <span>
                                 {
-                                  report.details
+                                  pair.distinct_reporters_total
+                                }{" "}
+                                denunciantes
+                              </span>
+                            </div>
+
+                            <div className="challenge-row">
+                              <div>
+                                <small>
+                                  RECIBIDAS
+                                  · 180
+                                  DÍAS
+                                </small>
+
+                                <strong>
+                                  {
+                                    pair.reports_received_180d_valid
+                                  }
+                                </strong>
+                              </div>
+
+                              <span>
+                                {
+                                  pair.distinct_reporters_180d_valid
+                                }{" "}
+                                distintos
+                              </span>
+                            </div>
+
+                            <div className="challenge-row">
+                              <div>
+                                <small>
+                                  REALIZADAS
+                                  ·
+                                  HISTÓRICO
+                                </small>
+
+                                <strong>
+                                  {
+                                    pair.reports_sent_total
+                                  }
+                                </strong>
+                              </div>
+
+                              <span>
+                                {
+                                  pair.distinct_reported_pairs_total
+                                }{" "}
+                                rivales
+                              </span>
+                            </div>
+
+                            <div className="challenge-row">
+                              <div>
+                                <small>
+                                  REALIZADAS
+                                  · 180
+                                  DÍAS
+                                </small>
+
+                                <strong>
+                                  {
+                                    pair.reports_sent_180d_total
+                                  }
+                                </strong>
+                              </div>
+
+                              <span>
+                                {
+                                  pair.distinct_reported_pairs_180d_total
+                                }{" "}
+                                rivales
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            className="button button-outline dashboard-button"
+                            disabled={
+                              actionKey ===
+                              `history-${pair.pair_id}`
+                            }
+                            onClick={() =>
+                              loadHistory(
+                                pair.pair_id
+                              )
+                            }
+                          >
+                            {actionKey ===
+                            `history-${pair.pair_id}`
+                              ? "CARGANDO..."
+                              : "VER HISTORIAL"}
+                          </button>
+                        </section>
+                      )
+                    )}
+                  </div>
+                )}
+              </section>
+
+              {history &&
+                received &&
+                sent && (
+                  <section
+                    style={{
+                      marginTop:
+                        46,
+                    }}
+                  >
+                    <div className="section-label">
+                      HISTORIAL DE
+                      PAREJA
+                    </div>
+
+                    <h2
+                      style={{
+                        fontSize:
+                          36,
+
+                        margin:
+                          "10px 0 6px",
+                      }}
+                    >
+                      {
+                        history
+                          .pair
+                          .players
+                      }
+                    </h2>
+
+                    <p
+                      style={{
+                        color:
+                          "var(--muted)",
+                      }}
+                    >
+                      {
+                        history
+                          .pair
+                          .league_slug
+                      }{" "}
+                      ·{" "}
+                      {
+                        history
+                          .pair
+                          .category_number
+                      }
+                      ª · posición
+                      #
+                      {
+                        history
+                          .pair
+                          .position
+                      }{" "}
+                      · ELO{" "}
+                      {
+                        history
+                          .pair
+                          .elo
+                      }
+                    </p>
+
+                    <div
+                      style={
+                        gridStyle
+                      }
+                    >
+                      <section className="dashboard-card">
+                        <div className="dashboard-number">
+                          RECIBIDAS
+                        </div>
+
+                        <h2>
+                          {
+                            received.total
+                          }{" "}
+                          históricas
+                        </h2>
+
+                        <div className="challenge-list">
+                          <div className="challenge-row">
+                            <div>
+                              <small>
+                                NO
+                                DESCARTADAS
+                              </small>
+
+                              <strong>
+                                {
+                                  received.valid
                                 }
-                              </p>
-                            )}
+                              </strong>
+                            </div>
+                          </div>
 
-                            {report.reviewed_at && (
-                              <p
-                                style={{
-                                  margin:
-                                    "7px 0 0",
+                          <div className="challenge-row">
+                            <div>
+                              <small>
+                                ÚLTIMOS
+                                180
+                                DÍAS
+                              </small>
 
-                                  fontSize:
-                                    12,
-                                }}
+                              <strong>
+                                {
+                                  received
+                                    .last_180_days
+                                    .valid
+                                }
+                              </strong>
+                            </div>
+                          </div>
+
+                          <div className="challenge-row">
+                            <div>
+                              <small>
+                                DENUNCIANTES
+                                DISTINTOS
+                                · 180
+                                DÍAS
+                              </small>
+
+                              <strong>
+                                {
+                                  received
+                                    .distinct_pairs_180d_valid
+                                }
+                              </strong>
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+
+                      <section className="dashboard-card">
+                        <div className="dashboard-number">
+                          REALIZADAS
+                        </div>
+
+                        <h2>
+                          {
+                            sent.total
+                          }{" "}
+                          históricas
+                        </h2>
+
+                        <div className="challenge-list">
+                          <div className="challenge-row">
+                            <div>
+                              <small>
+                                NO
+                                DESCARTADAS
+                              </small>
+
+                              <strong>
+                                {
+                                  sent.valid
+                                }
+                              </strong>
+                            </div>
+                          </div>
+
+                          <div className="challenge-row">
+                            <div>
+                              <small>
+                                ÚLTIMOS
+                                180
+                                DÍAS
+                              </small>
+
+                              <strong>
+                                {
+                                  sent
+                                    .last_180_days
+                                    .total
+                                }
+                              </strong>
+                            </div>
+                          </div>
+
+                          <div className="challenge-row">
+                            <div>
+                              <small>
+                                RIVALES
+                                DISTINTOS
+                                ·
+                                HISTÓRICO
+                              </small>
+
+                              <strong>
+                                {
+                                  sent
+                                    .distinct_pairs_total
+                                }
+                              </strong>
+                            </div>
+                          </div>
+
+                          <div className="challenge-row">
+                            <div>
+                              <small>
+                                RIVALES
+                                DISTINTOS
+                                · 180
+                                DÍAS
+                              </small>
+
+                              <strong>
+                                {
+                                  sent
+                                    .distinct_pairs_180d_total
+                                }
+                              </strong>
+                            </div>
+                          </div>
+                        </div>
+                      </section>
+                    </div>
+
+                    <div
+                      style={{
+                        display:
+                          "grid",
+
+                        gap: 12,
+
+                        marginTop:
+                          18,
+                      }}
+                    >
+                      {history
+                        .reports
+                        .length ===
+                        0 && (
+                        <div className="empty-box">
+                          Esta
+                          pareja
+                          todavía
+                          no tiene
+                          denuncias
+                          realizadas
+                          ni
+                          recibidas.
+                        </div>
+                      )}
+
+                      {history
+                        .reports
+                        .map(
+                          (
+                            report
+                          ) => {
+                            const incoming =
+                              report.direction ===
+                              "received";
+
+                            const counterpart =
+                              incoming
+                                ? report.reporter_players
+                                : report.reported_players;
+
+                            return (
+                              <article
+                                className="dashboard-card"
+                                key={
+                                  report.id
+                                }
                               >
-                                Revisada{" "}
-                                {formatDate(
-                                  report.reviewed_at
+                                <div className="dashboard-number">
+                                  {incoming
+                                    ? "RECIBIDA"
+                                    : "REALIZADA"}{" "}
+                                  ·
+                                  DENUNCIA
+                                  #
+                                  {
+                                    report.id
+                                  }
+                                </div>
+
+                                <h3>
+                                  {
+                                    counterpart
+                                  }
+                                </h3>
+
+                                <p
+                                  style={{
+                                    color:
+                                      "var(--muted)",
+                                  }}
+                                >
+                                  Desafío
+                                  #
+                                  {
+                                    report.challenge_id
+                                  }{" "}
+                                  ·{" "}
+                                  {formatDate(
+                                    report.created_at
+                                  )}
+                                </p>
+
+                                <strong>
+                                  {reasonLabel(
+                                    report.reason
+                                  )}
+                                </strong>
+
+                                {report.details && (
+                                  <p>
+                                    {
+                                      report.details
+                                    }
+                                  </p>
                                 )}
 
-                                {report.reviewer_name
-                                  ? ` por ${report.reviewer_name}`
-                                  : ""}
-                              </p>
-                            )}
-                          </div>
+                                <p
+                                  style={{
+                                    color:
+                                      "var(--muted)",
+                                  }}
+                                >
+                                  Estado:{" "}
+                                  {reportStatusLabel(
+                                    report.status
+                                  )}
 
-                          <div
-                            style={{
-                              display:
-                                "flex",
+                                  {report.in_last_180_days
+                                    ? " · dentro de 180 días"
+                                    : " · histórico"}
+                                </p>
 
-                              gap: 10,
+                                {report.reviewed_at && (
+                                  <p
+                                    style={{
+                                      color:
+                                        "var(--muted)",
+                                    }}
+                                  >
+                                    Revisada{" "}
+                                    {formatDate(
+                                      report.reviewed_at
+                                    )}
 
-                              flexWrap:
-                                "wrap",
+                                    {report.reviewer_name
+                                      ? ` por ${report.reviewer_name}`
+                                      : ""}
+                                  </p>
+                                )}
 
-                              marginTop:
-                                18,
-                            }}
-                          >
-                            {report.status !==
-                              "reviewed" && (
-                              <button
-                                className="button button-green"
-                                style={
-                                  styles.smallButton
-                                }
-                                disabled={
-                                  actionKey ===
-                                  `${report.id}-reviewed`
-                                }
-                                onClick={() =>
-                                  changeReportStatus(
-                                    report.id,
-                                    "reviewed"
-                                  )
-                                }
-                              >
-                                {actionKey ===
-                                `${report.id}-reviewed`
-                                  ? "GUARDANDO..."
-                                  : "MARCAR REVISADA"}
-                              </button>
-                            )}
+                                <div
+                                  style={{
+                                    display:
+                                      "flex",
 
-                            {report.status !==
-                              "dismissed" && (
-                              <button
-                                className="button button-outline"
-                                style={
-                                  styles.smallButton
-                                }
-                                disabled={
-                                  actionKey ===
-                                  `${report.id}-dismissed`
-                                }
-                                onClick={() =>
-                                  changeReportStatus(
-                                    report.id,
-                                    "dismissed"
-                                  )
-                                }
-                              >
-                                {actionKey ===
-                                `${report.id}-dismissed`
-                                  ? "GUARDANDO..."
-                                  : "DESCARTAR"}
-                              </button>
-                            )}
-                          </div>
-                        </article>
-                      );
-                    })}
-                </div>
-              </section>
-            )}
+                                    flexWrap:
+                                      "wrap",
+
+                                    gap: 10,
+                                  }}
+                                >
+                                  {report.status ===
+                                    "open" && (
+                                    <button
+                                      className="button button-green"
+                                      disabled={
+                                        actionKey ===
+                                        `${report.id}-reviewed`
+                                      }
+                                      onClick={() =>
+                                        changeReportStatus(
+                                          report.id,
+                                          "reviewed"
+                                        )
+                                      }
+                                    >
+                                      {actionKey ===
+                                      `${report.id}-reviewed`
+                                        ? "GUARDANDO..."
+                                        : "MARCAR REVISADA"}
+                                    </button>
+                                  )}
+
+                                  {report.status !==
+                                    "dismissed" && (
+                                    <button
+                                      className="button button-outline"
+                                      disabled={
+                                        actionKey ===
+                                        `${report.id}-dismissed`
+                                      }
+                                      onClick={() =>
+                                        changeReportStatus(
+                                          report.id,
+                                          "dismissed"
+                                        )
+                                      }
+                                    >
+                                      {actionKey ===
+                                      `${report.id}-dismissed`
+                                        ? "GUARDANDO..."
+                                        : "DESCARTAR"}
+                                    </button>
+                                  )}
+                                </div>
+                              </article>
+                            );
+                          }
+                        )}
+                    </div>
+                  </section>
+                )}
+            </>
+          )}
         </section>
       </main>
     </div>

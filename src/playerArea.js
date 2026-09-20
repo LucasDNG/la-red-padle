@@ -1,657 +1,219 @@
 import { pool } from "./db.js";
 
-async function pairForUser(client, userId) {
-  const result = await client.query(
-    `
-      SELECT p.*
-      FROM pairs p
-      JOIN pair_members pm
-        ON pm.pair_id = p.id
-      WHERE pm.user_id = $1
-        AND p.status <> 'inactive'
-      ORDER BY p.id DESC
-      LIMIT 1
-    `,
-    [userId]
-  );
-
-  return result.rows[0] || null;
-}
-
-async function normalize(
+async function pairForUser(
   client,
-  categoryId
+  userId
 ) {
-  const rows = (
+  const result =
     await client.query(
       `
-        SELECT
-          id,
-          position
-        FROM pairs
-        WHERE category_id = $1
-          AND status <> 'inactive'
+        SELECT p.*
+        FROM pairs p
+
+        JOIN pair_members pm
+          ON pm.pair_id =
+             p.id
+
+        WHERE
+          pm.user_id = $1
+          AND
+          p.status <>
+            'inactive'
+
         ORDER BY
-          position,
-          id
-      `,
-      [categoryId]
-    )
-  ).rows;
+          p.id DESC
 
-  if (!rows.length) {
-    return;
-  }
-
-  const maxPosition = Math.max(
-    ...rows.map((row) =>
-      Number(row.position)
-    )
-  );
-
-  const temporaryBase =
-    maxPosition +
-    rows.length +
-    1000;
-
-  for (
-    let index = 0;
-    index < rows.length;
-    index += 1
-  ) {
-    await client.query(
-      `
-        UPDATE pairs
-        SET position = $2
-        WHERE id = $1
-      `,
-      [
-        rows[index].id,
-        temporaryBase + index,
-      ]
-    );
-  }
-
-  for (
-    let index = 0;
-    index < rows.length;
-    index += 1
-  ) {
-    await client.query(
-      `
-        UPDATE pairs
-        SET position = $2
-        WHERE id = $1
-      `,
-      [
-        rows[index].id,
-        index + 1,
-      ]
-    );
-  }
-}
-
-async function swapCategories(
-  client,
-  upPair,
-  downPair,
-  reason
-) {
-  const a = (
-    await client.query(
-      `
-        SELECT *
-        FROM pairs
-        WHERE id = $1
-        FOR UPDATE
-      `,
-      [upPair]
-    )
-  ).rows[0];
-
-  const b = (
-    await client.query(
-      `
-        SELECT *
-        FROM pairs
-        WHERE id = $1
-        FOR UPDATE
-      `,
-      [downPair]
-    )
-  ).rows[0];
-
-  if (!a || !b) {
-    throw new Error(
-      "No se pudo completar el cambio de categoría"
-    );
-  }
-
-  const categoryA =
-    a.category_id;
-
-  const categoryB =
-    b.category_id;
-
-  const positionA =
-    Number(a.position);
-
-  const positionB =
-    Number(b.position);
-
-  if (
-    Number(categoryA) ===
-    Number(categoryB)
-  ) {
-    throw new Error(
-      "Las parejas deben pertenecer a categorías distintas"
-    );
-  }
-
-  const maxA = Number(
-    (
-      await client.query(
-        `
-          SELECT
-            COALESCE(
-              MAX(position),
-              0
-            ) max_position
-          FROM pairs
-          WHERE category_id = $1
-        `,
-        [categoryA]
-      )
-    ).rows[0].max_position
-  );
-
-  const maxB = Number(
-    (
-      await client.query(
-        `
-          SELECT
-            COALESCE(
-              MAX(position),
-              0
-            ) max_position
-          FROM pairs
-          WHERE category_id = $1
-        `,
-        [categoryB]
-      )
-    ).rows[0].max_position
-  );
-
-  const offsetA =
-    maxA + 1000;
-
-  const offsetB =
-    maxB + 1000;
-
-  await client.query(
-    `
-      UPDATE pairs
-      SET position =
-        position + $2
-      WHERE category_id = $1
-    `,
-    [
-      categoryA,
-      offsetA,
-    ]
-  );
-
-  await client.query(
-    `
-      UPDATE pairs
-      SET position =
-        position + $2
-      WHERE category_id = $1
-    `,
-    [
-      categoryB,
-      offsetB,
-    ]
-  );
-
-  await client.query(
-    `
-      UPDATE pairs
-      SET position = $2
-      WHERE id = $1
-    `,
-    [
-      a.id,
-      maxA +
-        offsetA +
-        1,
-    ]
-  );
-
-  await client.query(
-    `
-      UPDATE pairs
-      SET position = $2
-      WHERE id = $1
-    `,
-    [
-      b.id,
-      maxB +
-        offsetB +
-        1,
-    ]
-  );
-
-  await client.query(
-    `
-      UPDATE pairs
-      SET
-        category_id = $2,
-        position = $3,
-        consecutive_wins = 0,
-        consecutive_losses = 0
-      WHERE id = $1
-    `,
-    [
-      a.id,
-      categoryB,
-      positionB + offsetB,
-    ]
-  );
-
-  await client.query(
-    `
-      UPDATE pairs
-      SET
-        category_id = $2,
-        position = $3,
-        consecutive_wins = 0,
-        consecutive_losses = 0
-      WHERE id = $1
-    `,
-    [
-      b.id,
-      categoryA,
-      positionA + offsetA,
-    ]
-  );
-
-  await normalize(
-    client,
-    categoryA
-  );
-
-  await normalize(
-    client,
-    categoryB
-  );
-
-  await client.query(
-    `
-      INSERT INTO category_movements(
-        pair_id,
-        from_category_id,
-        to_category_id,
-        reason
-      )
-      VALUES
-        ($1,$2,$3,$4),
-        ($5,$3,$2,$4)
-    `,
-    [
-      a.id,
-      categoryA,
-      categoryB,
-      reason,
-      b.id,
-    ]
-  );
-}
-
-async function promotionCheck(
-  client,
-  pairId
-) {
-  const pair = (
-    await client.query(
-      `
-        SELECT
-          p.*,
-          c.number
-        FROM pairs p
-        JOIN categories c
-          ON c.id =
-             p.category_id
-        WHERE p.id = $1
-      `,
-      [pairId]
-    )
-  ).rows[0];
-
-  if (!pair) {
-    return;
-  }
-
-  if (
-    Number(pair.position) === 1 &&
-    Number(pair.consecutive_wins) >= 3 &&
-    Number(pair.number) > 1
-  ) {
-    const upper = (
-      await client.query(
-        `
-          SELECT id
-          FROM categories
-          WHERE league_id = $1
-            AND number = $2
-        `,
-        [
-          pair.league_id,
-          Number(pair.number) - 1,
-        ]
-      )
-    ).rows[0];
-
-    if (!upper) {
-      return;
-    }
-
-    const last = (
-      await client.query(
-        `
-          SELECT id
-          FROM pairs
-          WHERE category_id = $1
-            AND status <> 'inactive'
-          ORDER BY position DESC
-          LIMIT 1
-        `,
-        [upper.id]
-      )
-    ).rows[0];
-
-    if (last) {
-      await swapCategories(
-        client,
-        pair.id,
-        last.id,
-        "three_wins_promotion"
-      );
-    }
-  }
-}
-
-async function relegationCheck(
-  client,
-  pairId
-) {
-  const pair = (
-    await client.query(
-      `
-        SELECT
-          p.*,
-          c.number
-        FROM pairs p
-        JOIN categories c
-          ON c.id =
-             p.category_id
-        WHERE p.id = $1
-      `,
-      [pairId]
-    )
-  ).rows[0];
-
-  if (!pair) {
-    return;
-  }
-
-  const last = (
-    await client.query(
-      `
-        SELECT id
-        FROM pairs
-        WHERE category_id = $1
-          AND status <> 'inactive'
-        ORDER BY position DESC
         LIMIT 1
       `,
-      [pair.category_id]
-    )
-  ).rows[0];
+      [userId]
+    );
 
-  if (
-    Number(last?.id) ===
-      Number(pair.id) &&
-    Number(
-      pair.consecutive_losses
-    ) >= 3 &&
-    Number(pair.number) < 7
-  ) {
-    const lower = (
-      await client.query(
-        `
-          SELECT id
-          FROM categories
-          WHERE league_id = $1
-            AND number = $2
-        `,
-        [
-          pair.league_id,
-          Number(pair.number) + 1,
-        ]
-      )
-    ).rows[0];
-
-    if (!lower) {
-      return;
-    }
-
-    const first = (
-      await client.query(
-        `
-          SELECT id
-          FROM pairs
-          WHERE category_id = $1
-            AND status <> 'inactive'
-          ORDER BY position
-          LIMIT 1
-        `,
-        [lower.id]
-      )
-    ).rows[0];
-
-    if (first) {
-      await swapCategories(
-        client,
-        first.id,
-        pair.id,
-        "three_losses_relegation"
-      );
-    }
-  }
+  return (
+    result.rows[0] ||
+    null
+  );
 }
 
-export async function createMatchSubmission(
-  userId,
-  challengeId,
-  winnerPairId,
-  score
+export async function availablePlayers(
+  userId
 ) {
-  const client =
-    await pool.connect();
-
-  try {
-    await client.query("BEGIN");
-
-    const mine =
-      await pairForUser(
-        client,
-        userId
-      );
-
-    if (!mine) {
-      throw new Error(
-        "No tenés pareja activa"
-      );
-    }
-
-    const challenge = (
-      await client.query(
-        `
-          SELECT *
-          FROM challenges
-          WHERE id = $1
-          FOR UPDATE
-        `,
-        [challengeId]
-      )
-    ).rows[0];
-
-    if (
-      !challenge ||
-      challenge.status !==
-        "accepted"
-    ) {
-      throw new Error(
-        "Desafío no disponible"
-      );
-    }
-
-    if (
-      challenge.play_deadline_at &&
-      new Date(
-        challenge.play_deadline_at
-      ).getTime() <= Date.now()
-    ) {
-      throw new Error(
-        "El plazo del desafío ya venció"
-      );
-    }
-
-    const pairIds = [
-      Number(
-        challenge
-          .challenger_pair_id
-      ),
-      Number(
-        challenge
-          .challenged_pair_id
-      ),
-    ];
-
-    if (
-      !pairIds.includes(
-        Number(mine.id)
-      )
-    ) {
-      throw new Error(
-        "No participás del desafío"
-      );
-    }
-
-    if (
-      !pairIds.includes(
-        Number(winnerPairId)
-      )
-    ) {
-      throw new Error(
-        "Ganador inválido"
-      );
-    }
-
-    const active = (
-      await client.query(
-        `
-          SELECT id
-          FROM match_submissions
-          WHERE challenge_id = $1
-            AND status IN(
-              'pending',
-              'disputed'
-            )
-          LIMIT 1
-        `,
-        [challenge.id]
-      )
-    ).rows[0];
-
-    if (active) {
-      throw new Error(
-        "Ya hay un resultado pendiente para este desafío"
-      );
-    }
-
-    const submission = (
-      await client.query(
-        `
-          INSERT INTO match_submissions(
-            challenge_id,
-            league_id,
-            pair_a_id,
-            pair_b_id,
-            submitted_by_pair_id,
-            winner_pair_id,
-            score,
-            play_deadline_at
-          )
-          VALUES(
-            $1,
-            $2,
-            $3,
-            $4,
-            $5,
-            $6,
-            $7,
-            $8
-          )
-          RETURNING *
-        `,
-        [
-          challenge.id,
-          challenge.league_id,
-          challenge
-            .challenger_pair_id,
-          challenge
-            .challenged_pair_id,
-          mine.id,
-          winnerPairId,
-          score || null,
-          challenge
-            .play_deadline_at,
-        ]
-      )
-    ).rows[0];
-
-    /*
-      Una vez cargado el resultado,
-      frenamos el vencimiento automático
-      mientras la otra pareja confirma
-      o se resuelve un desacuerdo.
-    */
-    await client.query(
+  const result =
+    await pool.query(
       `
-        UPDATE challenges
-        SET play_deadline_at = NULL
-        WHERE id = $1
+        SELECT
+          u.id,
+          u.first_name,
+          u.last_name,
+          u.gender
+
+        FROM users u
+
+        WHERE
+          u.role =
+            'player'
+
+          AND
+          u.id <> $1
+
+          AND
+          u.gender = (
+            SELECT gender
+            FROM users
+            WHERE id = $1
+          )
+
+          AND NOT EXISTS (
+            SELECT 1
+
+            FROM pair_members pm
+
+            JOIN pairs p
+              ON p.id =
+                 pm.pair_id
+
+            WHERE
+              pm.user_id =
+                u.id
+
+              AND
+              p.status <>
+                'inactive'
+          )
+
+        ORDER BY
+          u.first_name,
+          u.last_name
       `,
-      [challenge.id]
+      [userId]
     );
 
-    await client.query("COMMIT");
-
-    return submission;
-  } catch (error) {
-    await client.query(
-      "ROLLBACK"
-    );
-
-    throw error;
-  } finally {
-    client.release();
-  }
+  return result.rows;
 }
 
-export async function myMatchSubmissions(
+export async function myPair(
+  userId
+) {
+  const result =
+    await pool.query(
+      `
+        SELECT
+          p.id,
+          p.league_id,
+          p.category_id,
+          p.position,
+          p.elo,
+          p.status,
+          p.consecutive_wins,
+          p.consecutive_losses,
+          p.created_at,
+
+          l.slug
+            league_slug,
+
+          l.name
+            league_name,
+
+          c.number
+            category_number,
+
+          c.name
+            category_name,
+
+          c.capacity,
+
+          string_agg(
+            u.first_name ||
+            ' ' ||
+            u.last_name,
+            ' / '
+            ORDER BY u.id
+          ) players,
+
+          jsonb_agg(
+            jsonb_build_object(
+              'id',
+              u.id,
+
+              'name',
+              u.first_name ||
+              ' ' ||
+              u.last_name,
+
+              'phone',
+              u.phone
+            )
+            ORDER BY u.id
+          ) members
+
+        FROM pairs p
+
+        JOIN leagues l
+          ON l.id =
+             p.league_id
+
+        JOIN categories c
+          ON c.id =
+             p.category_id
+
+        JOIN pair_members pm
+          ON pm.pair_id =
+             p.id
+
+        JOIN users u
+          ON u.id =
+             pm.user_id
+
+        WHERE
+          p.id = (
+            SELECT
+              p2.id
+
+            FROM pairs p2
+
+            JOIN pair_members pm2
+              ON pm2.pair_id =
+                 p2.id
+
+            WHERE
+              pm2.user_id =
+                $1
+
+              AND
+              p2.status <>
+                'inactive'
+
+            ORDER BY
+              p2.id DESC
+
+            LIMIT 1
+          )
+
+        GROUP BY
+          p.id,
+          p.league_id,
+          p.category_id,
+          p.position,
+          p.elo,
+          p.status,
+          p.consecutive_wins,
+          p.consecutive_losses,
+          p.created_at,
+          l.slug,
+          l.name,
+          c.number,
+          c.name,
+          c.capacity
+      `,
+      [userId]
+    );
+
+  return (
+    result.rows[0] ||
+    null
+  );
+}
+
+export async function opponents(
   userId
 ) {
   const client =
@@ -673,7 +235,8 @@ export async function myMatchSubmissions(
         `
           WITH pair_names AS (
             SELECT
-              p.id pair_id,
+              p.id
+                pair_id,
 
               string_agg(
                 u.first_name ||
@@ -693,69 +256,205 @@ export async function myMatchSubmissions(
               ON u.id =
                  pm.user_id
 
-            GROUP BY p.id
+            GROUP BY
+              p.id
           )
 
           SELECT
-            ms.*,
+            p.id
+              pair_id,
 
-            submitter.players
-              submitted_by_players,
+            p.position,
 
-            winner.players
-              winner_players,
+            p.elo,
 
-            opponent.players
-              opponent_players,
+            p.status,
 
-            CASE
-              WHEN
-                ms.submitted_by_pair_id =
-                  $1
-              THEN 'submitted'
-              ELSE 'received'
-            END role
+            pn.players,
 
-          FROM match_submissions ms
+            (
+              SELECT
+                count(*)::int
 
-          JOIN pair_names submitter
-            ON submitter.pair_id =
-               ms.submitted_by_pair_id
+              FROM matches m
 
-          JOIN pair_names winner
-            ON winner.pair_id =
-               ms.winner_pair_id
+              WHERE
+                (
+                  m.pair_a_id =
+                    $1
 
-          JOIN pair_names opponent
-            ON opponent.pair_id =
-              CASE
-                WHEN
-                  ms.pair_a_id = $1
-                THEN ms.pair_b_id
-                ELSE ms.pair_a_id
-              END
+                  AND
+                  m.pair_b_id =
+                    p.id
+                )
+
+                OR
+
+                (
+                  m.pair_a_id =
+                    p.id
+
+                  AND
+                  m.pair_b_id =
+                    $1
+                )
+            )
+              historical_meetings,
+
+            (
+              SELECT
+                count(*)::int
+
+              FROM challenges ch
+
+              WHERE
+                ch.status IN (
+                  'pending',
+                  'accepted'
+                )
+
+                AND
+                (
+                  (
+                    ch.challenger_pair_id =
+                      $1
+
+                    AND
+                    ch.challenged_pair_id =
+                      p.id
+                  )
+
+                  OR
+
+                  (
+                    ch.challenger_pair_id =
+                      p.id
+
+                    AND
+                    ch.challenged_pair_id =
+                      $1
+                  )
+                )
+            )
+              active_challenges
+
+          FROM pairs p
+
+          JOIN pair_names pn
+            ON pn.pair_id =
+               p.id
 
           WHERE
-            (
-              ms.pair_a_id = $1
-              OR
-              ms.pair_b_id = $1
-            )
+            p.category_id =
+              $2
+
             AND
-            ms.status IN(
-              'pending',
-              'disputed'
-            )
+            p.id <> $1
+
+            AND
+            p.status <>
+              'inactive'
 
           ORDER BY
-            CASE
-              WHEN
-                ms.status =
-                  'pending'
-              THEN 0
-              ELSE 1
-            END,
-            ms.created_at DESC
+            p.position,
+            p.id
+        `,
+        [
+          mine.id,
+          mine.category_id,
+        ]
+      );
+
+    return result.rows;
+  } finally {
+    client.release();
+  }
+}
+
+export async function challengeInbox(
+  userId
+) {
+  const client =
+    await pool.connect();
+
+  try {
+    const mine =
+      await pairForUser(
+        client,
+        userId
+      );
+
+    if (!mine) {
+      return [];
+    }
+
+    const result =
+      await client.query(
+        `
+          WITH pair_info AS (
+            SELECT
+              p.id
+                pair_id,
+
+              p.position,
+
+              p.elo,
+
+              string_agg(
+                u.first_name ||
+                ' ' ||
+                u.last_name,
+                ' / '
+                ORDER BY u.id
+              ) players
+
+            FROM pairs p
+
+            JOIN pair_members pm
+              ON pm.pair_id =
+                 p.id
+
+            JOIN users u
+              ON u.id =
+                 pm.user_id
+
+            GROUP BY
+              p.id,
+              p.position,
+              p.elo
+          )
+
+          SELECT
+            ch.*,
+
+            challenger.players
+              challenger_players,
+
+            challenger.position
+              challenger_position,
+
+            challenger.elo
+              challenger_elo
+
+          FROM challenges ch
+
+          JOIN pair_info challenger
+            ON
+              challenger.pair_id =
+                ch.challenger_pair_id
+
+          WHERE
+            ch.challenged_pair_id =
+              $1
+
+            AND
+            ch.status =
+              'pending'
+
+          ORDER BY
+            ch.historical_meetings_at_creation,
+            ch.created_at,
+            ch.id
         `,
         [mine.id]
       );
@@ -766,16 +465,13 @@ export async function myMatchSubmissions(
   }
 }
 
-export async function confirmMatchSubmission(
-  userId,
-  submissionId
+export async function playerChallenges(
+  userId
 ) {
   const client =
     await pool.connect();
 
   try {
-    await client.query("BEGIN");
-
     const mine =
       await pairForUser(
         client,
@@ -783,233 +479,199 @@ export async function confirmMatchSubmission(
       );
 
     if (!mine) {
-      throw new Error(
-        "No tenés pareja activa"
-      );
+      return [];
     }
 
-    const submission = (
+    const result =
       await client.query(
         `
-          SELECT *
-          FROM match_submissions
-          WHERE id = $1
-          FOR UPDATE
-        `,
-        [submissionId]
-      )
-    ).rows[0];
+          WITH pair_info AS (
+            SELECT
+              p.id
+                pair_id,
 
-    if (
-      !submission ||
-      submission.status !==
-        "pending"
-    ) {
-      throw new Error(
-        "Resultado no disponible para confirmar"
-      );
-    }
+              p.position,
 
-    const pairIds = [
-      Number(
-        submission.pair_a_id
-      ),
-      Number(
-        submission.pair_b_id
-      ),
-    ];
+              p.elo,
 
-    if (
-      !pairIds.includes(
-        Number(mine.id)
-      )
-    ) {
-      throw new Error(
-        "No participás de este resultado"
-      );
-    }
+              string_agg(
+                u.first_name ||
+                ' ' ||
+                u.last_name,
+                ' / '
+                ORDER BY u.id
+              ) players,
 
-    if (
-      Number(
-        submission
-          .submitted_by_pair_id
-      ) ===
-      Number(mine.id)
-    ) {
-      throw new Error(
-        "El resultado debe confirmarlo la otra pareja"
-      );
-    }
+              jsonb_agg(
+                jsonb_build_object(
+                  'id',
+                  u.id,
 
-    const challenge = (
-      await client.query(
-        `
-          SELECT *
-          FROM challenges
-          WHERE id = $1
-          FOR UPDATE
-        `,
-        [
-          submission
-            .challenge_id,
-        ]
-      )
-    ).rows[0];
+                  'name',
+                  u.first_name ||
+                  ' ' ||
+                  u.last_name,
 
-    if (
-      !challenge ||
-      challenge.status !==
-        "accepted"
-    ) {
-      throw new Error(
-        "El desafío ya no está disponible"
-      );
-    }
+                  'phone',
+                  u.phone
+                )
+                ORDER BY u.id
+              ) contacts
 
-    const winnerPairId =
-      Number(
-        submission
-          .winner_pair_id
-      );
+            FROM pairs p
 
-    const loserPairId =
-      winnerPairId ===
-      Number(
-        submission.pair_a_id
-      )
-        ? submission.pair_b_id
-        : submission.pair_a_id;
+            JOIN pair_members pm
+              ON pm.pair_id =
+                 p.id
 
-    const match = (
-      await client.query(
-        `
-          INSERT INTO matches(
-            challenge_id,
-            league_id,
-            pair_a_id,
-            pair_b_id,
-            winner_pair_id,
-            score,
-            status
+            JOIN users u
+              ON u.id =
+                 pm.user_id
+
+            GROUP BY
+              p.id,
+              p.position,
+              p.elo
           )
-          VALUES(
-            $1,
-            $2,
-            $3,
-            $4,
-            $5,
-            $6,
-            'confirmed'
-          )
-          RETURNING *
+
+          SELECT
+            ch.*,
+
+            CASE
+              WHEN
+                ch.challenger_pair_id =
+                  $1
+              THEN
+                'challenger'
+
+              ELSE
+                'challenged'
+            END
+              role,
+
+            opponent.pair_id
+              opponent_pair_id,
+
+            opponent.players
+              opponent_players,
+
+            opponent.position
+              opponent_position,
+
+            opponent.elo
+              opponent_elo,
+
+            CASE
+              WHEN
+                ch.status =
+                  'accepted'
+              THEN
+                opponent.contacts
+
+              ELSE
+                '[]'::jsonb
+            END
+              opponent_contacts,
+
+            EXISTS (
+              SELECT 1
+
+              FROM reports r
+
+              WHERE
+                r.challenge_id =
+                  ch.id
+
+                AND
+                r.reporter_pair_id =
+                  $1
+            )
+              report_submitted
+
+          FROM challenges ch
+
+          JOIN pair_info opponent
+            ON
+              opponent.pair_id =
+                CASE
+                  WHEN
+                    ch.challenger_pair_id =
+                      $1
+                  THEN
+                    ch.challenged_pair_id
+
+                  ELSE
+                    ch.challenger_pair_id
+                END
+
+          WHERE
+            (
+              ch.challenger_pair_id =
+                $1
+
+              OR
+
+              ch.challenged_pair_id =
+                $1
+            )
+
+            AND
+            ch.status IN (
+              'pending',
+              'accepted'
+            )
+
+            AND NOT EXISTS (
+              SELECT 1
+
+              FROM match_submissions ms
+
+              WHERE
+                ms.challenge_id =
+                  ch.id
+
+                AND
+                ms.status IN (
+                  'pending',
+                  'disputed'
+                )
+            )
+
+          ORDER BY
+            CASE
+              WHEN
+                ch.status =
+                  'accepted'
+              THEN 0
+              ELSE 1
+            END,
+
+            ch.play_deadline_at
+              NULLS LAST,
+
+            ch.created_at,
+            ch.id
         `,
-        [
-          submission
-            .challenge_id,
-          submission.league_id,
-          submission.pair_a_id,
-          submission.pair_b_id,
-          winnerPairId,
-          submission.score,
-        ]
-      )
-    ).rows[0];
+        [mine.id]
+      );
 
-    await client.query(
-      `
-        UPDATE challenges
-        SET status = 'played'
-        WHERE id = $1
-      `,
-      [
-        submission
-          .challenge_id,
-      ]
-    );
-
-    await client.query(
-      `
-        UPDATE pairs
-        SET
-          consecutive_wins =
-            consecutive_wins + 1,
-          consecutive_losses = 0
-        WHERE id = $1
-      `,
-      [winnerPairId]
-    );
-
-    await client.query(
-      `
-        UPDATE pairs
-        SET
-          consecutive_losses =
-            consecutive_losses + 1,
-          consecutive_wins = 0
-        WHERE id = $1
-      `,
-      [loserPairId]
-    );
-
-    await promotionCheck(
-      client,
-      winnerPairId
-    );
-
-    await relegationCheck(
-      client,
-      loserPairId
-    );
-
-    await client.query(
-      `
-        UPDATE match_submissions
-        SET
-          status = 'confirmed',
-          responded_by_pair_id = $2,
-          responded_at = now(),
-          updated_at = now()
-        WHERE id = $1
-      `,
-      [
-        submission.id,
-        mine.id,
-      ]
-    );
-
-    await client.query("COMMIT");
-
-    return match;
-  } catch (error) {
-    await client.query(
-      "ROLLBACK"
-    );
-
-    throw error;
+    return result.rows;
   } finally {
     client.release();
   }
 }
 
-export async function disputeMatchSubmission(
+export async function acceptPendingChallenge(
   userId,
-  submissionId,
-  note
+  challengeId
 ) {
-  const cleanNote =
-    String(note || "").trim();
-
-  if (!cleanNote) {
-    throw new Error(
-      "Explicá brevemente qué dato no coincide"
-    );
-  }
-
   const client =
     await pool.connect();
 
   try {
-    await client.query("BEGIN");
+    await client.query(
+      "BEGIN"
+    );
 
     const mine =
       await pairForUser(
@@ -1023,83 +685,55 @@ export async function disputeMatchSubmission(
       );
     }
 
-    const submission = (
+    const result =
       await client.query(
         `
-          SELECT *
-          FROM match_submissions
-          WHERE id = $1
-          FOR UPDATE
-        `,
-        [submissionId]
-      )
-    ).rows[0];
+          UPDATE challenges
 
-    if (
-      !submission ||
-      submission.status !==
-        "pending"
-    ) {
-      throw new Error(
-        "Resultado no disponible para objetar"
-      );
-    }
-
-    const pairIds = [
-      Number(
-        submission.pair_a_id
-      ),
-      Number(
-        submission.pair_b_id
-      ),
-    ];
-
-    if (
-      !pairIds.includes(
-        Number(mine.id)
-      )
-    ) {
-      throw new Error(
-        "No participás de este resultado"
-      );
-    }
-
-    if (
-      Number(
-        submission
-          .submitted_by_pair_id
-      ) ===
-      Number(mine.id)
-    ) {
-      throw new Error(
-        "El desacuerdo debe registrarlo la otra pareja"
-      );
-    }
-
-    const updated = (
-      await client.query(
-        `
-          UPDATE match_submissions
           SET
-            status = 'disputed',
-            response_note = $2,
-            responded_by_pair_id = $3,
-            responded_at = now(),
-            updated_at = now()
-          WHERE id = $1
+            status =
+              'accepted',
+
+            accepted_at =
+              now(),
+
+            play_deadline_at =
+              now() +
+              interval '30 days'
+
+          WHERE
+            id = $1
+
+            AND
+            challenged_pair_id =
+              $2
+
+            AND
+            status =
+              'pending'
+
           RETURNING *
         `,
         [
-          submission.id,
-          cleanNote,
+          challengeId,
           mine.id,
         ]
-      )
-    ).rows[0];
+      );
 
-    await client.query("COMMIT");
+    const challenge =
+      result.rows[0];
 
-    return updated;
+    if (!challenge) {
+      throw new Error(
+        "El desafío no está disponible para aceptar"
+      );
+    }
+
+    await client.query(
+      "COMMIT"
+    );
+
+    return challenge;
   } catch (error) {
     await client.query(
       "ROLLBACK"
