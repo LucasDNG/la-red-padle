@@ -119,3 +119,6 @@ La Neon histórica no existe. No hay que diseñar futuras decisiones asumiendo q
 ## Runtime objetivo
 
 Producción objetivo: Node 22. Las pruebas que se hayan ejecutado accidentalmente con Node 24 no sustituyen el gate final sobre Node 22.
+
+## Válvula de equilibrio entre categorías
+`core.relegationLossThreshold()` concentra el umbral puro de descenso. `competitionEngine.applySportingResult()` consulta cantidades activas de la categoría actual e inferior y aplica 2 o 3 derrotas según la diferencia. No existe job que mueva parejas por población: el movimiento ocurre únicamente al confirmar un resultado deportivo.

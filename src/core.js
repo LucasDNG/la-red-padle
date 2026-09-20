@@ -82,6 +82,14 @@ export function eloForPosition({activeCount,activePosition,played,categoryNumber
   if(Number(categoryNumber)===1&&pos===1)elo=2000+Number(defenses||0);
   return elo;
 }
+export const RELEGATION_BALANCE_GAP = 5;
+export function relegationLossThreshold({categoryNumber,currentActiveCount,lowerActiveCount}){
+  if(Number(categoryNumber)>=7)return Number.POSITIVE_INFINITY;
+  const current=Math.max(0,Number(currentActiveCount)||0);
+  const lower=Math.max(0,Number(lowerActiveCount)||0);
+  return current-lower>=RELEGATION_BALANCE_GAP?2:3;
+}
+
 export function simultaneousPenaltyOrder(order,penalizedIds,debt={}){
   const out=[...order];const penalized=new Set([...penalizedIds].map(Number));const nextDebt={...debt};let i=0;
   while(i<out.length){if(!penalized.has(Number(out[i]))){i++;continue;}let j=i;while(j+1<out.length&&penalized.has(Number(out[j+1])))j++;if(j+1<out.length){const next=out[j+1];out.splice(j+1,1);out.splice(i,0,next);i=j+2;}else{for(let k=i;k<=j;k++){const id=Number(out[k]);nextDebt[id]=Number(nextDebt[id]||0)+1;}break;}}

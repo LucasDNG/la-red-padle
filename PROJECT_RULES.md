@@ -27,7 +27,9 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 ## 4. Ascenso y descenso
 - #1 + 3 victorias consecutivas => asciende una categoría, salvo Primera.
 - Ascendido entra al fondo del bloque activo de la categoría superior.
-- Última pareja + 3 derrotas consecutivas => desciende, salvo 7ª.
+- Regla base: última pareja + 3 derrotas consecutivas => desciende, salvo 7ª.
+- Válvula de equilibrio: si esa categoría tiene **5 o más parejas activas que la categoría inmediatamente inferior**, la última desciende con 2 derrotas consecutivas. Cuando la diferencia vuelve a ser menor a 5, el requisito vuelve automáticamente a 3.
+- La válvula solo modifica el umbral de descenso; no altera ranking, ELO, rival, ascenso ni posición de entrada. No usa un tamaño objetivo fijo de categoría: compara únicamente categorías adyacentes.
 - Descenso entra base #2 en la categoría inferior; la deuda empuja posiciones hacia abajo.
 - Si la categoría inferior no tiene activos, entra #1.
 - Deuda que no puede materializarse se conserva.

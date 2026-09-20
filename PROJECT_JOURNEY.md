@@ -90,3 +90,6 @@ Después de reconstruir LA RED se hizo una primera recorrida manual como usuario
 El circuito **registro → documentación → Admin → verificación** finalmente quedó funcionando de punta a punta. En este punto se decidió frenar los cambios, pushear y fijar la memoria del proyecto en `.md` antes de entrar al corazón deportivo.
 
 La próxima etapa no es “seguir construyendo por construir”; es buscar inconsistencias y bugs de forma ordenada empezando por **pareja → rueda → programación → resultado → ranking**.
+
+## Ajuste longitudinal de descenso
+Después del primer push limpio se dejó de depender de pruebas manuales largas y se empezó a simular años completos. La regla 3/3 mostró una deriva de población hacia arriba. Se consideró bajar con 5 derrotas, pero el cálculo de rachas demostró que cinco consecutivas harían el descenso mucho más raro. Se adoptó una válvula más conservadora: 3 derrotas por defecto y 2 únicamente cuando la categoría superior inmediata acumula una diferencia de cinco o más parejas activas sobre la inferior.

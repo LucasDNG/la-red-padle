@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {normalizeScore,scoreGames,resultEquals,swapLadder,chooseOpponent,individualCategoryAfterMove,validResponsibilityProposal} from '../src/core.js';
+import {normalizeScore,scoreGames,resultEquals,swapLadder,chooseOpponent,individualCategoryAfterMove,validResponsibilityProposal,relegationLossThreshold} from '../src/core.js';
 
 test('ladder swaps only when winner is below loser',()=>{const rows=[1,2,3,4,5,6,7].map(n=>({id:n,position:n}));const out=swapLadder(rows,7,4);assert.equal(out.find(x=>x.id===7).position,4);assert.equal(out.find(x=>x.id===4).position,7);assert.equal(out.find(x=>x.id===5).position,5);});
 test('higher ranked winner keeps positions',()=>{const rows=[1,2,3].map(n=>({id:n,position:n}));const out=swapLadder(rows,1,3);assert.deepEqual(out.map(x=>x.position),[1,2,3]);});
@@ -16,3 +16,11 @@ import {eloForPosition,simultaneousPenaltyOrder} from '../src/core.js';
 test('positional ELO spans 2000 to 0 and only First #1 can exceed 2000',()=>{assert.equal(eloForPosition({activeCount:5,activePosition:1,played:2,categoryNumber:3}),2000);assert.equal(eloForPosition({activeCount:5,activePosition:5,played:2,categoryNumber:3}),0);assert.equal(eloForPosition({activeCount:5,activePosition:1,played:2,categoryNumber:1,defenses:7}),2007);assert.equal(eloForPosition({activeCount:5,activePosition:2,played:0,categoryNumber:1}),0);});
 test('simultaneous contiguous penalties move the block once',()=>{const r=simultaneousPenaltyOrder([1,2,3,4],[2,3],{});assert.deepEqual(r.order,[1,4,2,3]);assert.equal(r.debt[2]||0,0);});
 test('penalized block at bottom accumulates debt',()=>{const r=simultaneousPenaltyOrder([1,2,3,4],[3,4],{});assert.deepEqual(r.order,[1,2,3,4]);assert.equal(r.debt[3],1);assert.equal(r.debt[4],1);});
+
+test('relegation uses a pressure valve only when the category is five pairs heavier than the one below',()=>{
+  assert.equal(relegationLossThreshold({categoryNumber:3,currentActiveCount:12,lowerActiveCount:12}),3);
+  assert.equal(relegationLossThreshold({categoryNumber:3,currentActiveCount:16,lowerActiveCount:12}),3);
+  assert.equal(relegationLossThreshold({categoryNumber:3,currentActiveCount:17,lowerActiveCount:12}),2);
+  assert.equal(relegationLossThreshold({categoryNumber:3,currentActiveCount:40,lowerActiveCount:35}),2);
+  assert.equal(relegationLossThreshold({categoryNumber:7,currentActiveCount:30,lowerActiveCount:0}),Infinity);
+});

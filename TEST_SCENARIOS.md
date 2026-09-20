@@ -243,3 +243,11 @@ Antes de release deben correrse miles de rondas con 101+ parejas y verificarse:
 - reintentos no duplican match/evento/penalización.
 
 Estos escenarios deben recorrerse manualmente y luego convertirse/confirmarse como tests de integración.
+
+## Equilibrio longitudinal de categorías
+- con diferencia de 0–4 parejas activas respecto de la categoría inferior, la última necesita 3 derrotas consecutivas para descender;
+- con diferencia de 5 o más, necesita 2 derrotas consecutivas;
+- 7ª nunca desciende;
+- el cambio de umbral no mueve parejas por sí mismo: solo afecta una derrota deportiva posterior de la última;
+- al bajar la diferencia por debajo de 5, el umbral vuelve a 3;
+- la simulación reproducible `npm run simulate:balance` debe comparar la regla anterior contra la válvula nueva a 20 años.

@@ -1,5 +1,5 @@
 import {q} from './db.js';
-import {scoreGames,individualCategoryAfterMove,eloForPosition,simultaneousPenaltyOrder} from './core.js';
+import {scoreGames,individualCategoryAfterMove,eloForPosition,simultaneousPenaltyOrder,relegationLossThreshold} from './core.js';
 
 export async function event(client,sourceKey,eventType,{pairId=null,userId=null,assignmentId=null,data={}}={}){
   return (await q(client,`INSERT INTO competitive_events(source_key,event_type,pair_id,user_id,assignment_id,data) VALUES($1,$2,$3,$4,$5,$6::jsonb) ON CONFLICT(source_key) DO NOTHING RETURNING *`,[sourceKey,eventType,pairId,userId,assignmentId,JSON.stringify(data)])).rows[0]||null;
@@ -85,8 +85,9 @@ export async function applySportingResult(client,{assignment,winnerPairId,result
   const cat=(await q(client,`SELECT c.number,p.position,(SELECT max(position) FROM pairs x WHERE x.category_id=p.category_id AND x.competition_state='active') last_position,p.consecutive_wins,p.consecutive_losses,p.category_id FROM pairs p JOIN categories c ON c.id=p.category_id WHERE p.id=$1`,[winnerPairId])).rows[0];
   if(Number(cat.number)===1 && Number(cat.position)===1 && winnerWasFirst){await q(client,`UPDATE pairs SET first_place_defenses=first_place_defenses+1 WHERE id=$1`,[winnerPairId]);}
   if(Number(cat.position)===1&&Number(cat.consecutive_wins)>=3&&Number(cat.number)>1)await moveCategory(client,{id:winnerPairId},-1,key);
-  const los=(await q(client,`SELECT c.number,p.position,(SELECT max(position) FROM pairs x WHERE x.category_id=p.category_id AND x.competition_state='active') last_position,p.consecutive_losses,p.category_id FROM pairs p JOIN categories c ON c.id=p.category_id WHERE p.id=$1`,[loserPairId])).rows[0];
-  if(Number(los.position)===Number(los.last_position)&&Number(los.consecutive_losses)>=3&&Number(los.number)<7)await moveCategory(client,{id:loserPairId},1,key);
+  const los=(await q(client,`SELECT c.number,p.position,(SELECT max(position) FROM pairs x WHERE x.category_id=p.category_id AND x.competition_state='active') last_position,p.consecutive_losses,p.category_id,(SELECT count(*) FROM pairs x WHERE x.category_id=p.category_id AND x.competition_state='active') current_active_count,(SELECT count(*) FROM pairs x JOIN categories lc ON lc.id=x.category_id WHERE lc.league_id=c.league_id AND lc.number=c.number+1 AND x.competition_state='active') lower_active_count FROM pairs p JOIN categories c ON c.id=p.category_id WHERE p.id=$1`,[loserPairId])).rows[0];
+  const relegationThreshold=relegationLossThreshold({categoryNumber:Number(los.number),currentActiveCount:Number(los.current_active_count),lowerActiveCount:Number(los.lower_active_count)});
+  if(Number(los.position)===Number(los.last_position)&&Number(los.consecutive_losses)>=relegationThreshold&&Number(los.number)<7)await moveCategory(client,{id:loserPairId},1,key);
   await recalcCategoryElos(client,assignment.category_id);
   const leader=(await q(client,`SELECT p.id,p.elo,p.first_place_defenses,l.id league_id,c.number FROM pairs p JOIN categories c ON c.id=p.category_id JOIN leagues l ON l.id=p.league_id WHERE p.category_id=$1 AND p.competition_state='active' ORDER BY p.position LIMIT 1`,[assignment.category_id])).rows[0];
   if(leader&&Number(leader.number)===1){const name=await pairName(client,leader.id);await q(client,`INSERT INTO elo_record_history(league_id,pair_id,pair_name,elo,defenses,achieved_at) VALUES($1,$2,$3,$4,$5,$6)`,[leader.league_id,leader.id,name,leader.elo,leader.first_place_defenses,playedAt]);}

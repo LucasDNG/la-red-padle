@@ -54,3 +54,6 @@ Este archivo contiene únicamente decisiones que siguen vigentes. Las decisiones
 50. En Admin, éxito de la acción y éxito del refresco posterior son estados distintos.
 51. Gates técnicos deben comprobar sintaxis, tests y consistencia de imports/exports, no solo `node --check`.
 52. Los `.md` son la memoria oficial de LA RED: reglas, arquitectura, decisiones, auditoría y estado deben actualizarse junto con código/tests.
+
+53. El descenso usa una válvula de equilibrio: normalmente exige 3 derrotas consecutivas siendo última; si la categoría tiene al menos 5 parejas activas más que la categoría inferior, exige 2. La regla anterior de población totalmente irrelevante queda reemplazada solo para este umbral de descenso.
+54. Cinco derrotas consecutivas no se adopta: matemáticamente haría el descenso mucho menos frecuente y agravaría la acumulación hacia categorías superiores.

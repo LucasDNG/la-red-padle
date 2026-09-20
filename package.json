@@ -1,6 +1,6 @@
 {
   "name": "la-red-padel-san-pedro",
-  "version": "5.0.8",
+  "version": "5.0.9",
   "private": true,
   "type": "module",
   "engines": {
@@ -13,7 +13,8 @@
     "test": "node --test tests/*.test.js",
     "admin:promote": "node scripts/promote-admin.js",
     "admin:totp-secret": "node scripts/totp-secret.js",
-    "admin:bootstrap": "node scripts/promote-admin.js"
+    "admin:bootstrap": "node scripts/promote-admin.js",
+    "simulate:balance": "node scripts/simulate-category-balance.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

@@ -14,7 +14,7 @@ git status
 5. Hacer el commit/push del estado actual completo del proyecto.
 
 ## Importante
-El código de referencia de este checkpoint es el candidato `LA_RED_FINAL_2026-09-20_v10.zip` / package `5.0.8`.
+El código de referencia de este checkpoint es el candidato `LA_RED_FINAL_2026-09-20_v11.zip` / package `5.0.9`.
 
 No volver a aplicar ZIPs funcionales anteriores (`v1`…`v9`) sobre esta versión.
 

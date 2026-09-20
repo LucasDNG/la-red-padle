@@ -3,8 +3,8 @@
 Este checkpoint representa el estado real de LA RED inmediatamente antes del próximo push y de la búsqueda sistemática de inconsistencias/bugs.
 
 ## Versión de código de referencia
-- candidato completo: `LA_RED_FINAL_2026-09-20_v10.zip`
-- package: `5.0.8`
+- candidato completo: `LA_RED_FINAL_2026-09-20_v11.zip`
+- package: `5.0.9`
 - motor: `wheel-v2`
 - backend: Node + Express
 - frontend: React + Vite
@@ -55,7 +55,7 @@ Este checkpoint representa el estado real de LA RED inmediatamente antes del pr�
 - auditoría/canchas/disputas/disciplina/salud del sistema están implementados y pendientes de recorrido completo con datos reales.
 
 ### Tests
-- suite pura/simulación: 14/14 verde en el candidato actual.
+- suite pura/simulación: 15/15 verde en el candidato actual.
 - simulación larga incluida en la suite.
 - los tests automáticos todavía no sustituyen las pruebas de integración PostgreSQL/concurrencia que faltan.
 
@@ -88,3 +88,6 @@ Desde este checkpoint no se agregan funciones por intuición. El siguiente bloqu
 **push → verificar repo/CI → recorrer producto real → registrar bug/inconsistencia → corregir → actualizar docs/tests en el mismo cambio.**
 
 Los `.md` son la memoria oficial del proyecto. Si chat y documentación difieren, primero se corrige la documentación y luego se implementa.
+
+## Post-push: equilibrio de categorías
+La auditoría por simulación cambió una regla: el descenso deja de ser completamente independiente de población. Mantiene 3 derrotas consecutivas como base, pero baja a 2 cuando la categoría tiene al menos 5 parejas activas más que la inmediatamente inferior. Ver `SIMULATION_AUDIT_2026-09-20.md`.

@@ -1,8 +1,8 @@
 # Release Manifest — checkpoint pre-auditoría
 
 ## Candidato de referencia
-- paquete completo: `LA_RED_FINAL_2026-09-20_v10.zip`
-- package version: `5.0.8`
+- paquete completo: `LA_RED_FINAL_2026-09-20_v11.zip`
+- package version: `5.0.9`
 - motor: `wheel-v2`
 - estado: **candidato en estabilización, no release final**
 
@@ -28,9 +28,14 @@
 - fix import/export de reenvío;
 - fix PostgreSQL `42P08` en verificación.
 
+## Cambios posteriores al checkpoint
+
+- válvula longitudinal de descenso 2/3 según diferencia de población adyacente;
+- simulador reproducible de balance a 20 años.
+
 ## Validación conocida
 - backend syntax/check en candidatos previos: verde;
-- suite actual: 14/14 tests verdes;
+- suite actual: 15/15 tests verdes;
 - verificación de identidad probada manualmente con éxito;
 - base Neon nueva conectada.
 

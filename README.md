@@ -32,7 +32,7 @@ Liga continua de pádel por parejas. Estado actual: **candidato wheel-v2 en esta
 - purga de documentación temporal probada.
 - reenvío de DNI implementado.
 - layout/identidad visual restaurados y páginas internas reorganizadas.
-- tests del candidato: 14/14 verdes.
+- tests del candidato: 15/15 verdes.
 
 ## Pendiente principal
 El siguiente bloque es auditoría funcional del deporte:
@@ -70,3 +70,9 @@ El alta exige DNI numérico y frente/dorso. La cuenta queda `pending` hasta revi
 
 ## Deploy
 Seguir `FINALIZATION_PLAN.md` y `RELEASE_CHECKLIST.md`.
+
+## Simulación longitudinal
+```bash
+npm run simulate:balance
+```
+Compara 20 años de la regla antigua de descenso contra la válvula 2/3 actual.
