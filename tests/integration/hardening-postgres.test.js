@@ -34,7 +34,7 @@ async function seedUser({categoryNumber=5,role='player',verification='verified',
   seq++;
   return (await testPool.query(`
     INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender,role,verification_status,verified_at,current_category_number,identity_resubmit_requested_at)
-    VALUES($1,$2,$3,$4,'x','male',$5,$6,CASE WHEN $6='verified' THEN now() ELSE NULL END,$7,CASE WHEN $8 THEN now() ELSE NULL END)
+    VALUES($1,$2,$3,$4,'x','male',$5,$6::varchar(20),CASE WHEN $6::varchar(20)='verified' THEN now() ELSE NULL END,$7,CASE WHEN $8 THEN now() ELSE NULL END)
     RETURNING *
   `,['H'+seq,'Test'+seq,String(34000000+seq),'+54933294'+String(10000+seq),role,verification,categoryNumber,resubmit])).rows[0];
 }
