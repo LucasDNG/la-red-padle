@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 29/29 tests puros + 40/40 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16.
+Suite actual: 30/30 tests puros + 42/42 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16.
 
 ## Metodología
 
@@ -155,4 +155,4 @@ Se preparó un bloque de deploy seguro:
 - el health ahora consulta PostgreSQL y exige engine `wheel-v2`;
 - los errores 500 productivos ya no devuelven `err.message` crudo.
 
-Confirmar CI antes de cerrar. Aun con CI verde, quedan pendientes los gates reales: ejecución contra Neon, secretos/TOTP/WhatsApp, Render/Vercel efectivos, backups/PITR, cancha real, smoke UX y legal/seguro.
+CI confirmado: 30/30 tests puros + 42/42 integración PostgreSQL + `verify:db` + frontend build verdes. Quedan pendientes los gates reales: ejecución contra Neon, secretos/TOTP/WhatsApp, Render/Vercel efectivos, backups/PITR, cancha real, smoke UX y legal/seguro.

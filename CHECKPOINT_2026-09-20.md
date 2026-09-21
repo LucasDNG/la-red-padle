@@ -135,3 +135,17 @@ También:
 - se actualiza el checklist de release: disciplina y retries/outbox ya estaban cubiertos, pero la documentación había quedado atrasada.
 
 CI confirmado: 29/29 tests puros + 40/40 integración PostgreSQL + `verify:db` + frontend build verdes.
+
+
+## Deploy/migración/health — VERDE
+CI confirmó:
+- 30/30 tests puros;
+- 42/42 integración PostgreSQL;
+- `verify:db` verde;
+- frontend build verde;
+- migración de abandono idempotente;
+- health DB-aware;
+- errores 500 productivos genéricos;
+- Blueprint Render parseable por el repo y alineado con los campos oficiales usados.
+
+El siguiente gate ya no es simulación: ejecutar migración/preflight contra Neon real y validar Render/Vercel/Meta/TOTP.

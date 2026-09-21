@@ -9,7 +9,7 @@
 - [x] Purga documental al verificar.
 - [x] Reenvío documental implementado.
 - [x] Layout/identidad visual recuperados.
-- [x] Tests puros actuales 26/26 verdes.
+- [x] Tests puros actuales 30/30 verdes.
 - [x] Simulación longitudinal 5/10/20 años con variantes y válvula 2/3 validada.
 - [x] Push del checkpoint actual.
 - [x] CI del checkpoint actual verde.
@@ -40,7 +40,7 @@
 - [x] retries/outbox probados;
 - [x] rate limiting revisado; contador por IP + endpoint en auth, con limitación conocida de memoria local por instancia;
 - [ ] backups/PITR Neon confirmados;
-- [x] pruebas PostgreSQL/concurrencia (40/40 verdes después del hardening de outbox);
+- [x] pruebas PostgreSQL/concurrencia 42/42 verdes;
 - [x] logs de errores sanitizados para no persistir PII/SQL/details en producción.
 
 ## Migración producción
