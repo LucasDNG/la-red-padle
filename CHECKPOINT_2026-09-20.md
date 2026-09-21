@@ -149,3 +149,7 @@ CI confirmó:
 - Blueprint Render parseable por el repo y alineado con los campos oficiales usados.
 
 El siguiente gate ya no es simulación: ejecutar migración/preflight contra Neon real y validar Render/Vercel/Meta/TOTP.
+
+
+## Smoke público automatizado en validación
+Vercel reportó status `success` sobre el commit actual. Se agrega smoke no destructivo de producción para health DB-aware, CORS, endpoints públicos y frontend SPA, disponible como `npm run smoke:prod` y workflow manual. Render sigue pendiente de deploy/status real. Estado del código: pendiente de CI de este bloque.

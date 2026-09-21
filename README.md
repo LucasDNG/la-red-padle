@@ -100,3 +100,15 @@ npm run migrate:prod
 ```
 
 Luego usa `/api/health` como health check; ese endpoint valida PostgreSQL y que el motor almacenado sea `wheel-v2`. Los secretos de producción no están en el repo y deben cargarse en Render.
+
+
+## Smoke público de producción
+Con backend y frontend desplegados:
+
+```bash
+PROD_API_URL=https://la-red-padle-api.onrender.com \
+PROD_FRONTEND_URL=https://la-red-padle.vercel.app \
+npm run smoke:prod
+```
+
+También existe el workflow manual `LA RED production smoke` en GitHub Actions. Es no destructivo y valida health/DB, CORS, endpoints públicos y que el frontend cargue la SPA.

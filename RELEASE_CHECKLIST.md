@@ -53,10 +53,12 @@
 ## Deploy
 - [x] GitHub Actions verde;
 - [ ] Render health verde contra health DB-aware;
-- [ ] Vercel build verde;
+- [x] Vercel build/deploy status verde reportado a GitHub;
 - [ ] variables producción correctas;
 - [ ] al menos una cancha activa;
-- [ ] smoke completo en producción.
+- [x] smoke público automatizado preparado (`production-smoke.yml`);
+- [ ] smoke público ejecutado contra Render/Vercel reales;
+- [ ] smoke completo autenticado/UX en producción.
 
 ## Legal
 - [ ] términos revisados profesionalmente en Argentina;

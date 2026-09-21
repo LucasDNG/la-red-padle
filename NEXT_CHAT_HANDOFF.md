@@ -156,3 +156,9 @@ Se preparó un bloque de deploy seguro:
 - los errores 500 productivos ya no devuelven `err.message` crudo.
 
 CI confirmado: 30/30 tests puros + 42/42 integración PostgreSQL + `verify:db` + frontend build verdes. Quedan pendientes los gates reales: ejecución contra Neon, secretos/TOTP/WhatsApp, Render/Vercel efectivos, backups/PITR, cancha real, smoke UX y legal/seguro.
+
+
+### Smoke público automatizado en validación
+Vercel ya reporta `success` a GitHub. Render no aparece como status/check del repo.
+
+Se preparó `npm run smoke:prod` + workflow manual `LA RED production smoke`, que valida health DB-aware, CORS, endpoints públicos y frontend sin modificar datos. Confirmar CI del código. Después ejecutar ese workflow cuando Render esté realmente desplegado.

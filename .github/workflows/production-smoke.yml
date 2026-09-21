@@ -1,0 +1,27 @@
+name: LA RED production smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      api_url:
+        description: Backend production origin
+        required: true
+        default: https://la-red-padle-api.onrender.com
+      frontend_url:
+        description: Frontend production origin
+        required: true
+        default: https://la-red-padle.vercel.app
+
+jobs:
+  public-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --ignore-scripts
+      - run: npm run smoke:prod
+        env:
+          PROD_API_URL: ${{ inputs.api_url }}
+          PROD_FRONTEND_URL: ${{ inputs.frontend_url }}

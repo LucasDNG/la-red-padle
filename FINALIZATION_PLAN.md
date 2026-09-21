@@ -93,6 +93,17 @@ Root: `frontend`
 Variable:
 `VITE_API_URL=https://la-red-padle-api.onrender.com/api`
 
+## 6.1 Smoke público automatizado
+Existe un workflow manual `.github/workflows/production-smoke.yml` que ejecuta `npm run smoke:prod` contra orígenes HTTPS configurables.
+
+Valida sin mutar datos:
+- health DB-aware y engine `wheel-v2`;
+- CORS backend -> frontend;
+- legal/ranking/canchas/resultados/próximos;
+- respuesta HTML del frontend SPA.
+
+Vercel ya reporta status `success` a GitHub sobre el último commit. Render todavía no reporta status/check al repo y debe validarse por separado.
+
 ## 7. Smoke final
 Antes de abrir públicamente:
 registro → verificación → invitación → pareja → assignment → propuesta → aceptación → resultado → confirmación → ranking.
