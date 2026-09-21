@@ -36,6 +36,7 @@
 - [x] probar con Node 22 real;
 - [x] eliminar bypass `rejectUnauthorized:false` y validar TLS por configuración; conexión Neon final todavía debe pasar preflight real;
 - [x] TOTP fail-closed y requisitos de secreto automatizados;
+- [x] generador local de secretos JWT/TOTP preparado;
 - [ ] TOTP Admin real configurado y probado con autenticador;
 - [ ] WhatsApp Meta configurado;
 - [x] retries/outbox probados;

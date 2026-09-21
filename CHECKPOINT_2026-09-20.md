@@ -157,3 +157,9 @@ Vercel reportó status `success` sobre el commit actual. Se agrega smoke no dest
 
 ## TOTP/CORS fail-closed en validación
 Se elimina el bypass implícito de TOTP en producción, se sube el mínimo del secreto a ~160 bits, se impide reutilizar JWT/TOTP y se valida/normaliza `FRONTEND_URL` como origen CORS real. Estado: pendiente de CI.
+
+
+## TOTP/CORS — VERDE
+CI confirmó 34/34 tests puros + 42/42 integración PostgreSQL + `verify:db` + frontend build. Vercel reportó `success`.
+
+Además se prepara un generador local de secretos JWT/TOTP para evitar creación manual o exposición en chats. Estado del generador: pendiente de CI.

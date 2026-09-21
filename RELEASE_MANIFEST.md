@@ -33,6 +33,11 @@
 - válvula longitudinal de descenso 2/3 según diferencia de población adyacente;
 - simulador reproducible de balance a 5/10/20 años con variantes P3/R3, P3/R5, gaps 4/5/6 y P4/R3;
 
+## Preparación de secretos
+- generación local segura de JWT/TOTP;
+- URI `otpauth://` para autenticador;
+- secretos nunca persistidos en repo.
+
 ## Hardening de seguridad de producción
 - TOTP Admin fail-closed;
 - secreto TOTP Base32 >=160 bits;
@@ -52,7 +57,7 @@
 
 ## Validación conocida
 - backend syntax/check en candidatos previos: verde;
-- suite base: 26/26 tests puros + 39/39 integración PostgreSQL verdes en CI; 32/32 tests puros + 42/42 integración PostgreSQL + `verify:db` + frontend build verdes; logging seguro/rate-limit, retry real de outbox y deploy-health confirmados;
+- suite base: 26/26 tests puros + 39/39 integración PostgreSQL verdes en CI; 34/34 tests puros + 42/42 integración PostgreSQL + `verify:db` + frontend build verdes; logging seguro/rate-limit, retry real de outbox y deploy-health confirmados;
 - verificación de identidad probada manualmente con éxito;
 - base Neon nueva conectada.
 

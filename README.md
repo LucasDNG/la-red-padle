@@ -32,7 +32,7 @@ Liga continua de pádel por parejas. Estado actual: **candidato wheel-v2 en esta
 - purga de documentación temporal probada.
 - reenvío de DNI implementado.
 - layout/identidad visual restaurados y páginas internas reorganizadas.
-- tests puros/simulación/configuración: 32/32 verdes.
+- tests puros/simulación/configuración: 34/34 verdes antes del generador de secretos.
 - integración PostgreSQL: 42/42 verde.
 - `verify:db`: schema + invariantes verdes en PostgreSQL 16.
 - frontend build verde en CI.
@@ -118,3 +118,18 @@ También existe el workflow manual `LA RED production smoke` en GitHub Actions. 
 `ADMIN_TOTP_SECRET` debe ser Base32 de al menos 32 caracteres (aprox. 160 bits) y no puede reutilizar `JWT_SECRET`. En producción, si falta ese secreto, el login Admin queda cerrado en lugar de degradar a contraseña sola.
 
 `FRONTEND_URL` debe contener únicamente orígenes HTTPS, sin path/query/fragmento; el backend los normaliza antes de configurar CORS.
+
+
+## Generar secretos de producción
+No inventes ni pegues secretos en chats. Generarlos localmente:
+
+```bash
+npm run generate:secrets -- --account=admin
+```
+
+El comando imprime:
+- `JWT_SECRET` aleatorio;
+- `ADMIN_TOTP_SECRET` Base32 de 160 bits;
+- un `otpauth://` compatible con apps autenticadoras.
+
+Los valores solo se imprimen en la terminal: no se escriben en archivos ni se commitean.

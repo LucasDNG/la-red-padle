@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 32/32 tests puros + 42/42 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16.
+Suite actual antes del generador de secretos: 34/34 tests puros + 42/42 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
 
 ## Metodología
 
@@ -172,3 +172,9 @@ Se endureció la configuración productiva:
 - `FRONTEND_URL` solo acepta orígenes HTTPS puros y CORS normaliza trailing slash.
 
 Confirmar CI antes de cerrar este bloque. Después quedan únicamente gates de infraestructura/operación real.
+
+
+### Generador local de secretos en validación
+Se preparó `npm run generate:secrets -- --account=admin` para generar localmente JWT, TOTP Base32 de 160 bits y URI `otpauth://` sin persistir nada en Git.
+
+Confirmar CI del candidato. Después el siguiente paso real es cargar los valores en Render/Authenticator y ejecutar migración + preflight sobre Neon real.
