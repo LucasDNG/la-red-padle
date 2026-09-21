@@ -233,13 +233,14 @@ CI + Vercel confirmados sobre `b4640a863b8f41ae744798731b0184becaa02d85`:
 El build de producción ya exige `VITE_API_URL` HTTPS terminado exactamente en `/api`. Próximo paso: infraestructura real Neon/Render/preflight; mantener checkpoints cortos por turno.
 
 
-### Workflow de preflight real preparado
-Checkpoint atómico actual:
-- Render todavía no publica status/check en GitHub;
-- Vercel sigue reportando `success`;
-- se agrega workflow manual `LA RED production preflight`;
-- usa GitHub Environment `production`;
-- toma secretos/variables desde GitHub Actions y ejecuta `npm run preflight:prod` contra Neon;
-- el preflight es read-only: no aplica migraciones ni modifica datos.
+### Workflow de preflight real — VERDE
+CI confirmado sobre `a29c047a8233671d5126345444a483b86359bb4d`:
+- 39/39 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db` verde;
+- frontend build verde;
+- Vercel `success`.
 
-En el próximo turno no avanzar a otro bloque hasta confirmar CI de este commit. Luego, para ejecutar el preflight real, hay que cargar los secretos/variables del environment `production` en GitHub y lanzar el workflow manualmente.
+El workflow manual `LA RED production preflight` queda listo. Usa GitHub Environment `production` y ejecuta `npm run preflight:prod` contra Neon de forma read-only.
+
+Próximo paso real: cargar secretos/variables del Environment `production` y ejecutar el workflow manual. Mantener checkpoints cortos.

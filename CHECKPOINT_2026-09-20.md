@@ -198,3 +198,14 @@ Confirmado sobre `b4640a863b8f41ae744798731b0184becaa02d85`:
 - Vercel `success`.
 
 El frontend de producción ya no puede compilar con fallback silencioso a `/api`.
+
+
+## Workflow de preflight real — VERDE
+Confirmado sobre `a29c047a8233671d5126345444a483b86359bb4d`:
+- 39/39 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db`;
+- frontend build;
+- Vercel `success`.
+
+El workflow manual de preflight de producción está listo y es read-only. Siguiente gate: cargar secretos/variables reales en GitHub Environment `production` y ejecutarlo contra Neon.
