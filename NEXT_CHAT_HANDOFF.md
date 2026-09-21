@@ -214,3 +214,9 @@ Se prepara `databasePreflight()`, read-only y testeable. Además de TLS/Admin/ca
 - falta columna/constraint del patch de abandono.
 
 Confirmar CI. Si queda verde, el próximo paso requiere infraestructura real: Neon/Render + secretos + `npm run preflight:prod`.
+
+
+### Fix de paridad schema/patch en validación
+El preflight reforzado encontró una diferencia de identidad, no de regla: `schema.sql` tenía el CHECK de abandono anónimo y el patch lo nombra `matches_abandonment_consistency`.
+
+Se corrige el schema base para crear el constraint con ese nombre. No se debilita el preflight. Confirmar CI; objetivo esperado: preflight sano verde y fallo explícito al eliminar el constraint.

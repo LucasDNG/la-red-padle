@@ -165,7 +165,7 @@ La conexión PostgreSQL se construye mediante `databasePoolOptions()`. En produc
 ## Deploy y migraciones de producción
 El backend declara un Blueprint `render.yaml` en la raíz. Render debe esperar checks verdes antes de autodeploy, ejecutar las migraciones automáticamente al arrancar, antes de abrir tráfico, y usar `/api/health` como health check HTTP.
 
-`migrate:prod` solo corre con `NODE_ENV=production`; aplica las migraciones idempotentes explícitamente listadas en `src/migrations.js` y verifica sus invariantes antes de finalizar. El primer patch administrado es `PATCH_MATCH_ABANDONMENT_2026-09-21.sql`.
+`migrate:prod` solo corre con `NODE_ENV=production`; aplica las migraciones idempotentes explícitamente listadas en `src/migrations.js` y verifica sus invariantes antes de finalizar. El primer patch administrado es `PATCH_MATCH_ABANDONMENT_2026-09-21.sql`. El schema base usa el mismo nombre canónico de constraint (`matches_abandonment_consistency`) que la migración, de modo que instalaciones nuevas y bases migradas tengan el mismo estado verificable.
 
 La misma rutina corre automáticamente en `src/index.js` antes de `app.listen()` cuando `NODE_ENV=production`. Usa un advisory lock PostgreSQL para que múltiples instancias que arranquen juntas no ejecuten migraciones en paralelo. Esto evita depender de `preDeployCommand`, que no está disponible en todos los planes de Render.
 

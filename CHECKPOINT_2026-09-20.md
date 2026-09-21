@@ -179,3 +179,7 @@ Se parametriza la versión Graph, se valida configuración Meta y se sanitizan e
 
 ## Preflight DB explícito en validación
 Se extrae un preflight DB read-only con chequeo explícito de patch y reloj global. Se agrega integración que valida estado sano, reloj pausado y constraint ausente. Estado: pendiente de CI.
+
+
+## Paridad schema/patch en validación
+El primer CI del preflight reforzado detectó que el CHECK de abandono era anónimo en `schema.sql`, mientras el patch productivo lo crea con nombre. Se normaliza el schema base a `matches_abandonment_consistency`. Estado: pendiente de CI.

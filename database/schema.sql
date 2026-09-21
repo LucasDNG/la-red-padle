@@ -279,7 +279,7 @@ CREATE TABLE matches(
   resolution_source varchar(40) NOT NULL,
   CHECK(pair_a_id<>pair_b_id),
   CHECK(winner_pair_id IN(pair_a_id,pair_b_id)),
-  CHECK(
+  CONSTRAINT matches_abandonment_consistency CHECK(
     (result_type='injury_abandonment' AND abandoned_pair_id IS NOT NULL AND abandoned_pair_id IN(pair_a_id,pair_b_id) AND abandoned_pair_id<>winner_pair_id)
     OR
     (result_type<>'injury_abandonment' AND abandoned_pair_id IS NULL)
