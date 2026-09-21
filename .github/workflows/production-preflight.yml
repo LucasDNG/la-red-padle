@@ -19,6 +19,33 @@ jobs:
       WHATSAPP_GRAPH_VERSION: ${{ vars.PROD_WHATSAPP_GRAPH_VERSION }}
       WHATSAPP_TEMPLATE_LANGUAGE: ${{ vars.PROD_WHATSAPP_TEMPLATE_LANGUAGE }}
     steps:
+      - name: Validate production environment inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          missing=()
+          required=(
+            DATABASE_URL
+            JWT_SECRET
+            FRONTEND_URL
+            ADMIN_TOTP_SECRET
+            WHATSAPP_PHONE_NUMBER_ID
+            WHATSAPP_ACCESS_TOKEN
+            WHATSAPP_TEMPLATE_NAME
+            WHATSAPP_GRAPH_VERSION
+            WHATSAPP_TEMPLATE_LANGUAGE
+          )
+          for name in "${required[@]}"; do
+            if [ -z "${!name:-}" ]; then
+              missing+=("$name")
+            fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            printf 'Missing production Environment inputs:\n'
+            printf ' - %s\n' "${missing[@]}"
+            exit 1
+          fi
+          echo "Production Environment inputs are present; values are not printed."
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:

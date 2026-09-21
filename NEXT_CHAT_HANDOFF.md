@@ -244,3 +244,14 @@ CI confirmado sobre `a29c047a8233671d5126345444a483b86359bb4d`:
 El workflow manual `LA RED production preflight` queda listo. Usa GitHub Environment `production` y ejecuta `npm run preflight:prod` contra Neon de forma read-only.
 
 Próximo paso real: cargar secretos/variables del Environment `production` y ejecutar el workflow manual. Mantener checkpoints cortos.
+
+
+### Bootstrap de Environment production preparado
+El conector GitHub disponible en el chat no expone APIs de secrets/environments sensibles, por lo que los valores reales no pueden cargarse desde acá.
+
+Se agrega `PRODUCTION_ENVIRONMENT_SETUP.md` y el workflow `LA RED production preflight` ahora tiene un primer paso que:
+- valida presencia de los 9 inputs requeridos;
+- lista únicamente los nombres faltantes;
+- nunca imprime valores.
+
+Próximo paso: cargar una sola vez los secrets/variables del Environment `production` siguiendo esa guía y ejecutar manualmente el preflight. No empezar otro bloque antes de conocer ese resultado.
