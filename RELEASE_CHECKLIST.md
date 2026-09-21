@@ -27,7 +27,7 @@
 - [x] ascenso/descenso;
 - [x] no-show;
 - [x] extensión extraordinaria;
-- [ ] lesión/abandono — persistencia oficial + integración PostgreSQL en validación;
+- [x] lesión/abandono;
 - [x] pausa/reactivación;
 - [x] disolución;
 - [ ] disciplina.

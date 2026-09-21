@@ -14,7 +14,7 @@ El checkpoint deportivo y de hardening automatizado ya está en `main`.
 
 Estado:
 - 20/20 tests puros;
-- 35/35 integración PostgreSQL;
+- 39/39 integración PostgreSQL;
 - `verify:db` verde;
 - frontend build verde;
 - Node 22 + PostgreSQL 16 verdes en GitHub Actions.

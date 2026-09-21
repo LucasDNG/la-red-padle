@@ -109,3 +109,7 @@ El checkpoint alcanza 20/20 tests puros y 29/29 tests PostgreSQL en Node 22/Post
 Después de cerrar el corazón deportivo, se extendió el gate a disciplina, pausa global del reloj, deduplicación de notificaciones/WhatsApp, TOTP y coherencia de identidad. También se convirtió `database/verify.sql` en un gate ejecutable sobre una base de prueba reconstruida desde cero, evitando depender de inspección manual del schema.
 
 El checkpoint alcanza 20/20 tests puros, 35/35 integración PostgreSQL, `verify:db` y frontend build verdes. Desde aquí lo pendiente es principalmente configuración y operación real de producción más smoke UX/legal.
+
+
+## Cierre del último caso deportivo
+Lesión/abandono fue el último ítem funcional que quedaba explícitamente abierto. La auditoría detectó que el abandonante se conservaba en la versión cargada pero no en el match oficial. Se agregó persistencia oficial, constraint de consistencia, patch para la base existente y regresiones que prueban cero games, swap de escalera, rachas, ascenso y descenso. Con esto el checklist funcional deportivo queda cerrado en 26/26 tests puros y 39/39 tests PostgreSQL.

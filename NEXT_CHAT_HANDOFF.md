@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 26/26 tests puros + 35/35 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16.
+Suite actual: 26/26 tests puros + 39/39 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16.
 
 ## Metodología
 
@@ -133,4 +133,10 @@ CI del código de preflight confirmado: 26/26 tests puros + 35/35 PostgreSQL + `
 ### Lesión / abandono en validación
 Último caso deportivo explícitamente pendiente del checklist. Se corrigió la persistencia oficial de `abandoned_pair_id` y se agregaron 4 escenarios PostgreSQL para ladder/rachas/ascenso/descenso/cero games.
 
-También existe `database/PATCH_MATCH_ABANDONMENT_2026-09-21.sql` para aplicar en la Neon existente antes de desplegar código que escriba ese campo. Confirmar CI antes de marcar el caso como cerrado.
+También existe `database/PATCH_MATCH_ABANDONMENT_2026-09-21.sql` para aplicar en la Neon existente antes de desplegar código que escriba ese campo. CI confirmado; el caso deportivo queda cerrado.
+
+
+### Estado funcional deportivo cerrado
+Todos los ítems funcionales deportivos del release checklist están cubiertos automáticamente. Estado: 26/26 tests puros, 39/39 integración PostgreSQL, `verify:db` y frontend build verdes.
+
+Lo pendiente ya es operativo/deploy: aplicar patch de abandono en Neon existente, cargar secretos reales, ejecutar `npm run preflight:prod`, configurar/probar WhatsApp Meta y TOTP, confirmar backups/PITR, validar Render/Vercel, cancha activa, smoke UX y revisión legal/seguro.

@@ -122,4 +122,4 @@ Se eliminó el `rejectUnauthorized:false` productivo y se preparó `npm run pref
 
 
 ## Lesión / abandono en validación
-Se detectó que el match oficial no persistía quién abandonó aunque la versión cargada sí lo hacía. Se agregó `matches.abandoned_pair_id`, patch para la base existente, verificación de consistencia y 4 escenarios PostgreSQL que cubren cero games, ladder, rachas, ascenso/descenso y validación del abandonante. Estado: pendiente de CI.
+Se detectó que el match oficial no persistía quién abandonó aunque la versión cargada sí lo hacía. Se agregó `matches.abandoned_pair_id`, patch para la base existente, verificación de consistencia y 4 escenarios PostgreSQL que cubren cero games, ladder, rachas, ascenso/descenso y validación del abandonante. CI confirmado: 26/26 tests puros + 39/39 integración PostgreSQL + `verify:db` + frontend build verdes.
