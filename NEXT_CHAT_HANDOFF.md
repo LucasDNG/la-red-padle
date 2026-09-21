@@ -272,3 +272,13 @@ El workflow manual permite:
 - `full`: todo lo anterior + configuración WhatsApp completa.
 
 Próximo paso: cargar los inputs core reales y ejecutar el preflight `core` contra Neon. `full` sigue siendo obligatorio antes del release público.
+
+
+### Comandos explícitos de preflight en validación
+Se agregan:
+- `npm run preflight:core`
+- `npm run preflight:full`
+
+El script acepta `--mode=core|full`, con fallback a `PREFLIGHT_MODE`. Esto simplifica la ejecución manual/local sin cambiar la lógica del workflow.
+
+Próximo turno: confirmar CI de este commit antes de cualquier otro bloque.

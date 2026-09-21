@@ -3,7 +3,8 @@ import pg from 'pg';
 import {databasePoolOptions,productionConfigReport} from '../src/config.js';
 import {databasePreflight} from '../src/preflight.js';
 
-const mode=String(process.env.PREFLIGHT_MODE||'full').trim().toLowerCase();
+const modeArg=process.argv.find(arg=>arg.startsWith('--mode='));
+const mode=String(modeArg?.slice('--mode='.length)||process.env.PREFLIGHT_MODE||'full').trim().toLowerCase();
 if(!['core','full'].includes(mode))throw new Error('PREFLIGHT_MODE debe ser core o full');
 const report=productionConfigReport(process.env,{strictIntegrations:mode==='full'});
 for(const warning of report.warnings)console.warn('WARN:',warning);

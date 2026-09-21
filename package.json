@@ -20,7 +20,9 @@
     "preflight:prod": "node scripts/preflight-production.js",
     "migrate:prod": "node scripts/migrate-production.js",
     "smoke:prod": "node scripts/smoke-production.js",
-    "generate:secrets": "node scripts/generate-production-secrets.js"
+    "generate:secrets": "node scripts/generate-production-secrets.js",
+    "preflight:core": "node scripts/preflight-production.js --mode=core",
+    "preflight:full": "node scripts/preflight-production.js --mode=full"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

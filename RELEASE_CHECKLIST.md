@@ -55,6 +55,7 @@
 - [x] preflight bloquea reloj global pausado y patch de abandono incompleto;
 - [x] workflow manual de preflight productivo preparado y validado en CI con GitHub Environment `production`;
 - [x] modo `core`/`full` validado en CI;
+- [x] comandos `preflight:core` / `preflight:full` preparados;
 - [x] guía exacta `PRODUCTION_ENVIRONMENT_SETUP.md` y validación de inputs preparadas y verdes en CI;
 - [ ] secrets/variables core cargados en el Environment `production`;
 - [ ] preflight `core` verde contra Neon real;

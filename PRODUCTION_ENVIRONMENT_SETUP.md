@@ -41,7 +41,16 @@ también imprime `ADMIN_TOTP_URI=otpauth://...`.
 Cargar ese URI en la app autenticadora. No guardar el URI ni el secreto TOTP en el repositorio.
 
 ## Ejecutar el preflight
-GitHub → Actions → `LA RED production preflight` → Run workflow.
+Desde GitHub: Actions → `LA RED production preflight` → Run workflow.
+
+Desde una terminal que ya tenga cargadas las variables reales:
+
+```bash
+npm run preflight:core
+npm run preflight:full
+```
+
+Los dos comandos son portables y no requieren definir `PREFLIGHT_MODE` manualmente.
 
 El workflow permite elegir:
 
