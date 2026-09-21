@@ -50,6 +50,12 @@
 - JWT/TOTP separados;
 - CORS restringido a orígenes HTTPS puros.
 
+## Preflight
+- preflight DB read-only;
+- bloqueo por reloj global pausado;
+- verificación explícita del patch de abandono;
+- TLS/Admin/cancha/verify.sql/outbox.
+
 ## Hardening de deploy incorporado
 - deploy Render codificado en `render.yaml`;
 - migración idempotente del patch de abandono al startup, con advisory lock;
@@ -63,7 +69,7 @@
 
 ## Validación conocida
 - backend syntax/check en candidatos previos: verde;
-- suite base: 26/26 tests puros + 39/39 integración PostgreSQL verdes en CI; 36/36 tests puros + 44/44 integración PostgreSQL + `verify:db` + frontend build verdes; logging seguro/rate-limit, retry real de outbox y deploy-health confirmados;
+- suite base: 26/26 tests puros + 39/39 integración PostgreSQL verdes en CI; 37/37 tests puros + 44/44 integración PostgreSQL + `verify:db` + frontend build verdes; logging seguro/rate-limit, retry real de outbox y deploy-health confirmados;
 - verificación de identidad probada manualmente con éxito;
 - base Neon nueva conectada.
 

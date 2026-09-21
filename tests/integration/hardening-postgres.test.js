@@ -20,6 +20,7 @@ const {pool:appPool}=await import('../../src/db.js');
 const {app}=await import('../../src/app.js');
 const {readHealth}=await import('../../src/health.js');
 const {applyProductionMigrations}=await import('../../src/migrations.js');
+const {databasePreflight}=await import('../../src/preflight.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
 const verifySql=fs.readFileSync(path.resolve(__dirname,'../../database/verify.sql'),'utf8');
@@ -383,4 +384,25 @@ test('production admin login fails closed without TOTP secret and succeeds with 
     if(oldEnv.totp===undefined)delete process.env.ADMIN_TOTP_SECRET;else process.env.ADMIN_TOTP_SECRET=oldEnv.totp;
     if(oldEnv.jwt===undefined)delete process.env.JWT_SECRET;else process.env.JWT_SECRET=oldEnv.jwt;
   }
+});
+
+
+test('database preflight passes healthy state and fails closed for paused clock or missing abandonment patch',async()=>{
+  const admin=await seedUser({role:'admin'});
+  assert.ok(admin.id);
+  await testPool.query("INSERT INTO venues(name,active) VALUES('Preflight Club',true)");
+
+  const healthy=await databasePreflight(testPool,{requireTls:false});
+  assert.equal(healthy.ok,true);
+  assert.equal(healthy.engine,'wheel-v2');
+  assert.equal(healthy.clockPaused,false);
+  assert.equal(healthy.migrationReady,true);
+  assert.ok(healthy.verifyControls>0);
+
+  await testPool.query("UPDATE app_settings SET value='true'::jsonb WHERE key='league_clock_paused'");
+  await assert.rejects(()=>databasePreflight(testPool,{requireTls:false}),/reloj global de la liga está pausado/);
+
+  await testPool.query("UPDATE app_settings SET value='false'::jsonb WHERE key='league_clock_paused'");
+  await testPool.query('ALTER TABLE matches DROP CONSTRAINT matches_abandonment_consistency');
+  await assert.rejects(()=>databasePreflight(testPool,{requireTls:false}),/Patch de abandono incompleto/);
 });

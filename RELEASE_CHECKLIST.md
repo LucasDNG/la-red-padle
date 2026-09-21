@@ -52,6 +52,7 @@
 - [ ] confirmar startup productivo exitoso contra la Neon real y patch presente;
 
 ## Preflight
+- [x] preflight bloquea reloj global pausado y patch de abandono incompleto;
 - [ ] `npm run preflight:prod` verde contra la Neon y variables reales.
 
 ## Deploy

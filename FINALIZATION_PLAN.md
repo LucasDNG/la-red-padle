@@ -19,7 +19,7 @@ Estado:
 - frontend build verde;
 - Node 22 + PostgreSQL 16 verdes en GitHub Actions.
 
-El bloque deploy-health también quedó verde en CI. Estado actual: 36/36 tests puros, 44/44 integración PostgreSQL, `verify:db`, frontend build y Vercel verdes. El trabajo restante es preflight/configuración real de producción y smoke final.
+El bloque deploy-health también quedó verde en CI. Estado actual: 37/37 tests puros, 44/44 integración PostgreSQL, `verify:db`, frontend build y Vercel verdes. El trabajo restante es preflight/configuración real de producción y smoke final.
 
 ## 3. Auditoría funcional automatizada
 Recorrer en orden:
@@ -58,7 +58,7 @@ Antes de deploy final ejecutar con variables reales:
 ```bash
 npm run preflight:prod
 ```
-Debe validar TLS, configuración, Admin, cancha activa y `verify.sql` sin modificar datos.
+Debe validar TLS, configuración, Admin, cancha activa y `verify.sql` sin modificar datos. El preflight DB también exige reloj global no pausado y patch de abandono completo.
 
 ## 4.1 Generación local de secretos
 Antes de cargar Render:

@@ -170,8 +170,12 @@ Se corrige la dependencia de `preDeployCommand` de Render: la migración corre a
 
 
 ## Login Admin HTTP en validación
-Se prepara prueba end-to-end del login Admin en producción y se hace obligatorio el código TOTP de seis dígitos en el frontend. Estado: pendiente de CI.
+Se prepara prueba end-to-end del login Admin en producción y se hace obligatorio el código TOTP de seis dígitos en el frontend. CI confirmado: 37/37 tests puros + 44/44 integración PostgreSQL + `verify:db` + frontend build; Vercel `success`.
 
 
 ## WhatsApp configurable/sanitizado en validación
 Se parametriza la versión Graph, se valida configuración Meta y se sanitizan errores del outbox. Estado: pendiente de CI.
+
+
+## Preflight DB explícito en validación
+Se extrae un preflight DB read-only con chequeo explícito de patch y reloj global. Se agrega integración que valida estado sano, reloj pausado y constraint ausente. Estado: pendiente de CI.

@@ -32,7 +32,7 @@ Liga continua de pádel por parejas. Estado actual: **candidato wheel-v2 en esta
 - purga de documentación temporal probada.
 - reenvío de DNI implementado.
 - layout/identidad visual restaurados y páginas internas reorganizadas.
-- tests puros/simulación/configuración: 36/36 verdes.
+- tests puros/simulación/configuración: 37/37 verdes.
 - integración PostgreSQL: 44/44 verde.
 - `verify:db`: schema + invariantes verdes en PostgreSQL 16.
 - frontend build verde en CI.
@@ -138,3 +138,6 @@ Un `render.yaml` requiere vincular un Blueprint en Render para gobernar un servi
 La versión de Graph no está hardcodeada. Configurá `WHATSAPP_GRAPH_VERSION` (formato `vN.N`) junto con Phone Number ID, token, template y language. El preflight estricto bloquea producción si falta alguno.
 
 Los errores de Meta se guardan sanitizados como HTTP/code/subcode; no se persiste el cuerpo crudo de la respuesta.
+
+
+El preflight también bloquea salida si el reloj global de la liga quedó pausado o si falta la columna/constraint del patch de abandono. Es read-only: no modifica la Neon.

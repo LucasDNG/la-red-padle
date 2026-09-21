@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 36/36 tests puros + 44/44 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
+Suite actual: 37/37 tests puros + 44/44 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
 
 ## Metodología
 
@@ -205,4 +205,12 @@ Se elimina la versión Graph hardcodeada:
 - el sender no guarda cuerpos crudos de error Meta, solo HTTP/code/subcode;
 - la regresión verifica que datos simulados del destinatario no lleguen a `last_error`.
 
-Confirmar CI antes de cerrar este bloque. Después solo queda conectar Meta real y enviar un mensaje de prueba aprobado.
+CI confirmado: WhatsApp de código cerrado. Solo queda conectar Meta real y enviar un mensaje de prueba aprobado.
+
+
+### Preflight DB explícito en validación
+Se prepara `databasePreflight()`, read-only y testeable. Además de TLS/Admin/cancha/verify, bloquea si:
+- el reloj global quedó pausado;
+- falta columna/constraint del patch de abandono.
+
+Confirmar CI. Si queda verde, el próximo paso requiere infraestructura real: Neon/Render + secretos + `npm run preflight:prod`.
