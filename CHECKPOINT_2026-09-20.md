@@ -189,5 +189,12 @@ El primer CI del preflight reforzado detectó que el CHECK de abandono era anón
 CI confirmado: 37/37 tests puros + 45/45 integración PostgreSQL + `verify:db` + frontend build; Vercel `success`. El preflight sano pasa y falla explícitamente ante reloj pausado o patch incompleto.
 
 
-## Gate VITE_API_URL en validación
-El frontend deja de poder compilar producción con fallback silencioso a `/api`. Vite exige un backend HTTPS terminado exactamente en `/api`. CI usa un origen ficticio válido; el próximo status de Vercel confirmará si la variable real está configurada. Estado: pendiente de CI/Vercel.
+## Gate VITE_API_URL — VERDE
+Confirmado sobre `b4640a863b8f41ae744798731b0184becaa02d85`:
+- 39/39 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db`;
+- frontend build;
+- Vercel `success`.
+
+El frontend de producción ya no puede compilar con fallback silencioso a `/api`.

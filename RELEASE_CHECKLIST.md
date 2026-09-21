@@ -9,7 +9,7 @@
 - [x] Purga documental al verificar.
 - [x] Reenvío documental implementado.
 - [x] Layout/identidad visual recuperados.
-- [x] Tests puros actuales 37/37 verdes.
+- [x] Tests puros actuales 39/39 verdes.
 - [x] Simulación longitudinal 5/10/20 años con variantes y válvula 2/3 validada.
 - [x] Push del checkpoint actual.
 - [x] CI del checkpoint actual verde.
@@ -60,7 +60,7 @@
 - [ ] Render health verde contra health DB-aware;
 - [ ] confirmar si el servicio Render existente se administra manualmente o mediante Blueprint; `render.yaml` solo gobierna servicios vinculados/sincronizados como Blueprint;
 - [x] Vercel build/deploy status verde reportado a GitHub;
-- [ ] `VITE_API_URL` validado en build productivo y Vercel nuevamente verde;
+- [x] `VITE_API_URL` validado en build productivo y Vercel nuevamente verde;
 - [ ] variables producción correctas;
 - [ ] al menos una cancha activa;
 - [x] smoke público automatizado preparado (`production-smoke.yml`);
