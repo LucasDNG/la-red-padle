@@ -209,3 +209,14 @@ Confirmado sobre `a29c047a8233671d5126345444a483b86359bb4d`:
 - Vercel `success`.
 
 El workflow manual de preflight de producción está listo y es read-only. Siguiente gate: cargar secretos/variables reales en GitHub Environment `production` y ejecutarlo contra Neon.
+
+
+## Bootstrap de Environment production — VERDE
+Confirmado sobre `4a6508001ff6a1fa3e63b5b2af3035d75cce49c2`:
+- 39/39 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db`;
+- frontend build;
+- Vercel `success`.
+
+La guía `PRODUCTION_ENVIRONMENT_SETUP.md` y la validación previa de inputs del workflow están listas. El siguiente gate requiere cargar secretos/variables reales en GitHub Environment `production` y ejecutar el preflight contra Neon.

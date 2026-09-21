@@ -246,12 +246,14 @@ El workflow manual `LA RED production preflight` queda listo. Usa GitHub Environ
 Próximo paso real: cargar secretos/variables del Environment `production` y ejecutar el workflow manual. Mantener checkpoints cortos.
 
 
-### Bootstrap de Environment production preparado
-El conector GitHub disponible en el chat no expone APIs de secrets/environments sensibles, por lo que los valores reales no pueden cargarse desde acá.
+### Bootstrap de Environment production — VERDE
+CI confirmado sobre `4a6508001ff6a1fa3e63b5b2af3035d75cce49c2`:
+- 39/39 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db` verde;
+- frontend build verde;
+- Vercel `success`.
 
-Se agrega `PRODUCTION_ENVIRONMENT_SETUP.md` y el workflow `LA RED production preflight` ahora tiene un primer paso que:
-- valida presencia de los 9 inputs requeridos;
-- lista únicamente los nombres faltantes;
-- nunca imprime valores.
+`PRODUCTION_ENVIRONMENT_SETUP.md` y la validación de inputs del workflow quedaron confirmados.
 
-Próximo paso: cargar una sola vez los secrets/variables del Environment `production` siguiendo esa guía y ejecutar manualmente el preflight. No empezar otro bloque antes de conocer ese resultado.
+El conector GitHub del chat no expone APIs de secrets/environments sensibles. Próximo paso manual/externo: cargar los secrets/variables reales del Environment `production` siguiendo la guía y ejecutar `LA RED production preflight`. Mantener checkpoints cortos.
