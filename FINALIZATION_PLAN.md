@@ -83,11 +83,11 @@ El repo incluye `render.yaml`:
 - runtime Node;
 - build con `npm ci --ignore-scripts`;
 - autodeploy solo cuando los checks de la rama pasan;
-- `preDeployCommand: npm run migrate:prod`;
+- migración automática al arrancar el backend, antes de escuchar tráfico;
 - health HTTP en `/api/health`;
 - secretos declarados como `sync: false`, nunca hardcodeados.
 
-La migración de abandono queda automatizada para el próximo deploy de Render, pero no se considera aplicada a Neon hasta que ese pre-deploy haya corrido con éxito o se ejecute `npm run migrate:prod` con variables reales.
+La migración de abandono queda automatizada para el próximo arranque productivo del backend. No se considera aplicada a Neon hasta que Render haya arrancado exitosamente esta versión o se ejecute `npm run migrate:prod` con variables reales. La rutina usa advisory lock y es idempotente.
 
 Health esperado:
 ```json

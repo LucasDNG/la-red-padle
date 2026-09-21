@@ -178,3 +178,13 @@ Confirmar CI antes de cerrar este bloque. Después quedan únicamente gates de i
 Se preparó `npm run generate:secrets -- --account=admin` para generar localmente JWT, TOTP Base32 de 160 bits y URI `otpauth://` sin persistir nada en Git.
 
 Confirmar CI del candidato. Después el siguiente paso real es cargar los valores en Render/Authenticator y ejecutar migración + preflight sobre Neon real.
+
+
+### Migración startup compatible con plan free en validación
+La documentación actual de Render muestra que `preDeployCommand` requiere servicio pago. Se elimina esa dependencia:
+- producción migra antes de `app.listen()`;
+- advisory lock serializa instancias concurrentes;
+- `render.yaml` no usa `preDeployCommand`;
+- `migrate:prod` sigue disponible manualmente.
+
+Confirmar CI. Después el deploy real puede funcionar tanto en free como en paid.

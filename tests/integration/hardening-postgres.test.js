@@ -298,3 +298,29 @@ test('health check verifies PostgreSQL and wheel-v2 engine instead of returning 
   await testPool.query(`UPDATE app_settings SET value='"broken-engine"'::jsonb WHERE key='engine'`);
   await assert.rejects(()=>readHealth(testPool),/Motor competitivo inesperado/);
 });
+
+
+test('production migrations serialize concurrent startup callers with an advisory lock',async()=>{
+  const one=await testPool.connect();
+  const two=await testPool.connect();
+  try{
+    const [a,b]=await Promise.all([
+      applyProductionMigrations(one),
+      applyProductionMigrations(two)
+    ]);
+    assert.equal(a.ok,true);
+    assert.equal(b.ok,true);
+    const locks=Number((await testPool.query(`
+      SELECT count(*) n
+      FROM pg_locks
+      WHERE locktype='advisory'
+        AND classid=7331
+        AND objid=20260921
+        AND granted=true
+    `)).rows[0].n);
+    assert.equal(locks,0);
+  }finally{
+    one.release();
+    two.release();
+  }
+});

@@ -93,13 +93,9 @@ El preflight no modifica datos. Valida secretos/configuración, TLS PostgreSQL, 
 
 
 ## Deploy automatizado
-El backend incluye `render.yaml`. Antes de arrancar una nueva versión, Render ejecuta:
+El backend incluye `render.yaml`. Al arrancar con `NODE_ENV=production`, el backend ejecuta automáticamente las migraciones idempotentes antes de abrir el puerto. La rutina usa un advisory lock PostgreSQL para evitar carreras entre instancias.
 
-```bash
-npm run migrate:prod
-```
-
-Luego usa `/api/health` como health check; ese endpoint valida PostgreSQL y que el motor almacenado sea `wheel-v2`. Los secretos de producción no están en el repo y deben cargarse en Render.
+`npm run migrate:prod` queda disponible para ejecución manual. Render usa `/api/health` como health check; ese endpoint valida PostgreSQL y que el motor almacenado sea `wheel-v2`. Los secretos de producción no están en el repo y deben cargarse en Render.
 
 
 ## Smoke público de producción

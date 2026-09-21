@@ -47,8 +47,8 @@
 - [x] CORS de producción validado como orígenes HTTPS puros.
 
 ## Migración producción
-- [x] migración de abandono automatizada e idempotente en `npm run migrate:prod`;
-- [ ] confirmar ejecución exitosa del pre-deploy contra la Neon real;
+- [x] migración de abandono automatizada al startup, idempotente y serializada con advisory lock; `npm run migrate:prod` disponible manualmente;
+- [ ] confirmar startup productivo exitoso contra la Neon real y patch presente;
 
 ## Preflight
 - [ ] `npm run preflight:prod` verde contra la Neon y variables reales.

@@ -4,7 +4,6 @@ services:
     runtime: node
     branch: main
     buildCommand: npm ci --ignore-scripts
-    preDeployCommand: npm run migrate:prod
     startCommand: npm start
     healthCheckPath: /api/health
     autoDeployTrigger: checksPass

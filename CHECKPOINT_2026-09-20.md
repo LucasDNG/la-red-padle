@@ -163,3 +163,7 @@ Se elimina el bypass implícito de TOTP en producción, se sube el mínimo del s
 CI confirmó 34/34 tests puros + 42/42 integración PostgreSQL + `verify:db` + frontend build. Vercel reportó `success`.
 
 Además se prepara un generador local de secretos JWT/TOTP para evitar creación manual o exposición en chats. Estado del generador: pendiente de CI.
+
+
+## Migración startup multi-plan en validación
+Se corrige la dependencia de `preDeployCommand` de Render: la migración corre antes de abrir el puerto en producción y usa advisory lock para serializar instancias concurrentes. Se agrega regresión PostgreSQL concurrente. Estado: pendiente de CI.

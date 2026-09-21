@@ -46,7 +46,7 @@
 
 ## Hardening de deploy incorporado
 - deploy Render codificado en `render.yaml`;
-- migración idempotente del patch de abandono como pre-deploy;
+- migración idempotente del patch de abandono al startup, con advisory lock;
 - health DB-aware;
 - respuestas 500 productivas sin mensajes internos.
 
