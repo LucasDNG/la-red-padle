@@ -118,3 +118,13 @@ El corazón deportivo quedó en 20/20 tests puros + 29/29 PostgreSQL. El bloque 
 - validación TOTP.
 
 CI confirmado: `verify:db` verde, 20/20 tests puros + 35/35 integración PostgreSQL y frontend build verde. El hardening automatizado queda cerrado. El trabajo pendiente se concentra en configuración real de producción: WhatsApp Meta, secreto TOTP, Neon/SSL/backups-PITR, Render/Vercel, variables/cron y smoke UX/legal.
+
+
+### Preflight de producción en validación
+Después del hardening 20/20 + 35/35 + `verify:db`, el bloque actual:
+- elimina `rejectUnauthorized:false` en PostgreSQL;
+- rechaza modos SSL explícitamente inseguros;
+- valida JWT, HTTPS/CORS, TOTP y WhatsApp;
+- agrega `npm run preflight:prod`, no destructivo, para Neon/configuración reales.
+
+Primero confirmar CI del código de preflight. Luego, con credenciales reales, ejecutar preflight contra producción. Lo que no puede cerrarse desde CI: WhatsApp Meta real, secreto TOTP real, backups/PITR Neon, Render/Vercel y smoke/legal.

@@ -9,18 +9,19 @@ Este documento reemplaza el plan anterior que suponía conservar la Neon histór
 - Frontend local: conecta al backend por proxy.
 - Producción Render/Vercel: todavía no debe considerarse migrada/final hasta completar gates.
 
-## 2. Checkpoint/push actual
-1. Copiar los `.md` de este checkpoint sobre el repo local.
-2. `git add -A`
-3. revisar `git status`
-4. `git commit -m "Consolida checkpoint wheel-v2 e identidad"`
-5. `git push origin main`
-6. esperar GitHub Actions
-7. verificar que el árbol remoto corresponda al candidato actual.
+## 2. Checkpoint actual
+El checkpoint deportivo y de hardening automatizado ya está en `main`.
 
-No hacer más cambios funcionales antes de este push.
+Estado:
+- 20/20 tests puros;
+- 35/35 integración PostgreSQL;
+- `verify:db` verde;
+- frontend build verde;
+- Node 22 + PostgreSQL 16 verdes en GitHub Actions.
 
-## 3. Después del push: auditoría real
+El trabajo restante es preflight/configuración real de producción y smoke final.
+
+## 3. Auditoría funcional automatizada
 Recorrer en orden:
 1. registro/login;
 2. identidad y reenvío;
@@ -34,7 +35,7 @@ Recorrer en orden:
 10. Admin;
 11. PWA/responsive.
 
-Cada hallazgo se registra primero en `AUDIT_2026-09-20.md` / `PROJECT_JOURNEY.md`; si cambia una regla, también `PROJECT_RULES.md` y `DECISIONS.md`. La corrección debe agregar/actualizar tests.
+El recorrido deportivo principal y sus edge cases críticos ya tienen integración PostgreSQL automática. Cada hallazgo nuevo sigue registrándose primero en `AUDIT_2026-09-20.md` / `PROJECT_JOURNEY.md`; si cambia una regla, también `PROJECT_RULES.md` y `DECISIONS.md`. Toda corrección debe agregar/actualizar tests.
 
 ## 4. Gates antes de producción
 - Node 22 real;
@@ -52,6 +53,12 @@ Cada hallazgo se registra primero en `AUDIT_2026-09-20.md` / `PROJECT_JOURNEY.md
 - backups/PITR de la Neon nueva confirmados;
 - textos legales revisados profesionalmente en Argentina;
 - seguro/RC/accidentes evaluado.
+
+Antes de deploy final ejecutar con variables reales:
+```bash
+npm run preflight:prod
+```
+Debe validar TLS, configuración, Admin, cancha activa y `verify.sql` sin modificar datos.
 
 ## 5. Variables Render
 - `NODE_ENV=production`

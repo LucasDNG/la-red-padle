@@ -22,7 +22,7 @@ Liga continua de pádel por parejas. Estado actual: **candidato wheel-v2 en esta
 7. `PROJECT_JOURNEY.md` — cómo llegamos a las decisiones actuales.
 8. `LEGAL_AND_BUSINESS.md` — requisitos legales/comerciales.
 
-## Estado local confirmado
+## Estado automatizado confirmado
 - Neon nueva creada y conectada.
 - Base histórica eliminada accidentalmente antes del corte.
 - Backend local funcionando.
@@ -32,11 +32,13 @@ Liga continua de pádel por parejas. Estado actual: **candidato wheel-v2 en esta
 - purga de documentación temporal probada.
 - reenvío de DNI implementado.
 - layout/identidad visual restaurados y páginas internas reorganizadas.
-- tests del candidato: 15/15 verdes.
+- tests puros/simulación: 20/20 verdes.
+- integración PostgreSQL: 35/35 verde.
+- `verify:db`: schema + invariantes verdes en PostgreSQL 16.
+- frontend build verde en CI.
 
 ## Pendiente principal
-El siguiente bloque es auditoría funcional del deporte:
-**pareja → rueda → programación → resultado → ranking**, y luego edge cases.
+El corazón deportivo y sus edge cases principales ya están cubiertos automáticamente. El foco actual es **release hardening y operación real**: preflight de producción, SSL/Neon, TOTP real, WhatsApp Meta real, Render/Vercel, backups/PITR y smoke UX/legal.
 
 ## Local
 Backend:
@@ -58,6 +60,8 @@ En desarrollo también existe `npm run dev` con watcher para backend, pero para 
 ```bash
 npm run check
 npm test
+npm run verify:db
+npm run test:integration
 ```
 
 ## Administración
@@ -75,4 +79,14 @@ Seguir `FINALIZATION_PLAN.md` y `RELEASE_CHECKLIST.md`.
 ```bash
 npm run simulate:balance
 ```
-Compara 20 años de la regla antigua de descenso contra la válvula 2/3 actual.
+Compara variantes de ascenso/descenso a 5, 10 y 20 años, incluida la hipótesis R5 y las válvulas poblacionales adaptativas.
+
+
+## Preflight de producción
+Con las variables reales de producción cargadas:
+
+```bash
+npm run preflight:prod
+```
+
+El preflight no modifica datos. Valida secretos/configuración, TLS PostgreSQL, motor/timezone, presencia de Admin y cancha activa, y ejecuta los controles de `database/verify.sql`.

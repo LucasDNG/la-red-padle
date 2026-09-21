@@ -146,3 +146,13 @@ La atribución de vencimiento distingue entre “actuó” y “actuó con marge
 `npm run verify:db` es un gate destructivo pensado solo para CI/test. Exige `TEST_DATABASE_URL`, recrea el schema `public`, aplica `database/schema.sql` y ejecuta los controles de `database/verify.sql`. No usa `DATABASE_URL` como fallback para reducir el riesgo de apuntar por error a una base de producción.
 
 El verificador considera válido un usuario de identidad `pending` sin blobs únicamente cuando existe una solicitud explícita de reenvío; fuera de ese estado, pending sin documentos es inconsistente.
+
+
+## Configuración y preflight de producción
+La conexión PostgreSQL se construye mediante `databasePoolOptions()`. En producción:
+- `DATABASE_URL` es obligatoria;
+- se rechazan modos SSL explícitamente inseguros;
+- si la URL no define opciones SSL, se fuerza TLS con verificación estándar del runtime;
+- si la URL ya define `sslmode`/certificados, `pg` interpreta esa configuración.
+
+`npm run preflight:prod` es no destructivo y está separado de `verify:db`: el primero se usa contra producción existente; el segundo recrea únicamente `TEST_DATABASE_URL` para validar instalación limpia.

@@ -1,7 +1,12 @@
 import 'dotenv/config';
+import {assertRuntimeConfig} from './config.js';
 import {app} from './app.js';
 import {maintenance} from './wheel.js';
 import {dispatchWhatsAppOutbox} from './notifications.js';
+
+const report=assertRuntimeConfig(process.env);
+for(const warning of report.warnings)console.warn('config warning:',warning);
+
 const port=Number(process.env.PORT||3000);
 app.listen(port,'0.0.0.0',()=>console.log(`LA RED Pádel API · wheel-v2 · ${port}`));
 async function tick(){try{await maintenance();await dispatchWhatsAppOutbox();}catch(e){console.error('maintenance',e);}}
