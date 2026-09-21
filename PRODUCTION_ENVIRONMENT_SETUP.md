@@ -43,7 +43,12 @@ Cargar ese URI en la app autenticadora. No guardar el URI ni el secreto TOTP en 
 ## Ejecutar el preflight
 GitHub → Actions → `LA RED production preflight` → Run workflow.
 
-El primer paso valida presencia de todos los inputs y, si falta alguno, muestra **solo los nombres faltantes**, nunca sus valores.
+El workflow permite elegir:
+
+- `core`: valida Neon/TLS, JWT, frontend/CORS, TOTP, engine/timezone, reloj global, patch, Admin, cancha e invariantes DB. **No exige Meta WhatsApp.**
+- `full`: ejecuta todo lo anterior y además exige la configuración completa de WhatsApp. **Este modo es obligatorio antes del release público.**
+
+El primer paso valida solo los inputs requeridos por el modo elegido y, si falta alguno, muestra **solo los nombres faltantes**, nunca sus valores.
 
 Después `npm run preflight:prod` valida de forma read-only:
 - configuración productiva;
@@ -69,4 +74,4 @@ Este workflow:
 Las migraciones productivas siguen ejecutándose al startup del backend o mediante `npm run migrate:prod`.
 
 ## Resultado esperado
-El workflow debe terminar verde. Si falla por un input ausente, cargar solo ese input y volver a ejecutarlo. Si falla dentro del preflight, corregir la infraestructura/configuración indicada antes de continuar con smoke de producción.
+Primero puede ejecutarse `core` para destrabar Neon/Render sin esperar Meta. Antes del release debe ejecutarse `full` y quedar verde. Si falla por un input ausente, cargar solo ese input y volver a ejecutarlo. Si falla dentro del preflight, corregir la infraestructura/configuración indicada antes de continuar con smoke de producción.

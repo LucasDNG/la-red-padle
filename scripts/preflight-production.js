@@ -3,7 +3,9 @@ import pg from 'pg';
 import {databasePoolOptions,productionConfigReport} from '../src/config.js';
 import {databasePreflight} from '../src/preflight.js';
 
-const report=productionConfigReport(process.env,{strictIntegrations:true});
+const mode=String(process.env.PREFLIGHT_MODE||'full').trim().toLowerCase();
+if(!['core','full'].includes(mode))throw new Error('PREFLIGHT_MODE debe ser core o full');
+const report=productionConfigReport(process.env,{strictIntegrations:mode==='full'});
 for(const warning of report.warnings)console.warn('WARN:',warning);
 if(report.errors.length){
   for(const error of report.errors)console.error('ERROR:',error);
@@ -18,7 +20,8 @@ try{
   if(result.failedOutbox)console.warn('WARN: hay '+result.failedOutbox+' notificaciones WhatsApp fallidas pendientes de revisión');
   console.log(JSON.stringify({
     ...result,
-    whatsappGraphVersion:process.env.WHATSAPP_GRAPH_VERSION,
+    preflightMode:mode,
+    whatsappGraphVersion:process.env.WHATSAPP_GRAPH_VERSION||null,
   }));
 }finally{
   await pool.end();

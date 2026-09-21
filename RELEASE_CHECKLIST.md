@@ -55,8 +55,10 @@
 - [x] preflight bloquea reloj global pausado y patch de abandono incompleto;
 - [x] workflow manual de preflight productivo preparado y validado en CI con GitHub Environment `production`;
 - [x] guía exacta `PRODUCTION_ENVIRONMENT_SETUP.md` y validación de inputs preparadas y verdes en CI;
-- [ ] secretos/variables reales cargados en el Environment `production`;
-- [ ] `npm run preflight:prod` verde contra la Neon y variables reales.
+- [ ] secrets/variables core cargados en el Environment `production`;
+- [ ] preflight `core` verde contra Neon real;
+- [ ] secrets/variables WhatsApp cargados;
+- [ ] preflight `full` verde antes del release público.
 
 ## Deploy
 - [x] GitHub Actions verde;

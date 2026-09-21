@@ -257,3 +257,13 @@ CI confirmado sobre `4a6508001ff6a1fa3e63b5b2af3035d75cce49c2`:
 `PRODUCTION_ENVIRONMENT_SETUP.md` y la validación de inputs del workflow quedaron confirmados.
 
 El conector GitHub del chat no expone APIs de secrets/environments sensibles. Próximo paso manual/externo: cargar los secrets/variables reales del Environment `production` siguiendo la guía y ejecutar `LA RED production preflight`. Mantener checkpoints cortos.
+
+
+### Preflight core/full en validación
+Se separa el preflight manual en dos modos:
+- `core`: Neon/TLS/JWT/CORS/TOTP/engine/timezone/reloj/patch/Admin/cancha/verify, sin exigir Meta;
+- `full`: todo lo anterior + configuración WhatsApp completa.
+
+Objetivo: poder validar infraestructura real antes de que Meta esté listo, sin debilitar el gate final. `full` sigue siendo obligatorio antes del release público.
+
+Confirmar CI de este commit en el próximo turno. No encadenar otro bloque hasta cerrarlo.
