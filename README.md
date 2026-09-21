@@ -112,3 +112,9 @@ npm run smoke:prod
 ```
 
 También existe el workflow manual `LA RED production smoke` en GitHub Actions. Es no destructivo y valida health/DB, CORS, endpoints públicos y que el frontend cargue la SPA.
+
+
+## TOTP de producción
+`ADMIN_TOTP_SECRET` debe ser Base32 de al menos 32 caracteres (aprox. 160 bits) y no puede reutilizar `JWT_SECRET`. En producción, si falta ese secreto, el login Admin queda cerrado en lugar de degradar a contraseña sola.
+
+`FRONTEND_URL` debe contener únicamente orígenes HTTPS, sin path/query/fragmento; el backend los normaliza antes de configurar CORS.

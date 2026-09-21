@@ -47,7 +47,7 @@ El recorrido deportivo principal y sus edge cases críticos ya tienen integraci�
 - Render health verde;
 - `database/verify.sql` limpio;
 - pruebas de integración PostgreSQL/concurrencia;
-- TOTP Admin configurado/probado;
+- TOTP Admin fail-closed en código; falta cargar/probar el secreto real con autenticador;
 - WhatsApp Meta configurado/probado;
 - al menos una cancha activa;
 - backups/PITR de la Neon nueva confirmados;

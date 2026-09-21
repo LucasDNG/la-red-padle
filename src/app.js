@@ -11,10 +11,11 @@ import {pendingUsers,searchUsers,setUserVerification,updateUserDni,identityDocum
 import {problem} from './core.js';
 import {safeErrorLog,authRateLimitKey,safeClientErrorMessage} from './httpSecurity.js';
 import {readHealth} from './health.js';
+import {frontendOrigins} from './config.js';
 
 export const app=express();
 app.set('trust proxy',1);
-app.use(cors({origin:process.env.FRONTEND_URL?.split(',').map(s=>s.trim()).filter(Boolean)||['http://localhost:5173']}));
+app.use(cors({origin:frontendOrigins(process.env).length?frontendOrigins(process.env):['http://localhost:5173']}));
 app.use(express.json({limit:'1mb'}));
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
 const identityUpload=multer({
@@ -37,7 +38,7 @@ app.get('/api/venues',wrap(async(req,res)=>res.json((await listVenues()).filter(
 
 app.post('/api/auth/register',rateLimit,identityUpload,wrap(async(req,res)=>{let legalAcceptances=req.body.legalAcceptances;try{if(typeof legalAcceptances==='string')legalAcceptances=JSON.parse(legalAcceptances);}catch{throw problem('Aceptaciones legales inválidas');}const user=await register({...req.body,legalAcceptances},{ip:req.ip,userAgent:req.get('user-agent')||null,identityDocuments:{front:req.files?.dniFront?.[0],back:req.files?.dniBack?.[0]}});res.status(201).json({token:sign(user),user});}));
 app.post('/api/auth/login',rateLimit,wrap(async(req,res)=>{const user=await findLogin(req.body.dni,req.body.password);if(user.role==='admin')throw problem('Credenciales inválidas',401);res.json({token:sign(user),user:publicUser(user)});}));
-app.post('/api/auth/admin-login',rateLimit,wrap(async(req,res)=>{const user=await findLogin(req.body.dni,req.body.password);if(user.role!=='admin')throw problem('Credenciales inválidas',401);if(process.env.ADMIN_TOTP_SECRET&&!verifyTotp(process.env.ADMIN_TOTP_SECRET,req.body.totp))throw problem('Credenciales inválidas',401);res.json({token:sign(user),user:publicUser(user)});}));
+app.post('/api/auth/admin-login',rateLimit,wrap(async(req,res)=>{const user=await findLogin(req.body.dni,req.body.password);if(user.role!=='admin')throw problem('Credenciales inválidas',401);const totpSecret=process.env.ADMIN_TOTP_SECRET;if(process.env.NODE_ENV==='production'&&!totpSecret)throw problem('Autenticación administrativa no disponible',503);if(totpSecret&&!verifyTotp(totpSecret,req.body.totp))throw problem('Credenciales inválidas',401);res.json({token:sign(user),user:publicUser(user)});}));
 app.post('/api/auth/recovery/request',rateLimit,wrap(async(req,res)=>res.json(await requestPasswordRecovery(req.body.dni))));
 app.post('/api/auth/recovery/reset',rateLimit,wrap(async(req,res)=>res.json(await resetPassword(req.body.dni,req.body.code,req.body.password))));
 app.get('/api/me',auth,wrap(async(req,res)=>{const u=(await pool.query(`SELECT * FROM users WHERE id=$1`,[req.user.id])).rows[0];if(!u)throw problem('Usuario inexistente',404);res.json(publicUser(u));}));

@@ -188,9 +188,10 @@ function currentTotp(secret){
 }
 
 test('TOTP accepts a valid current code and rejects a wrong code',()=>{
-  const secret='JBSWY3DPEHPK3PXP';
+  const secret='JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP';
   assert.equal(verifyTotp(secret,currentTotp(secret)),true);
   assert.equal(verifyTotp(secret,'000000')&&currentTotp(secret)!=='000000',false);
+  assert.equal(verifyTotp('',currentTotp(secret)),false);
 });
 
 test('verify.sql allows pending identity without documents only while a resubmission is outstanding',async()=>{

@@ -162,3 +162,13 @@ CI confirmado: 30/30 tests puros + 42/42 integración PostgreSQL + `verify:db` +
 Vercel ya reporta `success` a GitHub. Render no aparece como status/check del repo.
 
 Se preparó `npm run smoke:prod` + workflow manual `LA RED production smoke`, que valida health DB-aware, CORS, endpoints públicos y frontend sin modificar datos. CI confirmado: 32/32 tests puros + 42/42 integración PostgreSQL + `verify:db` + frontend build verdes. Después ejecutar ese workflow cuando Render esté realmente desplegado.
+
+
+### TOTP/CORS fail-closed en validación
+Se endureció la configuración productiva:
+- admin-login falla cerrado si falta `ADMIN_TOTP_SECRET` en producción;
+- secreto TOTP mínimo 32 caracteres Base32 (~160 bits);
+- JWT y TOTP deben ser distintos;
+- `FRONTEND_URL` solo acepta orígenes HTTPS puros y CORS normaliza trailing slash.
+
+Confirmar CI antes de cerrar este bloque. Después quedan únicamente gates de infraestructura/operación real.

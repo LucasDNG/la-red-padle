@@ -6,7 +6,8 @@ function parseDatabaseUrl(raw){
   if(!value)return null;
   try{return new URL(value);}catch{return null;}
 }
-function base32Secret(value){return /^[A-Z2-7]+=*$/i.test(clean(value))&&clean(value).replace(/=+$/,'').length>=16;}
+function base32Secret(value){return /^[A-Z2-7]+=*$/i.test(clean(value))&&clean(value).replace(/=+$/,'').length>=32;}
+export function frontendOrigins(env=process.env){return clean(env.FRONTEND_URL).split(',').map(x=>x.trim()).filter(Boolean).map(x=>{try{return new URL(x).origin;}catch{return x;}});}
 
 export function databasePoolOptions(env=process.env){
   const connectionString=clean(env.DATABASE_URL);
@@ -47,11 +48,17 @@ export function productionConfigReport(env=process.env,{strictIntegrations=false
   const jwt=clean(env.JWT_SECRET);
   if(jwt.length<32||/cambiar|change|secret/i.test(jwt))errors.push('JWT_SECRET debe ser aleatorio y tener al menos 32 caracteres');
 
-  const origins=clean(env.FRONTEND_URL).split(',').map(x=>x.trim()).filter(Boolean);
-  if(!origins.length)errors.push('FRONTEND_URL es obligatorio');
-  else if(origins.some(x=>!/^https:\/\//i.test(x)||/localhost|127\.0\.0\.1/i.test(x)))errors.push('FRONTEND_URL de producción debe contener solo orígenes HTTPS');
+  const rawOrigins=clean(env.FRONTEND_URL).split(',').map(x=>x.trim()).filter(Boolean);
+  if(!rawOrigins.length)errors.push('FRONTEND_URL es obligatorio');
+  else{
+    for(const raw of rawOrigins){
+      let url=null;try{url=new URL(raw);}catch{}
+      if(!url||url.protocol!=='https:'||/localhost|127\.0\.0\.1/i.test(url.hostname)||url.username||url.password||url.search||url.hash||(url.pathname&&url.pathname!=='/'))errors.push('FRONTEND_URL de producción debe contener solo orígenes HTTPS sin path/query/credenciales');
+    }
+  }
 
-  if(!base32Secret(env.ADMIN_TOTP_SECRET))errors.push('ADMIN_TOTP_SECRET debe ser un secreto Base32 válido');
+  if(!base32Secret(env.ADMIN_TOTP_SECRET))errors.push('ADMIN_TOTP_SECRET debe ser Base32 y aportar al menos 160 bits (32 caracteres sin padding)');
+  if(jwt&&clean(env.ADMIN_TOTP_SECRET)&&jwt===clean(env.ADMIN_TOTP_SECRET))errors.push('JWT_SECRET y ADMIN_TOTP_SECRET deben ser secretos distintos');
 
   const whatsapp=['WHATSAPP_PHONE_NUMBER_ID','WHATSAPP_ACCESS_TOKEN','WHATSAPP_TEMPLATE_NAME'];
   const missingWhatsApp=whatsapp.filter(k=>!clean(env[k]));

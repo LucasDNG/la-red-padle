@@ -35,13 +35,15 @@
 ## Seguridad/operación
 - [x] probar con Node 22 real;
 - [x] eliminar bypass `rejectUnauthorized:false` y validar TLS por configuración; conexión Neon final todavía debe pasar preflight real;
-- [ ] TOTP Admin configurado;
+- [x] TOTP fail-closed y requisitos de secreto automatizados;
+- [ ] TOTP Admin real configurado y probado con autenticador;
 - [ ] WhatsApp Meta configurado;
 - [x] retries/outbox probados;
 - [x] rate limiting revisado; contador por IP + endpoint en auth, con limitación conocida de memoria local por instancia;
 - [ ] backups/PITR Neon confirmados;
 - [x] pruebas PostgreSQL/concurrencia 42/42 verdes;
-- [x] logs de errores sanitizados para no persistir PII/SQL/details en producción.
+- [x] logs de errores sanitizados para no persistir PII/SQL/details en producción;
+- [x] CORS de producción validado como orígenes HTTPS puros.
 
 ## Migración producción
 - [x] migración de abandono automatizada e idempotente en `npm run migrate:prod`;

@@ -153,3 +153,7 @@ El siguiente gate ya no es simulación: ejecutar migración/preflight contra Neo
 
 ## Smoke público automatizado en validación
 Vercel reportó status `success` sobre el commit actual. Se agrega smoke no destructivo de producción para health DB-aware, CORS, endpoints públicos y frontend SPA, disponible como `npm run smoke:prod` y workflow manual. Render sigue pendiente de deploy/status real. CI confirmado: 32/32 tests puros + 42/42 integración PostgreSQL + `verify:db` + frontend build verdes.
+
+
+## TOTP/CORS fail-closed en validación
+Se elimina el bypass implícito de TOTP en producción, se sube el mínimo del secreto a ~160 bits, se impide reutilizar JWT/TOTP y se valida/normaliza `FRONTEND_URL` como origen CORS real. Estado: pendiente de CI.

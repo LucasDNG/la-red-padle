@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {databasePoolOptions,productionConfigReport,assertRuntimeConfig} from '../src/config.js';
+import {databasePoolOptions,productionConfigReport,assertRuntimeConfig,frontendOrigins} from '../src/config.js';
 
 const strongEnv={
   NODE_ENV:'production',
   DATABASE_URL:'postgresql://user:pass@example.neon.tech/db?sslmode=require&channel_binding=require',
   JWT_SECRET:'0123456789abcdef0123456789abcdef0123456789abcdef',
   FRONTEND_URL:'https://la-red-padle.vercel.app',
-  ADMIN_TOTP_SECRET:'JBSWY3DPEHPK3PXP',
+  ADMIN_TOTP_SECRET:'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
   WHATSAPP_PHONE_NUMBER_ID:'123',
   WHATSAPP_ACCESS_TOKEN:'token',
   WHATSAPP_TEMPLATE_NAME:'la_red_notice',
@@ -46,4 +46,23 @@ test('strict production preflight requires WhatsApp configuration',()=>{
 test('complete production config passes runtime validation',()=>{
   assert.deepEqual(productionConfigReport(strongEnv,{strictIntegrations:true}),{errors:[],warnings:[]});
   assert.deepEqual(assertRuntimeConfig(strongEnv),{errors:[],warnings:[]});
+});
+
+
+test('production rejects weak or reused TOTP secrets',()=>{
+  const weak=productionConfigReport({...strongEnv,ADMIN_TOTP_SECRET:'JBSWY3DPEHPK3PXP'});
+  assert.ok(weak.errors.some(x=>x.includes('ADMIN_TOTP_SECRET')));
+  const reused=productionConfigReport({...strongEnv,JWT_SECRET:'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',ADMIN_TOTP_SECRET:'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP'});
+  assert.ok(reused.errors.some(x=>x.includes('secretos distintos')));
+});
+
+test('production frontend origins reject paths and normalize harmless trailing slash',()=>{
+  const bad=productionConfigReport({...strongEnv,FRONTEND_URL:'https://app.example.com/private'});
+  assert.ok(bad.errors.some(x=>x.includes('FRONTEND_URL')));
+  const query=productionConfigReport({...strongEnv,FRONTEND_URL:'https://app.example.com/?token=x'});
+  assert.ok(query.errors.some(x=>x.includes('FRONTEND_URL')));
+  assert.deepEqual(frontendOrigins({...strongEnv,FRONTEND_URL:'https://app.example.com/, https://admin.example.com'}),[
+    'https://app.example.com',
+    'https://admin.example.com'
+  ]);
 });
