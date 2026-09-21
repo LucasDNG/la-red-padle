@@ -118,4 +118,4 @@ Se corrigió `verify.sql` para distinguir correctamente el estado de reenvío de
 
 
 ## Preflight de producción en validación
-Se eliminó el `rejectUnauthorized:false` productivo y se preparó `npm run preflight:prod`. También se agregaron tests puros de configuración para SSL, JWT, HTTPS/CORS, TOTP y WhatsApp. Estado: pendiente del primer CI de este bloque; el preflight real contra Neon seguirá pendiente hasta cargar variables/credenciales reales.
+Se eliminó el `rejectUnauthorized:false` productivo y se preparó `npm run preflight:prod`. También se agregaron tests puros de configuración para SSL, JWT, HTTPS/CORS, TOTP y WhatsApp. CI confirmado: 26/26 tests puros, 35/35 integración PostgreSQL, `verify:db` y frontend build verdes. El preflight real contra Neon sigue pendiente hasta cargar variables/credenciales reales.

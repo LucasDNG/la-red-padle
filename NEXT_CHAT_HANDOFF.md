@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 20/20 tests puros + 35/35 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16.
+Suite actual: 26/26 tests puros + 35/35 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16.
 
 ## Metodología
 
@@ -127,4 +127,4 @@ Después del hardening 20/20 + 35/35 + `verify:db`, el bloque actual:
 - valida JWT, HTTPS/CORS, TOTP y WhatsApp;
 - agrega `npm run preflight:prod`, no destructivo, para Neon/configuración reales.
 
-Primero confirmar CI del código de preflight. Luego, con credenciales reales, ejecutar preflight contra producción. Lo que no puede cerrarse desde CI: WhatsApp Meta real, secreto TOTP real, backups/PITR Neon, Render/Vercel y smoke/legal.
+CI del código de preflight confirmado: 26/26 tests puros + 35/35 PostgreSQL + `verify:db` + frontend build verdes. Con credenciales reales, ejecutar `npm run preflight:prod` contra producción. Lo que no puede cerrarse desde CI: WhatsApp Meta real, secreto TOTP real, backups/PITR Neon, Render/Vercel y smoke/legal.
