@@ -134,4 +134,4 @@ También:
 - se agrega integración de outbox que prueba fallo Meta 500 -> `failed` -> retry -> `sent`;
 - se actualiza el checklist de release: disciplina y retries/outbox ya estaban cubiertos, pero la documentación había quedado atrasada.
 
-Estado: pendiente de CI antes de cerrar este bloque.
+CI confirmado: 29/29 tests puros + 40/40 integración PostgreSQL + `verify:db` + frontend build verdes.

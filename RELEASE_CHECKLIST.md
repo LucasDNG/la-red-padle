@@ -40,7 +40,7 @@
 - [x] retries/outbox probados;
 - [x] rate limiting revisado; contador por IP + endpoint en auth, con limitación conocida de memoria local por instancia;
 - [ ] backups/PITR Neon confirmados;
-- [x] pruebas PostgreSQL/concurrencia (39/39 antes de este bloque; nuevo hardening de outbox pendiente de CI);
+- [x] pruebas PostgreSQL/concurrencia (40/40 verdes después del hardening de outbox);
 - [x] logs de errores sanitizados para no persistir PII/SQL/details en producción.
 
 ## Preflight
