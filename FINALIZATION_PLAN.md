@@ -130,3 +130,24 @@ Luego repetir con edge cases: no-show, disputa, lesión, pausa, disolución, dis
 
 ## 8. Corte
 Solo después de gates verdes y smoke completo, considerar LA RED lista para lanzamiento público.
+
+
+### GitHub Environment production
+El repo incluye `.github/workflows/production-preflight.yml`. El workflow no escribe en Neon: ejecuta únicamente el preflight read-only.
+
+Configurar en GitHub Environment `production`:
+
+Secrets:
+- `PROD_DATABASE_URL`
+- `PROD_JWT_SECRET`
+- `PROD_ADMIN_TOTP_SECRET`
+- `PROD_WHATSAPP_PHONE_NUMBER_ID`
+- `PROD_WHATSAPP_ACCESS_TOKEN`
+
+Variables:
+- `PROD_FRONTEND_URL`
+- `PROD_WHATSAPP_TEMPLATE_NAME`
+- `PROD_WHATSAPP_GRAPH_VERSION`
+- `PROD_WHATSAPP_TEMPLATE_LANGUAGE`
+
+Después ejecutar manualmente `LA RED production preflight` desde GitHub Actions. Si el Environment tiene aprobación requerida, GitHub pedirá esa aprobación antes de acceder a los secretos.

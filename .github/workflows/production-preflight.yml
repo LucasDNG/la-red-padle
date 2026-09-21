@@ -1,0 +1,27 @@
+name: LA RED production preflight
+
+on:
+  workflow_dispatch:
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      NODE_ENV: production
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      JWT_SECRET: ${{ secrets.PROD_JWT_SECRET }}
+      FRONTEND_URL: ${{ vars.PROD_FRONTEND_URL }}
+      ADMIN_TOTP_SECRET: ${{ secrets.PROD_ADMIN_TOTP_SECRET }}
+      WHATSAPP_PHONE_NUMBER_ID: ${{ secrets.PROD_WHATSAPP_PHONE_NUMBER_ID }}
+      WHATSAPP_ACCESS_TOKEN: ${{ secrets.PROD_WHATSAPP_ACCESS_TOKEN }}
+      WHATSAPP_TEMPLATE_NAME: ${{ vars.PROD_WHATSAPP_TEMPLATE_NAME }}
+      WHATSAPP_GRAPH_VERSION: ${{ vars.PROD_WHATSAPP_GRAPH_VERSION }}
+      WHATSAPP_TEMPLATE_LANGUAGE: ${{ vars.PROD_WHATSAPP_TEMPLATE_LANGUAGE }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --ignore-scripts
+      - run: npm run preflight:prod
