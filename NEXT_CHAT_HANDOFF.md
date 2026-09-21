@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 30/30 tests puros + 42/42 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16.
+Suite actual: 32/32 tests puros + 42/42 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16.
 
 ## Metodología
 
@@ -161,4 +161,4 @@ CI confirmado: 30/30 tests puros + 42/42 integración PostgreSQL + `verify:db` +
 ### Smoke público automatizado en validación
 Vercel ya reporta `success` a GitHub. Render no aparece como status/check del repo.
 
-Se preparó `npm run smoke:prod` + workflow manual `LA RED production smoke`, que valida health DB-aware, CORS, endpoints públicos y frontend sin modificar datos. Confirmar CI del código. Después ejecutar ese workflow cuando Render esté realmente desplegado.
+Se preparó `npm run smoke:prod` + workflow manual `LA RED production smoke`, que valida health DB-aware, CORS, endpoints públicos y frontend sin modificar datos. CI confirmado: 32/32 tests puros + 42/42 integración PostgreSQL + `verify:db` + frontend build verdes. Después ejecutar ese workflow cuando Render esté realmente desplegado.

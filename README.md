@@ -32,7 +32,7 @@ Liga continua de pádel por parejas. Estado actual: **candidato wheel-v2 en esta
 - purga de documentación temporal probada.
 - reenvío de DNI implementado.
 - layout/identidad visual restaurados y páginas internas reorganizadas.
-- tests puros/simulación/configuración: 30/30 verdes.
+- tests puros/simulación/configuración: 32/32 verdes.
 - integración PostgreSQL: 42/42 verde.
 - `verify:db`: schema + invariantes verdes en PostgreSQL 16.
 - frontend build verde en CI.

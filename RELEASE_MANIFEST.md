@@ -46,7 +46,7 @@
 
 ## Validación conocida
 - backend syntax/check en candidatos previos: verde;
-- suite base: 26/26 tests puros + 39/39 integración PostgreSQL verdes en CI; 30/30 tests puros + 42/42 integración PostgreSQL + `verify:db` + frontend build verdes; logging seguro/rate-limit, retry real de outbox y deploy-health confirmados;
+- suite base: 26/26 tests puros + 39/39 integración PostgreSQL verdes en CI; 32/32 tests puros + 42/42 integración PostgreSQL + `verify:db` + frontend build verdes; logging seguro/rate-limit, retry real de outbox y deploy-health confirmados;
 - verificación de identidad probada manualmente con éxito;
 - base Neon nueva conectada.
 
