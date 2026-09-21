@@ -14,7 +14,8 @@ SELECT u.id
 FROM users u
 LEFT JOIN identity_documents d ON d.user_id=u.id
 WHERE u.verification_status='pending'
-  AND d.user_id IS NULL;
+  AND d.user_id IS NULL
+  AND u.identity_resubmit_requested_at IS NULL;
 
 
 SELECT u.id

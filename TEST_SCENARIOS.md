@@ -308,3 +308,16 @@ Estos escenarios deben recorrerse manualmente y luego convertirse/confirmarse co
 - `pause_after_current` mantiene la pareja activa hasta cerrar el resultado y recién entonces pausa;
 - disolución vencida con assignment sin jugar aplica forfeit deportivo antes de archivar;
 - disolución con versión de resultado cargada espera que el resultado se resuelva antes de archivar.
+
+
+## Hardening lateral y gates de release
+- tres reportantes distintos en 180 días => pareja `observed`;
+- cinco reportantes distintos => pareja `review`;
+- violencia o amenazas => revisión inmediata;
+- revisión disciplinaria iniciada durante un assignment sin resultado lo cierra neutralmente, sin match ni sanción deportiva;
+- pausa global del reloj desplaza deadlines vivos de assignment, extensión, confirmación, propuesta, no-show, invitación y disolución por la duración exacta de la pausa;
+- pausar/reanudar el reloj deja auditoría administrativa;
+- notificaciones y outbox WhatsApp respetan `dedupe_key`;
+- TOTP válido es aceptado y código incorrecto rechazado;
+- `verify.sql` permite pending sin fotos únicamente durante un reenvío solicitado;
+- `npm run verify:db` reconstruye el esquema de prueba y exige cero inconsistencias.

@@ -140,3 +140,9 @@ Una disputa mantiene el assignment abierto y bloqueado para nuevas asignaciones 
 
 ## Vencimientos y ventana extraordinaria
 La atribución de vencimiento distingue entre “actuó” y “actuó con margen suficiente”. Un único actor con margen puede dejar al rival como único responsable solo si el rival no actuó en absoluto. Si ambos actuaron sin resolver, ambos son penalizados. La extensión extraordinaria solo acepta votos en las 48 horas posteriores al deadline original; si se activa, su deadline es exactamente 15 días después del original. Su vencimiento genera penalización posicional sin derrota deportiva ni strike atribuible.
+
+
+## Gate de esquema de base
+`npm run verify:db` es un gate destructivo pensado solo para CI/test. Exige `TEST_DATABASE_URL`, recrea el schema `public`, aplica `database/schema.sql` y ejecuta los controles de `database/verify.sql`. No usa `DATABASE_URL` como fallback para reducir el riesgo de apuntar por error a una base de producción.
+
+El verificador considera válido un usuario de identidad `pending` sin blobs únicamente cuando existe una solicitud explícita de reenvío; fuera de ese estado, pending sin documentos es inconsistente.

@@ -31,6 +31,7 @@ jobs:
       - run: npm install --ignore-scripts
       - run: npm run check
       - run: npm test
+      - run: npm run verify:db
       - run: npm run test:integration
   frontend:
     runs-on: ubuntu-latest

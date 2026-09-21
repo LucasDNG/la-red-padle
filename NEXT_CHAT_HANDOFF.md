@@ -107,3 +107,14 @@ Se detectaron y corrigieron tres desvíos de implementación sin cambiar reglas:
 - ELO no recalculado al confirmar pausa voluntaria.
 
 Se agregaron 10 escenarios PostgreSQL sobre vencimientos/extensión/no-show/pausa/disolución. CI confirmado: 20/20 tests puros + 29/29 integración PostgreSQL, Node 22/PostgreSQL 16 y frontend build verdes. El corazón deportivo automatizado queda cubierto. Pasan a primer plano hardening restante: disciplina, pausa global de relojes, schema/verify, outbox/TOTP y configuración real de WhatsApp/deploy/backups; smoke UX/legal al final.
+
+
+### Hardening lateral en validación
+El corazón deportivo quedó en 20/20 tests puros + 29/29 PostgreSQL. El bloque actual agrega:
+- `verify:db` sobre una base de prueba reconstruida desde `schema.sql`;
+- corrección del falso positivo de `verify.sql` durante reenvío de DNI;
+- integración de disciplina y pausa global de relojes;
+- dedupe de notificaciones/outbox;
+- validación TOTP.
+
+Confirmar CI antes de cerrar. Si queda verde, el trabajo pendiente se concentra en configuración real de producción: WhatsApp Meta, secreto TOTP, Neon/SSL/backups-PITR, Render/Vercel, variables/cron y smoke UX/legal.
