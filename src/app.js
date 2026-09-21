@@ -9,7 +9,8 @@ import {myLeague,proposeSchedule,acceptSchedule,voteExtension,reportNoShow,conte
 import {reportDiscipline} from './discipline.js';
 import {pendingUsers,searchUsers,setUserVerification,updateUserDni,identityDocument,requestIdentityResubmission,listVenues,createVenue,updateVenue,disputes,resolveDispute,disciplineQueue,resolveDiscipline,systemStatus,auditLog,setLeagueClockPause,retryWhatsApp,verifyTotp} from './admin.js';
 import {problem} from './core.js';
-import {safeErrorLog,authRateLimitKey} from './httpSecurity.js';
+import {safeErrorLog,authRateLimitKey,safeClientErrorMessage} from './httpSecurity.js';
+import {readHealth} from './health.js';
 
 export const app=express();
 app.set('trust proxy',1);
@@ -25,7 +26,7 @@ const identityUpload=multer({
 const attempts=new Map();
 function rateLimit(req,res,next){const key=authRateLimitKey(req),now=Date.now(),window=15*60*1000,max=25;let v=attempts.get(key);if(!v||v.reset<=now)v={count:0,reset:now+window};v.count++;attempts.set(key,v);if(v.count>max)return res.status(429).json({error:'Demasiados intentos. Probá nuevamente en unos minutos.'});next();}
 
-app.get('/api/health',(req,res)=>res.json({ok:true,name:'LA RED Pádel',engine:'wheel-v2',timezone:'America/Argentina/Buenos_Aires'}));
+app.get('/api/health',wrap(async(req,res)=>res.json(await readHealth(pool))));
 app.get('/api/legal/versions',(req,res)=>res.json(LEGAL_VERSIONS));
 app.get('/api/ranking',wrap(async(req,res)=>res.json(await ranking())));
 app.get('/api/records',wrap(async(req,res)=>res.json(await records())));
@@ -83,4 +84,4 @@ app.patch('/api/admin/disputes/:id',auth,admin,wrap(async(req,res)=>{const r=awa
 app.get('/api/admin/discipline',auth,admin,wrap(async(req,res)=>res.json(await disciplineQueue())));
 app.patch('/api/admin/discipline/:id',auth,admin,wrap(async(req,res)=>{const r=await resolveDiscipline(req.user.id,Number(req.params.id),req.body.status);await maintenance();res.json(r);}));
 
-app.use((err,req,res,next)=>{console.error(JSON.stringify(safeErrorLog(err,req)));let message=err.message||'Error interno';if(err.code==='LIMIT_FILE_SIZE')message='Cada foto del DNI puede pesar hasta 5 MB';if(err.code==='LIMIT_FILE_COUNT')message='Solo se permiten frente y dorso del DNI';if(err.code==='23505'){if(err.constraint==='users_dni_key')message='Ya existe una cuenta con ese DNI. Usá la recuperación de acceso.';else message='Ese dato ya existe o la operación ya fue realizada';}const status=err.statusCode||(String(err.code||'').startsWith('23')?400:500);res.status(status).json({error:message});});
+app.use((err,req,res,next)=>{console.error(JSON.stringify(safeErrorLog(err,req)));const status=err.statusCode||(String(err.code||'').startsWith('23')?400:500);res.status(status).json({error:safeClientErrorMessage(err)});});

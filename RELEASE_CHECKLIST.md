@@ -43,12 +43,16 @@
 - [x] pruebas PostgreSQL/concurrencia (40/40 verdes después del hardening de outbox);
 - [x] logs de errores sanitizados para no persistir PII/SQL/details en producción.
 
+## Migración producción
+- [x] migración de abandono automatizada e idempotente en `npm run migrate:prod`;
+- [ ] confirmar ejecución exitosa del pre-deploy contra la Neon real;
+
 ## Preflight
 - [ ] `npm run preflight:prod` verde contra la Neon y variables reales.
 
 ## Deploy
 - [x] GitHub Actions verde;
-- [ ] Render health verde;
+- [ ] Render health verde contra health DB-aware;
 - [ ] Vercel build verde;
 - [ ] variables producción correctas;
 - [ ] al menos una cancha activa;

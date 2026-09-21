@@ -16,6 +16,8 @@ const {reportDiscipline}=await import('../../src/discipline.js');
 const {setLeagueClockPause,verifyTotp}=await import('../../src/admin.js');
 const {queueUserNotification,dispatchWhatsAppOutbox}=await import('../../src/notifications.js');
 const {pool:appPool}=await import('../../src/db.js');
+const {readHealth}=await import('../../src/health.js');
+const {applyProductionMigrations}=await import('../../src/migrations.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
 const verifySql=fs.readFileSync(path.resolve(__dirname,'../../database/verify.sql'),'utf8');
@@ -263,4 +265,35 @@ test('WhatsApp outbox retries failed rows and marks them sent after a successful
     if(oldEnv.template===undefined)delete process.env.WHATSAPP_TEMPLATE_NAME;else process.env.WHATSAPP_TEMPLATE_NAME=oldEnv.template;
     if(oldEnv.lang===undefined)delete process.env.WHATSAPP_TEMPLATE_LANGUAGE;else process.env.WHATSAPP_TEMPLATE_LANGUAGE=oldEnv.lang;
   }
+});
+
+
+test('production migration is idempotent and leaves abandonment schema ready',async()=>{
+  const client=await testPool.connect();
+  try{
+    const first=await applyProductionMigrations(client);
+    const second=await applyProductionMigrations(client);
+    assert.equal(first.ok,true);
+    assert.equal(second.ok,true);
+    assert.ok(first.applied.includes('PATCH_MATCH_ABANDONMENT_2026-09-21.sql'));
+    const column=Number((await client.query(`
+      SELECT count(*) n FROM information_schema.columns
+      WHERE table_schema='public' AND table_name='matches' AND column_name='abandoned_pair_id'
+    `)).rows[0].n);
+    const constraint=Number((await client.query(`
+      SELECT count(*) n FROM pg_constraint
+      WHERE conname='matches_abandonment_consistency' AND conrelid='matches'::regclass
+    `)).rows[0].n);
+    assert.equal(column,1);
+    assert.equal(constraint,1);
+  }finally{client.release();}
+});
+
+test('health check verifies PostgreSQL and wheel-v2 engine instead of returning static green',async()=>{
+  const healthy=await readHealth(testPool);
+  assert.equal(healthy.ok,true);
+  assert.equal(healthy.database,'ok');
+  assert.equal(healthy.engine,'wheel-v2');
+  await testPool.query(`UPDATE app_settings SET value='"broken-engine"'::jsonb WHERE key='engine'`);
+  await assert.rejects(()=>readHealth(testPool),/Motor competitivo inesperado/);
 });

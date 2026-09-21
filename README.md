@@ -90,3 +90,13 @@ npm run preflight:prod
 ```
 
 El preflight no modifica datos. Valida secretos/configuración, TLS PostgreSQL, motor/timezone, presencia de Admin y cancha activa, y ejecuta los controles de `database/verify.sql`.
+
+
+## Deploy automatizado
+El backend incluye `render.yaml`. Antes de arrancar una nueva versión, Render ejecuta:
+
+```bash
+npm run migrate:prod
+```
+
+Luego usa `/api/health` como health check; ese endpoint valida PostgreSQL y que el motor almacenado sea `wheel-v2`. Los secretos de producción no están en el repo y deben cargarse en Render.

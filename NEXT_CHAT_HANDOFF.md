@@ -146,3 +146,13 @@ Lo pendiente ya es operativo/deploy: aplicar patch de abandono en Neon existente
 Se detectó un riesgo de PII en logs: `console.error(err)` podía persistir `detail` de PostgreSQL con valores como DNI. Se preparó logging seguro de producción, aislamiento del rate limit por IP+endpoint y una prueba de retry real del outbox WhatsApp (fallo 500 -> failed -> retry -> sent).
 
 CI confirmado: 29/29 tests puros + 40/40 integración PostgreSQL + `verify:db` + frontend build verdes. Después de este bloque, lo restante sigue siendo principalmente operativo: patch Neon de abandono, preflight real, WhatsApp/TOTP reales, backups/PITR, Render/Vercel, cancha activa, smoke UX y legal/seguro.
+
+
+### Deploy/migración/health en validación
+Se preparó un bloque de deploy seguro:
+- `npm run migrate:prod` aplica de forma idempotente el patch de abandono y verifica columna/constraint;
+- `render.yaml` usa `autoDeployTrigger: checksPass`, pre-deploy de migración y health `/api/health`;
+- el health ahora consulta PostgreSQL y exige engine `wheel-v2`;
+- los errores 500 productivos ya no devuelven `err.message` crudo.
+
+Confirmar CI antes de cerrar. Aun con CI verde, quedan pendientes los gates reales: ejecución contra Neon, secretos/TOTP/WhatsApp, Render/Vercel efectivos, backups/PITR, cancha real, smoke UX y legal/seguro.

@@ -160,3 +160,11 @@ La conexión PostgreSQL se construye mediante `databasePoolOptions()`. En produc
 
 ## Resultado por lesión / abandono
 `injury_abandonment` es un resultado deportivo oficial. La versión cargada y el `match` confirmado conservan `abandoned_pair_id`; el ganador debe ser la otra pareja. No se persisten sets parciales ni games: `score=NULL`, `pair_a_games=0`, `pair_b_games=0`. El motor aplica la misma escalera, rachas, ascenso/descenso y defensa de Primera que una victoria/derrota normal, sin deuda ni strike administrativo adicional.
+
+
+## Deploy y migraciones de producción
+El backend declara un Blueprint `render.yaml` en la raíz. Render debe esperar checks verdes antes de autodeploy, ejecutar `npm run migrate:prod` como pre-deploy y usar `/api/health` como health check HTTP.
+
+`migrate:prod` solo corre con `NODE_ENV=production`; aplica las migraciones idempotentes explícitamente listadas en `src/migrations.js` y verifica sus invariantes antes de finalizar. El primer patch administrado es `PATCH_MATCH_ABANDONMENT_2026-09-21.sql`.
+
+El health no es estático: depende de PostgreSQL y valida `app_settings.engine = wheel-v2`. Por eso una instancia sin DB funcional no puede quedar verde solo porque Express arrancó.

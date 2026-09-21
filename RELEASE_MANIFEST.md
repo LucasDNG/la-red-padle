@@ -33,6 +33,12 @@
 - válvula longitudinal de descenso 2/3 según diferencia de población adyacente;
 - simulador reproducible de balance a 5/10/20 años con variantes P3/R3, P3/R5, gaps 4/5/6 y P4/R3;
 
+## Hardening de deploy incorporado
+- deploy Render codificado en `render.yaml`;
+- migración idempotente del patch de abandono como pre-deploy;
+- health DB-aware;
+- respuestas 500 productivas sin mensajes internos.
+
 ## Validación conocida
 - backend syntax/check en candidatos previos: verde;
 - suite base: 26/26 tests puros + 39/39 integración PostgreSQL verdes en CI; 29/29 tests puros + 40/40 integración PostgreSQL + `verify:db` + frontend build verdes; logging seguro/rate-limit y retry real de outbox confirmados;

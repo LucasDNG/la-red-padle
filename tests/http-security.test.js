@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {safeErrorLog,authRateLimitKey} from '../src/httpSecurity.js';
+import {safeErrorLog,authRateLimitKey,safeClientErrorMessage} from '../src/httpSecurity.js';
 
 test('production error logs never expose PostgreSQL detail or user message',()=>{
   const err={
@@ -36,4 +36,20 @@ test('auth rate limit keys isolate authentication endpoints for the same IP',()=
   const sameLogin=authRateLimitKey({ip:'203.0.113.5',path:'/api/auth/login'});
   assert.notEqual(login,recovery);
   assert.equal(login,sameLogin);
+});
+
+
+test('production client errors hide unexpected internal failures but preserve safe domain messages',()=>{
+  assert.equal(
+    safeClientErrorMessage({message:'password authentication failed for user postgres'},{production:true}),
+    'Error interno'
+  );
+  assert.equal(
+    safeClientErrorMessage({statusCode:409,message:'Invitación vencida o inexistente'},{production:true}),
+    'Invitación vencida o inexistente'
+  );
+  assert.equal(
+    safeClientErrorMessage({code:'23505',constraint:'users_dni_key',message:'raw db message'},{production:true}),
+    'Ya existe una cuenta con ese DNI. Usá la recuperación de acceso.'
+  );
 });

@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
-    "check": "node --check src/index.js && node --check src/app.js && node --check src/config.js && node --check src/core.js && node --check src/competitionEngine.js && node --check src/pairs.js && node --check src/wheel.js && node --check src/account.js && node --check src/discipline.js && node --check src/admin.js && node --check src/notifications.js && node --check src/httpSecurity.js && node --check scripts/preflight-production.js",
+    "check": "node --check src/index.js && node --check src/app.js && node --check src/config.js && node --check src/core.js && node --check src/competitionEngine.js && node --check src/pairs.js && node --check src/wheel.js && node --check src/account.js && node --check src/discipline.js && node --check src/admin.js && node --check src/notifications.js && node --check src/httpSecurity.js && node --check src/health.js && node --check src/migrations.js && node --check scripts/preflight-production.js && node --check scripts/migrate-production.js",
     "test": "node --test tests/*.test.js",
     "admin:promote": "node scripts/promote-admin.js",
     "admin:totp-secret": "node scripts/totp-secret.js",
@@ -17,7 +17,8 @@
     "simulate:balance": "node scripts/simulate-category-balance.js",
     "test:integration": "node --test --test-concurrency=1 tests/integration/*.test.js",
     "verify:db": "node scripts/verify-database.js",
-    "preflight:prod": "node scripts/preflight-production.js"
+    "preflight:prod": "node scripts/preflight-production.js",
+    "migrate:prod": "node scripts/migrate-production.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

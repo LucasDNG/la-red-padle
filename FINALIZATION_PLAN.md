@@ -13,8 +13,8 @@ Este documento reemplaza el plan anterior que suponía conservar la Neon histór
 El checkpoint deportivo y de hardening automatizado ya está en `main`.
 
 Estado:
-- 20/20 tests puros;
-- 39/39 integración PostgreSQL;
+- 29/29 tests puros antes del bloque deploy-health;
+- 40/40 integración PostgreSQL antes del bloque deploy-health;
 - `verify:db` verde;
 - frontend build verde;
 - Node 22 + PostgreSQL 16 verdes en GitHub Actions.
@@ -70,6 +70,17 @@ Debe validar TLS, configuración, Admin, cancha activa y `verify.sql` sin modifi
 
 Start:
 `npm start`
+
+## 5.1 Blueprint Render
+El repo incluye `render.yaml`:
+- runtime Node;
+- build con `npm ci --ignore-scripts`;
+- autodeploy solo cuando los checks de la rama pasan;
+- `preDeployCommand: npm run migrate:prod`;
+- health HTTP en `/api/health`;
+- secretos declarados como `sync: false`, nunca hardcodeados.
+
+La migración de abandono queda automatizada para el próximo deploy de Render, pero no se considera aplicada a Neon hasta que ese pre-deploy haya corrido con éxito o se ejecute `npm run migrate:prod` con variables reales.
 
 Health esperado:
 ```json
