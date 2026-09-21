@@ -271,13 +271,19 @@ CREATE TABLE matches(
   winner_pair_id bigint NOT NULL REFERENCES pairs(id),
   result_type varchar(30) NOT NULL CHECK(result_type IN('normal','injury_abandonment','dissolution_forfeit')),
   score jsonb,
+  abandoned_pair_id bigint REFERENCES pairs(id),
   pair_a_games int NOT NULL DEFAULT 0,
   pair_b_games int NOT NULL DEFAULT 0,
   played_at timestamptz NOT NULL,
   confirmed_at timestamptz NOT NULL DEFAULT now(),
   resolution_source varchar(40) NOT NULL,
   CHECK(pair_a_id<>pair_b_id),
-  CHECK(winner_pair_id IN(pair_a_id,pair_b_id))
+  CHECK(winner_pair_id IN(pair_a_id,pair_b_id)),
+  CHECK(
+    (result_type='injury_abandonment' AND abandoned_pair_id IS NOT NULL AND abandoned_pair_id IN(pair_a_id,pair_b_id) AND abandoned_pair_id<>winner_pair_id)
+    OR
+    (result_type<>'injury_abandonment' AND abandoned_pair_id IS NULL)
+  )
 );
 CREATE INDEX idx_matches_pair_a ON matches(pair_a_id,played_at DESC);
 CREATE INDEX idx_matches_pair_b ON matches(pair_b_id,played_at DESC);

@@ -156,3 +156,7 @@ La conexión PostgreSQL se construye mediante `databasePoolOptions()`. En produc
 - si la URL ya define `sslmode`/certificados, `pg` interpreta esa configuración.
 
 `npm run preflight:prod` es no destructivo y está separado de `verify:db`: el primero se usa contra producción existente; el segundo recrea únicamente `TEST_DATABASE_URL` para validar instalación limpia.
+
+
+## Resultado por lesión / abandono
+`injury_abandonment` es un resultado deportivo oficial. La versión cargada y el `match` confirmado conservan `abandoned_pair_id`; el ganador debe ser la otra pareja. No se persisten sets parciales ni games: `score=NULL`, `pair_a_games=0`, `pair_b_games=0`. El motor aplica la misma escalera, rachas, ascenso/descenso y defensa de Primera que una victoria/derrota normal, sin deuda ni strike administrativo adicional.

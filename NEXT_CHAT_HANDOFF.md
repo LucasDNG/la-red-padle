@@ -128,3 +128,9 @@ Después del hardening 20/20 + 35/35 + `verify:db`, el bloque actual:
 - agrega `npm run preflight:prod`, no destructivo, para Neon/configuración reales.
 
 CI del código de preflight confirmado: 26/26 tests puros + 35/35 PostgreSQL + `verify:db` + frontend build verdes. Con credenciales reales, ejecutar `npm run preflight:prod` contra producción. Lo que no puede cerrarse desde CI: WhatsApp Meta real, secreto TOTP real, backups/PITR Neon, Render/Vercel y smoke/legal.
+
+
+### Lesión / abandono en validación
+Último caso deportivo explícitamente pendiente del checklist. Se corrigió la persistencia oficial de `abandoned_pair_id` y se agregaron 4 escenarios PostgreSQL para ladder/rachas/ascenso/descenso/cero games.
+
+También existe `database/PATCH_MATCH_ABANDONMENT_2026-09-21.sql` para aplicar en la Neon existente antes de desplegar código que escriba ese campo. Confirmar CI antes de marcar el caso como cerrado.

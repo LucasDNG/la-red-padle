@@ -119,3 +119,7 @@ Se corrigió `verify.sql` para distinguir correctamente el estado de reenvío de
 
 ## Preflight de producción en validación
 Se eliminó el `rejectUnauthorized:false` productivo y se preparó `npm run preflight:prod`. También se agregaron tests puros de configuración para SSL, JWT, HTTPS/CORS, TOTP y WhatsApp. CI confirmado: 26/26 tests puros, 35/35 integración PostgreSQL, `verify:db` y frontend build verdes. El preflight real contra Neon sigue pendiente hasta cargar variables/credenciales reales.
+
+
+## Lesión / abandono en validación
+Se detectó que el match oficial no persistía quién abandonó aunque la versión cargada sí lo hacía. Se agregó `matches.abandoned_pair_id`, patch para la base existente, verificación de consistencia y 4 escenarios PostgreSQL que cubren cero games, ladder, rachas, ascenso/descenso y validación del abandonante. Estado: pendiente de CI.

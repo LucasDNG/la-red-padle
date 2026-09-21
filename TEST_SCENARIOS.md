@@ -79,10 +79,18 @@
 
 ## Lesión / abandono
 - victoria/derrota deportiva normal;
-- cero games;
+- cero games y score oficial nulo;
+- `abandoned_pair_id` queda persistido en el match oficial;
 - intercambio de escalera si corresponde;
 - rachas y ascenso/descenso aplican;
-- sin penalización extra.
+- sin deuda, strike ni penalización extra;
+- el ganador nunca puede ser la pareja declarada como abandonante.
+
+### Integración PostgreSQL de lesión/abandono
+- abandono de la pareja superior + victoria del challenger => swap de escalera, 0 games y rachas normales;
+- tercera victoria por lesión/abandono => ascenso real;
+- segunda derrota de la última con gap poblacional 5 => descenso adaptativo real;
+- abandonante inválido => rechazo sin crear versión.
 
 ## Pausa y disolución
 - pausa no borra deuda/racha/historial;

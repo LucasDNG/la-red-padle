@@ -22,3 +22,13 @@ SELECT u.id
 FROM users u
 JOIN identity_documents d ON d.user_id=u.id
 WHERE u.identity_resubmit_requested_at IS NOT NULL;
+
+
+SELECT id
+FROM matches
+WHERE (result_type='injury_abandonment' AND (
+        abandoned_pair_id IS NULL
+        OR abandoned_pair_id NOT IN(pair_a_id,pair_b_id)
+        OR abandoned_pair_id=winner_pair_id
+      ))
+   OR (result_type<>'injury_abandonment' AND abandoned_pair_id IS NOT NULL);

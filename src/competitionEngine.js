@@ -72,7 +72,7 @@ export async function applyPositionPenalties(client,pairIds,{sourceKey='penalty'
   }
   for(const id of ids)await event(client,`${sourceKey}:pair:${id}`,'position_penalty',{pairId:id,data:{reason:sourceKey}});
 }
-export async function applySportingResult(client,{assignment,winnerPairId,resultType,score,playedAt,source}){
+export async function applySportingResult(client,{assignment,winnerPairId,resultType,score,abandonedPairId=null,playedAt,source}){
   const key=`match:${assignment.id}`;
   await q(client,`SELECT id FROM wheel_assignments WHERE id=$1 FOR UPDATE`,[assignment.id]);
   const exists=(await q(client,`SELECT id FROM matches WHERE assignment_id=$1`,[assignment.id])).rows[0]; if(exists)return exists;
@@ -80,7 +80,7 @@ export async function applySportingResult(client,{assignment,winnerPairId,result
   const pairIds=[Number(assignment.pair_a_id),Number(assignment.pair_b_id)]; const loserPairId=pairIds.find(x=>x!==Number(winnerPairId));
   const locked=(await q(client,`SELECT id,category_id,position,consecutive_wins,consecutive_losses,first_place_defenses FROM pairs WHERE id=ANY($1::bigint[]) FOR UPDATE`,[pairIds])).rows; const before=Object.fromEntries(locked.map(r=>[r.id,{...r}]));
   const games=resultType==='normal'?scoreGames(score):{a:0,b:0};
-  const match=(await q(client,`INSERT INTO matches(assignment_id,league_id,category_number,pair_a_id,pair_b_id,winner_pair_id,result_type,score,pair_a_games,pair_b_games,played_at,resolution_source) SELECT $1,wa.league_id,c.number,wa.pair_a_id,wa.pair_b_id,$2,$3,$4::jsonb,$5,$6,$7,$8 FROM wheel_assignments wa JOIN categories c ON c.id=wa.category_id WHERE wa.id=$1 RETURNING *`,[assignment.id,winnerPairId,resultType,JSON.stringify(score??null),games.a,games.b,playedAt,source])).rows[0];
+  const match=(await q(client,`INSERT INTO matches(assignment_id,league_id,category_number,pair_a_id,pair_b_id,winner_pair_id,result_type,score,abandoned_pair_id,pair_a_games,pair_b_games,played_at,resolution_source) SELECT $1,wa.league_id,c.number,wa.pair_a_id,wa.pair_b_id,$2,$3,$4::jsonb,$5,$6,$7,$8,$9 FROM wheel_assignments wa JOIN categories c ON c.id=wa.category_id WHERE wa.id=$1 RETURNING *`,[assignment.id,winnerPairId,resultType,JSON.stringify(score??null),abandonedPairId??null,games.a,games.b,playedAt,source])).rows[0];
   const w=before[winnerPairId],l=before[loserPairId];
   const winnerWasFirst=Number(w.position)===1;
   if(Number(w.position)>Number(l.position)){
