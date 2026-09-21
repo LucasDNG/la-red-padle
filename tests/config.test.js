@@ -11,6 +11,7 @@ const strongEnv={
   WHATSAPP_PHONE_NUMBER_ID:'123',
   WHATSAPP_ACCESS_TOKEN:'token',
   WHATSAPP_TEMPLATE_NAME:'la_red_notice',
+  WHATSAPP_GRAPH_VERSION:'v26.0',
   WHATSAPP_TEMPLATE_LANGUAGE:'es_AR',
 };
 
@@ -65,4 +66,11 @@ test('production frontend origins reject paths and normalize harmless trailing s
     'https://app.example.com',
     'https://admin.example.com'
   ]);
+});
+
+
+test('WhatsApp production config validates Graph version, phone id and template name',()=>{
+  assert.ok(productionConfigReport({...strongEnv,WHATSAPP_GRAPH_VERSION:'26'},{strictIntegrations:true}).errors.some(x=>x.includes('WHATSAPP_GRAPH_VERSION')));
+  assert.ok(productionConfigReport({...strongEnv,WHATSAPP_PHONE_NUMBER_ID:'abc'},{strictIntegrations:true}).errors.some(x=>x.includes('WHATSAPP_PHONE_NUMBER_ID')));
+  assert.ok(productionConfigReport({...strongEnv,WHATSAPP_TEMPLATE_NAME:'La Red!'},{strictIntegrations:true}).errors.some(x=>x.includes('WHATSAPP_TEMPLATE_NAME')));
 });

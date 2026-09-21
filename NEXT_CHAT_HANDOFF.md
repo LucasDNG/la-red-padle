@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 36/36 tests puros + 43/43 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
+Suite actual: 36/36 tests puros + 44/44 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
 
 ## Metodología
 
@@ -195,4 +195,14 @@ Se prepara el último hardening de acceso:
 - campo TOTP requerido, numérico y de 6 dígitos en frontend;
 - prueba HTTP con PostgreSQL real de fail-closed sin secreto y éxito con TOTP válido.
 
-Confirmar CI antes de marcar TOTP de código como cerrado. El TOTP real en autenticador sigue siendo gate externo.
+CI confirmado: TOTP de código cerrado. El TOTP real en autenticador sigue siendo gate externo.
+
+
+### WhatsApp configurable/sanitizado en validación
+Se elimina la versión Graph hardcodeada:
+- nueva variable `WHATSAPP_GRAPH_VERSION`;
+- preflight valida versión, phone-number-id y template;
+- el sender no guarda cuerpos crudos de error Meta, solo HTTP/code/subcode;
+- la regresión verifica que datos simulados del destinatario no lleguen a `last_error`.
+
+Confirmar CI antes de cerrar este bloque. Después solo queda conectar Meta real y enviar un mensaje de prueba aprobado.

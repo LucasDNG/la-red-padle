@@ -33,6 +33,12 @@
 - válvula longitudinal de descenso 2/3 según diferencia de población adyacente;
 - simulador reproducible de balance a 5/10/20 años con variantes P3/R3, P3/R5, gaps 4/5/6 y P4/R3;
 
+## WhatsApp hardening
+- Graph version configurable;
+- validación de Phone Number ID/template/version;
+- errores de Meta sanitizados;
+- retries/dedupe ya cubiertos.
+
 ## Preparación de secretos
 - generación local segura de JWT/TOTP;
 - URI `otpauth://` para autenticador;
@@ -57,7 +63,7 @@
 
 ## Validación conocida
 - backend syntax/check en candidatos previos: verde;
-- suite base: 26/26 tests puros + 39/39 integración PostgreSQL verdes en CI; 36/36 tests puros + 43/43 integración PostgreSQL + `verify:db` + frontend build verdes; logging seguro/rate-limit, retry real de outbox y deploy-health confirmados;
+- suite base: 26/26 tests puros + 39/39 integración PostgreSQL verdes en CI; 36/36 tests puros + 44/44 integración PostgreSQL + `verify:db` + frontend build verdes; logging seguro/rate-limit, retry real de outbox y deploy-health confirmados;
 - verificación de identidad probada manualmente con éxito;
 - base Neon nueva conectada.
 

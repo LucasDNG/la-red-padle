@@ -33,7 +33,7 @@ Liga continua de pádel por parejas. Estado actual: **candidato wheel-v2 en esta
 - reenvío de DNI implementado.
 - layout/identidad visual restaurados y páginas internas reorganizadas.
 - tests puros/simulación/configuración: 36/36 verdes.
-- integración PostgreSQL: 43/43 verde.
+- integración PostgreSQL: 44/44 verde.
 - `verify:db`: schema + invariantes verdes en PostgreSQL 16.
 - frontend build verde en CI.
 
@@ -132,3 +132,9 @@ Los valores solo se imprimen en la terminal: no se escriben en archivos ni se co
 
 
 Un `render.yaml` requiere vincular un Blueprint en Render para gobernar un servicio existente. Si el backend continúa configurado manualmente en Render, la migración sigue siendo segura porque corre dentro del startup de Node antes de abrir tráfico.
+
+
+## WhatsApp Cloud API
+La versión de Graph no está hardcodeada. Configurá `WHATSAPP_GRAPH_VERSION` (formato `vN.N`) junto con Phone Number ID, token, template y language. El preflight estricto bloquea producción si falta alguno.
+
+Los errores de Meta se guardan sanitizados como HTTP/code/subcode; no se persiste el cuerpo crudo de la respuesta.

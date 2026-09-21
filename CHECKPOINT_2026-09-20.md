@@ -166,8 +166,12 @@ Además se prepara un generador local de secretos JWT/TOTP para evitar creación
 
 
 ## Migración startup multi-plan en validación
-Se corrige la dependencia de `preDeployCommand` de Render: la migración corre antes de abrir el puerto en producción y usa advisory lock para serializar instancias concurrentes. Se agrega regresión PostgreSQL concurrente. Estado: pendiente de CI.
+Se corrige la dependencia de `preDeployCommand` de Render: la migración corre antes de abrir el puerto en producción y usa advisory lock para serializar instancias concurrentes. Se agrega regresión PostgreSQL concurrente. CI confirmado: 36/36 tests puros + 44/44 integración PostgreSQL + `verify:db` + frontend build; Vercel `success`.
 
 
 ## Login Admin HTTP en validación
 Se prepara prueba end-to-end del login Admin en producción y se hace obligatorio el código TOTP de seis dígitos en el frontend. Estado: pendiente de CI.
+
+
+## WhatsApp configurable/sanitizado en validación
+Se parametriza la versión Graph, se valida configuración Meta y se sanitizan errores del outbox. Estado: pendiente de CI.

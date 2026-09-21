@@ -38,11 +38,12 @@
 - [x] TOTP fail-closed y requisitos de secreto automatizados;
 - [x] generador local de secretos JWT/TOTP preparado;
 - [ ] TOTP Admin real configurado y probado con autenticador;
-- [ ] WhatsApp Meta configurado;
+- [x] WhatsApp sender con retries/dedupe y Graph version configurable;
+- [ ] WhatsApp Meta real configurado y mensaje de prueba entregado;
 - [x] retries/outbox probados;
 - [x] rate limiting revisado; contador por IP + endpoint en auth, con limitación conocida de memoria local por instancia;
 - [ ] backups/PITR Neon confirmados;
-- [x] pruebas PostgreSQL/concurrencia 43/43 verdes;
+- [x] pruebas PostgreSQL/concurrencia 44/44 verdes;
 - [x] logs de errores sanitizados para no persistir PII/SQL/details en producción;
 - [x] CORS de producción validado como orígenes HTTPS puros.
 

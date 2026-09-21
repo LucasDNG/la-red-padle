@@ -19,7 +19,7 @@ Estado:
 - frontend build verde;
 - Node 22 + PostgreSQL 16 verdes en GitHub Actions.
 
-El bloque deploy-health también quedó verde en CI. Estado actual: 36/36 tests puros, 43/43 integración PostgreSQL, `verify:db`, frontend build y Vercel verdes. El trabajo restante es preflight/configuración real de producción y smoke final.
+El bloque deploy-health también quedó verde en CI. Estado actual: 36/36 tests puros, 44/44 integración PostgreSQL, `verify:db`, frontend build y Vercel verdes. El trabajo restante es preflight/configuración real de producción y smoke final.
 
 ## 3. Auditoría funcional automatizada
 Recorrer en orden:
@@ -73,7 +73,8 @@ Copiar `JWT_SECRET` y `ADMIN_TOTP_SECRET` directamente desde la terminal a Rende
 - `JWT_SECRET=<secreto largo aleatorio>`
 - `FRONTEND_URL=https://la-red-padle.vercel.app`
 - `ADMIN_TOTP_SECRET=<secreto TOTP>`
-- variables Meta WhatsApp cuando la plantilla esté aprobada.
+- variables Meta WhatsApp cuando la plantilla esté aprobada;
+- `WHATSAPP_GRAPH_VERSION` elegida según la versión vigente/configurada en Meta.
 
 Start:
 `npm start`

@@ -24,5 +24,7 @@ services:
         sync: false
       - key: WHATSAPP_TEMPLATE_NAME
         sync: false
+      - key: WHATSAPP_GRAPH_VERSION
+        sync: false
       - key: WHATSAPP_TEMPLATE_LANGUAGE
         value: es_AR

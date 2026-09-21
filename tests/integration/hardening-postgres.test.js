@@ -230,18 +230,20 @@ test('WhatsApp outbox retries failed rows and marks them sent after a successful
     id:process.env.WHATSAPP_PHONE_NUMBER_ID,
     token:process.env.WHATSAPP_ACCESS_TOKEN,
     template:process.env.WHATSAPP_TEMPLATE_NAME,
+    version:process.env.WHATSAPP_GRAPH_VERSION,
     lang:process.env.WHATSAPP_TEMPLATE_LANGUAGE
   };
   const oldFetch=globalThis.fetch;
   process.env.WHATSAPP_PHONE_NUMBER_ID='123';
   process.env.WHATSAPP_ACCESS_TOKEN='token';
   process.env.WHATSAPP_TEMPLATE_NAME='la_red_test';
+  process.env.WHATSAPP_GRAPH_VERSION='v26.0';
   process.env.WHATSAPP_TEMPLATE_LANGUAGE='es_AR';
 
-  let calls=0;
-  globalThis.fetch=async()=>{
-    calls++;
-    if(calls===1)return {ok:false,status:500,text:async()=> 'boom'};
+  let calls=0,lastUrl='';
+  globalThis.fetch=async(url)=>{
+    calls++;lastUrl=String(url);
+    if(calls===1)return {ok:false,status:500,text:async()=>JSON.stringify({error:{message:'recipient +5493329555000 failed',code:131000,error_subcode:2494073}})};
     return {ok:true,status:200,text:async()=> ''};
   };
 
@@ -251,7 +253,9 @@ test('WhatsApp outbox retries failed rows and marks them sent after a successful
     let row=(await testPool.query("SELECT status,attempts,last_error FROM notification_outbox WHERE dedupe_key='wa:hardening:retry'")).rows[0];
     assert.equal(row.status,'failed');
     assert.equal(Number(row.attempts),1);
-    assert.match(row.last_error,/WhatsApp 500/);
+    assert.match(row.last_error,/WhatsApp HTTP 500 code=131000 subcode=2494073/);
+    assert.equal(row.last_error.includes('+5493329555000'),false);
+    assert.match(lastUrl,/graph\.facebook\.com\/v26\.0\/123\/messages$/);
 
     await testPool.query("UPDATE notification_outbox SET next_attempt_at=now()-interval '1 second' WHERE dedupe_key='wa:hardening:retry'");
     const second=await dispatchWhatsAppOutbox();
@@ -266,6 +270,7 @@ test('WhatsApp outbox retries failed rows and marks them sent after a successful
     if(oldEnv.id===undefined)delete process.env.WHATSAPP_PHONE_NUMBER_ID;else process.env.WHATSAPP_PHONE_NUMBER_ID=oldEnv.id;
     if(oldEnv.token===undefined)delete process.env.WHATSAPP_ACCESS_TOKEN;else process.env.WHATSAPP_ACCESS_TOKEN=oldEnv.token;
     if(oldEnv.template===undefined)delete process.env.WHATSAPP_TEMPLATE_NAME;else process.env.WHATSAPP_TEMPLATE_NAME=oldEnv.template;
+    if(oldEnv.version===undefined)delete process.env.WHATSAPP_GRAPH_VERSION;else process.env.WHATSAPP_GRAPH_VERSION=oldEnv.version;
     if(oldEnv.lang===undefined)delete process.env.WHATSAPP_TEMPLATE_LANGUAGE;else process.env.WHATSAPP_TEMPLATE_LANGUAGE=oldEnv.lang;
   }
 });
