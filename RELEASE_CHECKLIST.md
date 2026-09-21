@@ -9,7 +9,7 @@
 - [x] Purga documental al verificar.
 - [x] Reenvío documental implementado.
 - [x] Layout/identidad visual recuperados.
-- [x] Tests puros actuales 32/32 verdes.
+- [x] Tests puros actuales 37/37 verdes.
 - [x] Simulación longitudinal 5/10/20 años con variantes y válvula 2/3 validada.
 - [x] Push del checkpoint actual.
 - [x] CI del checkpoint actual verde.
@@ -43,7 +43,7 @@
 - [x] retries/outbox probados;
 - [x] rate limiting revisado; contador por IP + endpoint en auth, con limitación conocida de memoria local por instancia;
 - [ ] backups/PITR Neon confirmados;
-- [x] pruebas PostgreSQL/concurrencia 44/44 verdes;
+- [x] pruebas PostgreSQL/concurrencia 45/45 verdes;
 - [x] logs de errores sanitizados para no persistir PII/SQL/details en producción;
 - [x] CORS de producción validado como orígenes HTTPS puros.
 
@@ -60,6 +60,7 @@
 - [ ] Render health verde contra health DB-aware;
 - [ ] confirmar si el servicio Render existente se administra manualmente o mediante Blueprint; `render.yaml` solo gobierna servicios vinculados/sincronizados como Blueprint;
 - [x] Vercel build/deploy status verde reportado a GitHub;
+- [ ] `VITE_API_URL` validado en build productivo y Vercel nuevamente verde;
 - [ ] variables producción correctas;
 - [ ] al menos una cancha activa;
 - [x] smoke público automatizado preparado (`production-smoke.yml`);

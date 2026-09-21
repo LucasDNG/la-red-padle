@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 37/37 tests puros + 44/44 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
+Suite actual: 37/37 tests puros + 45/45 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
 
 ## Metodología
 
@@ -219,4 +219,16 @@ Confirmar CI. Si queda verde, el próximo paso requiere infraestructura real: Ne
 ### Fix de paridad schema/patch en validación
 El preflight reforzado encontró una diferencia de identidad, no de regla: `schema.sql` tenía el CHECK de abandono anónimo y el patch lo nombra `matches_abandonment_consistency`.
 
-Se corrige el schema base para crear el constraint con ese nombre. No se debilita el preflight. Confirmar CI; objetivo esperado: preflight sano verde y fallo explícito al eliminar el constraint.
+Se corrige el schema base para crear el constraint con ese nombre. No se debilita el preflight. CI confirmado: preflight sano verde y fallo explícito al eliminar el constraint.
+
+
+### Gate VITE_API_URL en validación
+Checkpoint atómico actual:
+- el build production exige `VITE_API_URL`;
+- debe ser HTTPS;
+- no admite credenciales/query/fragmento;
+- debe terminar exactamente en `/api`;
+- CI recibe `https://api.example.invalid/api` solo para validar el build;
+- Vercel deberá tener configurado el backend real para volver a reportar `success`.
+
+No encadenar otro bloque en el mismo turno. En el próximo turno, primero revisar CI + status Vercel de este commit. Si ambos están verdes, cerrar este checkpoint; si falla, corregir solo este gate.

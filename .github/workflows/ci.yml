@@ -35,6 +35,8 @@ jobs:
       - run: npm run test:integration
   frontend:
     runs-on: ubuntu-latest
+    env:
+      VITE_API_URL: https://api.example.invalid/api
     defaults:
       run:
         working-directory: frontend
