@@ -114,4 +114,4 @@ Se prepararon correcciones para límite superior de la ventana de extensión, at
 
 
 ## Hardening lateral en validación
-Se corrigió `verify.sql` para distinguir correctamente el estado de reenvío de DNI y se agregó `npm run verify:db` como gate destructivo exclusivo de `TEST_DATABASE_URL`. Se prepararon 6 pruebas adicionales sobre disciplina, reloj global, dedupe, TOTP y reenvío de identidad. Estado: pendiente de CI.
+Se corrigió `verify.sql` para distinguir correctamente el estado de reenvío de DNI y se agregó `npm run verify:db` como gate destructivo exclusivo de `TEST_DATABASE_URL`. Se prepararon 6 pruebas adicionales sobre disciplina, reloj global, dedupe, TOTP y reenvío de identidad. CI confirmado: `verify:db` verde, 20/20 tests puros, 35/35 integración PostgreSQL y frontend build verde.

@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 20/20 tests puros + 29/29 integración PostgreSQL, CI verde en Node 22/PostgreSQL 16.
+Suite actual: 20/20 tests puros + 35/35 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16.
 
 ## Metodología
 
@@ -117,4 +117,4 @@ El corazón deportivo quedó en 20/20 tests puros + 29/29 PostgreSQL. El bloque 
 - dedupe de notificaciones/outbox;
 - validación TOTP.
 
-Confirmar CI antes de cerrar. Si queda verde, el trabajo pendiente se concentra en configuración real de producción: WhatsApp Meta, secreto TOTP, Neon/SSL/backups-PITR, Render/Vercel, variables/cron y smoke UX/legal.
+CI confirmado: `verify:db` verde, 20/20 tests puros + 35/35 integración PostgreSQL y frontend build verde. El hardening automatizado queda cerrado. El trabajo pendiente se concentra en configuración real de producción: WhatsApp Meta, secreto TOTP, Neon/SSL/backups-PITR, Render/Vercel, variables/cron y smoke UX/legal.

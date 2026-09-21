@@ -103,3 +103,9 @@ La primera válvula de equilibrio no se dio por buena solo por una corrida a 20 
 La estabilización dejó de depender de recorridas manuales largas. El ciclo pareja → rueda → programación → resultado → ranking → movimiento de categoría → vencimientos → pausa/disolución quedó cubierto por PostgreSQL real en CI, incluyendo concurrencia e idempotencia. Los tests automáticos encontraron y corrigieron problemas que una simulación pura no podía revelar: orden de locks, posiciones transitorias, atribución tardía, ventana de extensión, strikes de no-show y ELO stale al pausar.
 
 El checkpoint alcanza 20/20 tests puros y 29/29 tests PostgreSQL en Node 22/PostgreSQL 16. Desde aquí el trabajo cambia de foco: hardening de módulos laterales y operación real, seguido por smoke UX en vez de años de liga manuales.
+
+
+## Hardening lateral automatizado
+Después de cerrar el corazón deportivo, se extendió el gate a disciplina, pausa global del reloj, deduplicación de notificaciones/WhatsApp, TOTP y coherencia de identidad. También se convirtió `database/verify.sql` en un gate ejecutable sobre una base de prueba reconstruida desde cero, evitando depender de inspección manual del schema.
+
+El checkpoint alcanza 20/20 tests puros, 35/35 integración PostgreSQL, `verify:db` y frontend build verdes. Desde aquí lo pendiente es principalmente configuración y operación real de producción más smoke UX/legal.
