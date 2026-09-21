@@ -231,3 +231,14 @@ Confirmado sobre `495902ce8950eabcc4fde18435e7ae0bc3e6f072`:
 - Vercel `success`.
 
 El preflight `core` permite validar Neon/Render/TOTP/CORS sin bloquearse por Meta. El modo `full` conserva WhatsApp como gate obligatorio antes del release público.
+
+
+## Comandos explícitos de preflight — VERDE
+Confirmado sobre `7836e8854eb0a4150cfe6391e073b891e0f24c39`:
+- 39/39 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db`;
+- frontend build;
+- Vercel `success`.
+
+Los comandos `preflight:core` y `preflight:full` quedaron validados. El siguiente gate requiere infraestructura real.

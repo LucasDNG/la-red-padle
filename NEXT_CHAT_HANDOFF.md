@@ -274,11 +274,16 @@ El workflow manual permite:
 Próximo paso: cargar los inputs core reales y ejecutar el preflight `core` contra Neon. `full` sigue siendo obligatorio antes del release público.
 
 
-### Comandos explícitos de preflight en validación
-Se agregan:
+### Comandos explícitos de preflight — VERDE
+CI confirmado sobre `7836e8854eb0a4150cfe6391e073b891e0f24c39`:
+- 39/39 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db` verde;
+- frontend build verde;
+- Vercel `success`.
+
+Quedan disponibles:
 - `npm run preflight:core`
 - `npm run preflight:full`
 
-El script acepta `--mode=core|full`, con fallback a `PREFLIGHT_MODE`. Esto simplifica la ejecución manual/local sin cambiar la lógica del workflow.
-
-Próximo turno: confirmar CI de este commit antes de cualquier otro bloque.
+Próximo paso real: cargar inputs core del Environment `production` y ejecutar el preflight `core` contra Neon.
