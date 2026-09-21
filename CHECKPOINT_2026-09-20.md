@@ -220,3 +220,14 @@ Confirmado sobre `4a6508001ff6a1fa3e63b5b2af3035d75cce49c2`:
 - Vercel `success`.
 
 La guía `PRODUCTION_ENVIRONMENT_SETUP.md` y la validación previa de inputs del workflow están listas. El siguiente gate requiere cargar secretos/variables reales en GitHub Environment `production` y ejecutar el preflight contra Neon.
+
+
+## Preflight core/full — VERDE
+Confirmado sobre `495902ce8950eabcc4fde18435e7ae0bc3e6f072`:
+- 39/39 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db`;
+- frontend build;
+- Vercel `success`.
+
+El preflight `core` permite validar Neon/Render/TOTP/CORS sin bloquearse por Meta. El modo `full` conserva WhatsApp como gate obligatorio antes del release público.

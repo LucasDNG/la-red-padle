@@ -259,11 +259,16 @@ CI confirmado sobre `4a6508001ff6a1fa3e63b5b2af3035d75cce49c2`:
 El conector GitHub del chat no expone APIs de secrets/environments sensibles. Próximo paso manual/externo: cargar los secrets/variables reales del Environment `production` siguiendo la guía y ejecutar `LA RED production preflight`. Mantener checkpoints cortos.
 
 
-### Preflight core/full en validación
-Se separa el preflight manual en dos modos:
-- `core`: Neon/TLS/JWT/CORS/TOTP/engine/timezone/reloj/patch/Admin/cancha/verify, sin exigir Meta;
+### Preflight core/full — VERDE
+CI confirmado sobre `495902ce8950eabcc4fde18435e7ae0bc3e6f072`:
+- 39/39 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db` verde;
+- frontend build verde;
+- Vercel `success`.
+
+El workflow manual permite:
+- `core`: validar Neon/TLS/JWT/CORS/TOTP/engine/timezone/reloj/patch/Admin/cancha/verify sin exigir Meta;
 - `full`: todo lo anterior + configuración WhatsApp completa.
 
-Objetivo: poder validar infraestructura real antes de que Meta esté listo, sin debilitar el gate final. `full` sigue siendo obligatorio antes del release público.
-
-Confirmar CI de este commit en el próximo turno. No encadenar otro bloque hasta cerrarlo.
+Próximo paso: cargar los inputs core reales y ejecutar el preflight `core` contra Neon. `full` sigue siendo obligatorio antes del release público.
