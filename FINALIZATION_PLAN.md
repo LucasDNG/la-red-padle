@@ -19,7 +19,7 @@ Estado:
 - frontend build verde;
 - Node 22 + PostgreSQL 16 verdes en GitHub Actions.
 
-El bloque deploy-health también quedó verde en CI. Estado actual antes del generador de secretos: 34/34 tests puros, 42/42 integración PostgreSQL, `verify:db`, frontend build y Vercel verdes. El trabajo restante es preflight/configuración real de producción y smoke final.
+El bloque deploy-health también quedó verde en CI. Estado actual: 36/36 tests puros, 43/43 integración PostgreSQL, `verify:db`, frontend build y Vercel verdes. El trabajo restante es preflight/configuración real de producción y smoke final.
 
 ## 3. Auditoría funcional automatizada
 Recorrer en orden:
@@ -79,6 +79,16 @@ Start:
 `npm start`
 
 ## 5.1 Blueprint Render
+El `render.yaml` no modifica por sí solo un servicio Render existente. Para administrarlo desde ese archivo hay que crear/vincular y sincronizar un Blueprint en Render. Si el servicio existente sigue administrado manualmente, mantener allí:
+- branch `main`;
+- build `npm ci --ignore-scripts`;
+- start `npm start`;
+- health `/api/health`;
+- auto-deploy después de checks, si el plan/configuración lo permite.
+
+La migración ya no depende del Blueprint: corre dentro del startup productivo antes de abrir el puerto.
+
+
 El repo incluye `render.yaml`:
 - runtime Node;
 - build con `npm ci --ignore-scripts`;

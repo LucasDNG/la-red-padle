@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual antes del generador de secretos: 34/34 tests puros + 42/42 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
+Suite actual: 36/36 tests puros + 43/43 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
 
 ## Metodología
 
@@ -187,4 +187,12 @@ La documentación actual de Render muestra que `preDeployCommand` requiere servi
 - `render.yaml` no usa `preDeployCommand`;
 - `migrate:prod` sigue disponible manualmente.
 
-Confirmar CI. Después el deploy real puede funcionar tanto en free como en paid.
+CI confirmado: la migración startup multi-plan quedó verde. El deploy real puede funcionar tanto en free como en paid.
+
+
+### Login Admin HTTP en validación
+Se prepara el último hardening de acceso:
+- campo TOTP requerido, numérico y de 6 dígitos en frontend;
+- prueba HTTP con PostgreSQL real de fail-closed sin secreto y éxito con TOTP válido.
+
+Confirmar CI antes de marcar TOTP de código como cerrado. El TOTP real en autenticador sigue siendo gate externo.

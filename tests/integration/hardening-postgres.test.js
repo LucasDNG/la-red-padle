@@ -5,6 +5,7 @@ import {fileURLToPath} from 'node:url';
 import test,{beforeEach,after} from 'node:test';
 import assert from 'node:assert/strict';
 import pg from 'pg';
+import bcrypt from 'bcrypt';
 
 const connectionString=process.env.TEST_DATABASE_URL;
 if(!connectionString)throw new Error('TEST_DATABASE_URL es obligatorio para los tests PostgreSQL');
@@ -16,6 +17,7 @@ const {reportDiscipline}=await import('../../src/discipline.js');
 const {setLeagueClockPause,verifyTotp}=await import('../../src/admin.js');
 const {queueUserNotification,dispatchWhatsAppOutbox}=await import('../../src/notifications.js');
 const {pool:appPool}=await import('../../src/db.js');
+const {app}=await import('../../src/app.js');
 const {readHealth}=await import('../../src/health.js');
 const {applyProductionMigrations}=await import('../../src/migrations.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
@@ -322,5 +324,58 @@ test('production migrations serialize concurrent startup callers with an advisor
   }finally{
     one.release();
     two.release();
+  }
+});
+
+
+test('production admin login fails closed without TOTP secret and succeeds with valid TOTP',async()=>{
+  const password='AdminPass-2026!';
+  const hash=await bcrypt.hash(password,10);
+  const admin=(await testPool.query(`
+    INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender,role,verification_status,verified_at,current_category_number)
+    VALUES('Admin','Prod','35999111','+5493329555111',$1,'male','admin','verified',now(),5)
+    RETURNING *
+  `,[hash])).rows[0];
+
+  const oldEnv={
+    nodeEnv:process.env.NODE_ENV,
+    totp:process.env.ADMIN_TOTP_SECRET,
+    jwt:process.env.JWT_SECRET,
+  };
+  process.env.NODE_ENV='production';
+  process.env.JWT_SECRET='integration-jwt-secret-0123456789abcdef0123456789abcdef';
+  delete process.env.ADMIN_TOTP_SECRET;
+
+  const server=await new Promise((resolve,reject)=>{
+    const instance=app.listen(0,'127.0.0.1',()=>resolve(instance));
+    instance.once('error',reject);
+  });
+  const address=server.address();
+  const url=`http://127.0.0.1:${address.port}/api/auth/admin-login`;
+
+  try{
+    const missing=await fetch(url,{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({dni:admin.dni,password,totp:'000000'})
+    });
+    assert.equal(missing.status,503);
+
+    const secret='JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP';
+    process.env.ADMIN_TOTP_SECRET=secret;
+    const valid=await fetch(url,{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({dni:admin.dni,password,totp:currentTotp(secret)})
+    });
+    assert.equal(valid.status,200);
+    const body=await valid.json();
+    assert.ok(body.token);
+    assert.equal(body.user.role,'admin');
+  }finally{
+    await new Promise(resolve=>server.close(resolve));
+    if(oldEnv.nodeEnv===undefined)delete process.env.NODE_ENV;else process.env.NODE_ENV=oldEnv.nodeEnv;
+    if(oldEnv.totp===undefined)delete process.env.ADMIN_TOTP_SECRET;else process.env.ADMIN_TOTP_SECRET=oldEnv.totp;
+    if(oldEnv.jwt===undefined)delete process.env.JWT_SECRET;else process.env.JWT_SECRET=oldEnv.jwt;
   }
 });

@@ -32,8 +32,8 @@ Liga continua de pádel por parejas. Estado actual: **candidato wheel-v2 en esta
 - purga de documentación temporal probada.
 - reenvío de DNI implementado.
 - layout/identidad visual restaurados y páginas internas reorganizadas.
-- tests puros/simulación/configuración: 34/34 verdes antes del generador de secretos.
-- integración PostgreSQL: 42/42 verde.
+- tests puros/simulación/configuración: 36/36 verdes.
+- integración PostgreSQL: 43/43 verde.
 - `verify:db`: schema + invariantes verdes en PostgreSQL 16.
 - frontend build verde en CI.
 
@@ -129,3 +129,6 @@ El comando imprime:
 - un `otpauth://` compatible con apps autenticadoras.
 
 Los valores solo se imprimen en la terminal: no se escriben en archivos ni se commitean.
+
+
+Un `render.yaml` requiere vincular un Blueprint en Render para gobernar un servicio existente. Si el backend continúa configurado manualmente en Render, la migración sigue siendo segura porque corre dentro del startup de Node antes de abrir tráfico.

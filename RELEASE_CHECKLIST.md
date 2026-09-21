@@ -42,7 +42,7 @@
 - [x] retries/outbox probados;
 - [x] rate limiting revisado; contador por IP + endpoint en auth, con limitación conocida de memoria local por instancia;
 - [ ] backups/PITR Neon confirmados;
-- [x] pruebas PostgreSQL/concurrencia 42/42 verdes;
+- [x] pruebas PostgreSQL/concurrencia 43/43 verdes;
 - [x] logs de errores sanitizados para no persistir PII/SQL/details en producción;
 - [x] CORS de producción validado como orígenes HTTPS puros.
 
@@ -56,6 +56,7 @@
 ## Deploy
 - [x] GitHub Actions verde;
 - [ ] Render health verde contra health DB-aware;
+- [ ] confirmar si el servicio Render existente se administra manualmente o mediante Blueprint; `render.yaml` solo gobierna servicios vinculados/sincronizados como Blueprint;
 - [x] Vercel build/deploy status verde reportado a GitHub;
 - [ ] variables producción correctas;
 - [ ] al menos una cancha activa;

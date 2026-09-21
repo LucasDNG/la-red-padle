@@ -156,7 +156,7 @@ Vercel reportó status `success` sobre el commit actual. Se agrega smoke no dest
 
 
 ## TOTP/CORS fail-closed en validación
-Se elimina el bypass implícito de TOTP en producción, se sube el mínimo del secreto a ~160 bits, se impide reutilizar JWT/TOTP y se valida/normaliza `FRONTEND_URL` como origen CORS real. Estado: pendiente de CI.
+Se elimina el bypass implícito de TOTP en producción, se sube el mínimo del secreto a ~160 bits, se impide reutilizar JWT/TOTP y se valida/normaliza `FRONTEND_URL` como origen CORS real. CI confirmado: 36/36 tests puros + 43/43 integración PostgreSQL + `verify:db` + frontend build; Vercel `success`.
 
 
 ## TOTP/CORS — VERDE
@@ -167,3 +167,7 @@ Además se prepara un generador local de secretos JWT/TOTP para evitar creación
 
 ## Migración startup multi-plan en validación
 Se corrige la dependencia de `preDeployCommand` de Render: la migración corre antes de abrir el puerto en producción y usa advisory lock para serializar instancias concurrentes. Se agrega regresión PostgreSQL concurrente. Estado: pendiente de CI.
+
+
+## Login Admin HTTP en validación
+Se prepara prueba end-to-end del login Admin en producción y se hace obligatorio el código TOTP de seis dígitos en el frontend. Estado: pendiente de CI.
