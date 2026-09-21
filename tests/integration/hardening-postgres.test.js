@@ -14,7 +14,7 @@ const {Pool}=pg;
 const testPool=new Pool({connectionString});
 const {reportDiscipline}=await import('../../src/discipline.js');
 const {setLeagueClockPause,verifyTotp}=await import('../../src/admin.js');
-const {queueUserNotification}=await import('../../src/notifications.js');
+const {queueUserNotification,dispatchWhatsAppOutbox}=await import('../../src/notifications.js');
 const {pool:appPool}=await import('../../src/db.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
@@ -202,4 +202,65 @@ test('verify.sql allows pending identity without documents only while a resubmis
   const rows=(await testPool.query(statement)).rows.map(r=>Number(r.id));
   assert.equal(rows.includes(Number(ordinary.id)),true);
   assert.equal(rows.includes(Number(resubmit.id)),false);
+});
+
+
+test('WhatsApp outbox retries failed rows and marks them sent after a successful retry',async()=>{
+  const user=await seedUser();
+  const client=await testPool.connect();
+  try{
+    await client.query('BEGIN');
+    await queueUserNotification(client,{
+      userId:user.id,
+      type:'retry_test',
+      title:'Retry',
+      body:'Mensaje de prueba',
+      payload:{x:1},
+      dedupeKey:'hardening:retry'
+    });
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const oldEnv={
+    id:process.env.WHATSAPP_PHONE_NUMBER_ID,
+    token:process.env.WHATSAPP_ACCESS_TOKEN,
+    template:process.env.WHATSAPP_TEMPLATE_NAME,
+    lang:process.env.WHATSAPP_TEMPLATE_LANGUAGE
+  };
+  const oldFetch=globalThis.fetch;
+  process.env.WHATSAPP_PHONE_NUMBER_ID='123';
+  process.env.WHATSAPP_ACCESS_TOKEN='token';
+  process.env.WHATSAPP_TEMPLATE_NAME='la_red_test';
+  process.env.WHATSAPP_TEMPLATE_LANGUAGE='es_AR';
+
+  let calls=0;
+  globalThis.fetch=async()=>{
+    calls++;
+    if(calls===1)return {ok:false,status:500,text:async()=> 'boom'};
+    return {ok:true,status:200,text:async()=> ''};
+  };
+
+  try{
+    const first=await dispatchWhatsAppOutbox();
+    assert.equal(first.failed,1);
+    let row=(await testPool.query("SELECT status,attempts,last_error FROM notification_outbox WHERE dedupe_key='wa:hardening:retry'")).rows[0];
+    assert.equal(row.status,'failed');
+    assert.equal(Number(row.attempts),1);
+    assert.match(row.last_error,/WhatsApp 500/);
+
+    await testPool.query("UPDATE notification_outbox SET next_attempt_at=now()-interval '1 second' WHERE dedupe_key='wa:hardening:retry'");
+    const second=await dispatchWhatsAppOutbox();
+    assert.equal(second.sent,1);
+    row=(await testPool.query("SELECT status,attempts,last_error,sent_at FROM notification_outbox WHERE dedupe_key='wa:hardening:retry'")).rows[0];
+    assert.equal(row.status,'sent');
+    assert.equal(Number(row.attempts),2);
+    assert.equal(row.last_error,null);
+    assert.ok(row.sent_at);
+  }finally{
+    globalThis.fetch=oldFetch;
+    if(oldEnv.id===undefined)delete process.env.WHATSAPP_PHONE_NUMBER_ID;else process.env.WHATSAPP_PHONE_NUMBER_ID=oldEnv.id;
+    if(oldEnv.token===undefined)delete process.env.WHATSAPP_ACCESS_TOKEN;else process.env.WHATSAPP_ACCESS_TOKEN=oldEnv.token;
+    if(oldEnv.template===undefined)delete process.env.WHATSAPP_TEMPLATE_NAME;else process.env.WHATSAPP_TEMPLATE_NAME=oldEnv.template;
+    if(oldEnv.lang===undefined)delete process.env.WHATSAPP_TEMPLATE_LANGUAGE;else process.env.WHATSAPP_TEMPLATE_LANGUAGE=oldEnv.lang;
+  }
 });

@@ -123,3 +123,15 @@ Se eliminó el `rejectUnauthorized:false` productivo y se preparó `npm run pref
 
 ## Lesión / abandono en validación
 Se detectó que el match oficial no persistía quién abandonó aunque la versión cargada sí lo hacía. Se agregó `matches.abandoned_pair_id`, patch para la base existente, verificación de consistencia y 4 escenarios PostgreSQL que cubren cero games, ladder, rachas, ascenso/descenso y validación del abandonante. CI confirmado: 26/26 tests puros + 39/39 integración PostgreSQL + `verify:db` + frontend build verdes.
+
+
+## Hardening de logs y outbox en validación
+La revisión de release detectó que el middleware global hacía `console.error(err)`; errores PostgreSQL pueden incluir en `detail` valores conflictivos como un DNI. Se reemplaza por logging estructurado/sanitizado que en producción no conserva mensaje, SQL, detail ni valores de usuario.
+
+También:
+- el rate limit de auth se separa por IP + endpoint para no compartir cupo entre login/registro/recuperación;
+- se agregan regresiones puras de sanitización y claves de rate limit;
+- se agrega integración de outbox que prueba fallo Meta 500 -> `failed` -> retry -> `sent`;
+- se actualiza el checklist de release: disciplina y retries/outbox ya estaban cubiertos, pero la documentación había quedado atrasada.
+
+Estado: pendiente de CI antes de cerrar este bloque.

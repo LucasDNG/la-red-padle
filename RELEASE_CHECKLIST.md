@@ -30,18 +30,18 @@
 - [x] lesión/abandono;
 - [x] pausa/reactivación;
 - [x] disolución;
-- [ ] disciplina.
+- [x] disciplina.
 
 ## Seguridad/operación
 - [x] probar con Node 22 real;
 - [x] eliminar bypass `rejectUnauthorized:false` y validar TLS por configuración; conexión Neon final todavía debe pasar preflight real;
 - [ ] TOTP Admin configurado;
 - [ ] WhatsApp Meta configurado;
-- [ ] retries/outbox probados;
-- [ ] rate limiting revisado;
+- [x] retries/outbox probados;
+- [x] rate limiting revisado; contador por IP + endpoint en auth, con limitación conocida de memoria local por instancia;
 - [ ] backups/PITR Neon confirmados;
-- [x] pruebas PostgreSQL/concurrencia (35/35);
-- [ ] logs sin datos sensibles.
+- [x] pruebas PostgreSQL/concurrencia (39/39 antes de este bloque; nuevo hardening de outbox pendiente de CI);
+- [x] logs de errores sanitizados para no persistir PII/SQL/details en producción.
 
 ## Preflight
 - [ ] `npm run preflight:prod` verde contra la Neon y variables reales.
