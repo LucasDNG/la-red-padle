@@ -307,3 +307,9 @@ Estado confirmado al cierre:
 - workflows con `contents: read` y timeouts.
 
 A partir de este punto los gates principales restantes requieren infraestructura/credenciales reales.
+
+
+## Limpieza de caché Vite versionada
+Se detectó y eliminó `frontend/.vite/deps/`, que contenía artefactos generados de Vite y sourcemaps versionados accidentalmente. `.gitignore` ahora cubre `frontend/.vite/`.
+
+Este cambio es de higiene/reproducibilidad y no modifica funcionalidad. La deuda de generar legítimamente `frontend/package-lock.json` sigue separada y pendiente.

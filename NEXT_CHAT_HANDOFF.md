@@ -450,3 +450,9 @@ Pendientes externos reales:
 9. smoke UX autenticado y revisión legal/seguro.
 
 Deuda técnica no bloqueante pero pendiente: generar legítimamente `frontend/package-lock.json` y migrar el job frontend a `npm ci`.
+
+
+### Limpieza de caché Vite versionada
+Se eliminó `frontend/.vite/` del repositorio y se agregó al `.gitignore`. Era caché generada, no código fuente ni configuración intencional.
+
+No se modificó el runtime. La deuda técnica no bloqueante de `frontend/package-lock.json` continúa pendiente: no migrar frontend a `npm ci` hasta generar el lock legítimamente con npm.
