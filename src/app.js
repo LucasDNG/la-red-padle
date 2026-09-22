@@ -9,7 +9,7 @@ import {myLeague,proposeSchedule,acceptSchedule,voteExtension,reportNoShow,conte
 import {reportDiscipline} from './discipline.js';
 import {pendingUsers,searchUsers,setUserVerification,updateUserDni,identityDocument,requestIdentityResubmission,listVenues,createVenue,updateVenue,disputes,resolveDispute,disciplineQueue,resolveDiscipline,systemStatus,auditLog,setLeagueClockPause,retryWhatsApp,verifyTotp} from './admin.js';
 import {problem} from './core.js';
-import {safeErrorLog,authRateLimitKey,safeClientErrorMessage,createFixedWindowRateLimitStore,securityResponseHeaders} from './httpSecurity.js';
+import {safeErrorLog,authRateLimitKey,safeClientErrorMessage,createFixedWindowRateLimitStore,securityResponseHeaders,privateResponseHeaders} from './httpSecurity.js';
 import {readHealth} from './health.js';
 import {frontendOrigins} from './config.js';
 
@@ -17,7 +17,8 @@ export const app=express();
 app.disable('x-powered-by');
 app.set('trust proxy',1);
 app.use((req,res,next)=>{
-  for(const [name,value] of Object.entries(securityResponseHeaders()))res.setHeader(name,value);
+  const headers={...securityResponseHeaders(),...privateResponseHeaders(req.path)};
+  for(const [name,value] of Object.entries(headers))res.setHeader(name,value);
   next();
 });
 app.use(cors({origin:frontendOrigins(process.env).length?frontendOrigins(process.env):['http://localhost:5173']}));

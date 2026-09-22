@@ -338,3 +338,13 @@ CI/Vercel confirmados sobre `023bc126308201b68bf0c3ea229e577b02753602`:
 - Vercel `success`.
 
 Backend y Vercel aplican `nosniff`, anti-frame, referrer policy y HSTS productivo. La CSP se limita a `frame-ancestors 'none'` para no romper scripts/styles/connect; no se bloquea cámara por el flujo de captura de DNI.
+
+### No-store/startup hardening en validación
+Se prepara un último bloque técnico:
+- respuestas `/api/auth/*`, `/api/me*` y `/api/admin*` llevan `Cache-Control: no-store` + `Pragma: no-cache`;
+- evita cache accidental de tokens/login, cuenta y administración;
+- startup/migración se encapsula con release garantizado del cliente;
+- errores fatales de startup se registran sanitizados en producción;
+- errores del socket de escucha también usan log sanitizado y terminan el proceso.
+
+Confirmar CI antes de cerrar.

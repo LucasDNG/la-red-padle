@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import {securityResponseHeaders} from '../src/httpSecurity.js';
+import {securityResponseHeaders,privateResponseHeaders} from '../src/httpSecurity.js';
 
 test('backend security headers are strict without breaking API CORS',()=>{
   const prod=securityResponseHeaders({production:true});
@@ -26,4 +26,14 @@ test('Vercel serves the SPA with the expected low-risk security headers',()=>{
   assert.equal(headers['Content-Security-Policy'],"frame-ancestors 'none'");
   assert.equal(headers['Strict-Transport-Security'],'max-age=31536000');
   assert.equal(headers['Permissions-Policy'],undefined);
+});
+
+test('private API surfaces are explicitly non-cacheable while public data stays cache-neutral',()=>{
+  for(const path of ['/api/auth/login','/api/auth/register','/api/me','/api/me/league','/api/admin/status']){
+    const headers=privateResponseHeaders(path);
+    assert.equal(headers['Cache-Control'],'no-store');
+    assert.equal(headers.Pragma,'no-cache');
+  }
+  assert.deepEqual(privateResponseHeaders('/api/ranking'),{});
+  assert.deepEqual(privateResponseHeaders('/api/legal/versions'),{});
 });

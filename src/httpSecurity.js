@@ -98,3 +98,11 @@ export function securityResponseHeaders({production=process.env.NODE_ENV==='prod
     ...(production?{'Strict-Transport-Security':'max-age=31536000'}:{}),
   };
 }
+
+export function privateResponseHeaders(path){
+  const clean=String(path||'').split('?')[0];
+  if(/^\/api\/(?:auth(?:\/|$)|me(?:\/|$)|admin(?:\/|$))/.test(clean)){
+    return {'Cache-Control':'no-store','Pragma':'no-cache'};
+  }
+  return {};
+}
