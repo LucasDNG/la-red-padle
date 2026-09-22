@@ -119,3 +119,11 @@ La primera ejecución real de `preflight:core` alcanzó Neon pero `pg_stat_ssl` 
 - salida del preflight: `ok:true`, `wheel-v2`, TLS 1.3, migrations ready, reloj activo, 1 admin, 0 sedes comerciales válidas, outbox limpio.
 - `LA RED production smoke`: success; Render/Vercel/CORS/headers/request-id/no-store/endpoints públicos verdes.
 - Login Admin real con TOTP confirmado por el propietario.
+
+
+### Recuperación Neon — estado actual
+- Backup & Restore real verificado en consola.
+- Ventana histórica: 8 horas.
+- Snapshots manuales disponibles; schedules requieren upgrade.
+- Drill de recuperación aislado diferido por decisión del propietario hasta que haya datos/cambios que permitan comprobar algo útil.
+- Próximo gate externo: WhatsApp Meta real, luego preflight full.
