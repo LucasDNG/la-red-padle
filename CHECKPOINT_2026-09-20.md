@@ -313,3 +313,7 @@ A partir de este punto los gates principales restantes requieren infraestructura
 Se detectó y eliminó `frontend/.vite/deps/`, que contenía artefactos generados de Vite y sourcemaps versionados accidentalmente. `.gitignore` ahora cubre `frontend/.vite/`.
 
 Este cambio es de higiene/reproducibilidad y no modifica funcionalidad. La deuda de generar legítimamente `frontend/package-lock.json` sigue separada y pendiente.
+
+
+## Cancelación visible de invitación de pareja
+Se corrigió una omisión de UX: el backend ya permitía cancelar una invitación saliente, pero el frontend no ofrecía esa acción. `Mi pareja` ahora muestra la invitación enviada, permite cancelarla y evita ofrecer una segunda mientras la primera siga pendiente.

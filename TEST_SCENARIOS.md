@@ -223,6 +223,8 @@ Antes de release deben correrse miles de rondas con 101+ parejas y verificarse:
 ### Pareja
 - dos players `verified` del mismo circuito;
 - A invita a B;
+- A ve la invitación saliente pendiente y puede cancelarla antes de que expire;
+- mientras exista una invitación saliente activa, el frontend no ofrece enviar otra;
 - B ve categoría resultante;
 - B acepta;
 - queda una sola pareja;

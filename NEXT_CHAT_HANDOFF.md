@@ -87,3 +87,7 @@ Generar legítimamente `frontend/package-lock.json` con npm y solo después camb
 ## Nota de continuidad
 
 La cronología extensa está en `AUDIT_2026-09-20.md`, `CHECKPOINT_2026-09-20.md` y `PROJECT_JOURNEY.md`. Este handoff debe mantenerse corto y representar únicamente el estado vigente.
+
+
+### Cancelación de invitación saliente — CORREGIDA
+`Mi pareja` ya muestra la invitación saliente activa, su vencimiento/categoría, permite cancelarla y bloquea el envío de otra mientras siga pendiente. Se agregó regresión automática. No cambia reglas deportivas.
