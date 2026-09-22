@@ -22,7 +22,7 @@ Si un resumen de chat contradice el repo, manda el repo. Si dos documentos se co
 - motor único: `wheel-v2`.
 - runtime objetivo: Node 22.
 - PostgreSQL de CI: 16.
-- tests puros: 65/65 verdes en el último checkpoint verificado.
+- tests puros: 67/67 verdes en el último checkpoint verificado.
 - integración PostgreSQL: 45/45 verdes.
 - `verify:db`: verde.
 - frontend build: verde.
