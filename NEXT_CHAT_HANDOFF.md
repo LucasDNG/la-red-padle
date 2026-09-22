@@ -352,3 +352,15 @@ Quedó confirmado:
 - startup productivo libera cliente aun si falla migración;
 - fallos fatales de startup/listen se loguean sanitizados;
 - startup no productivo no intenta migraciones.
+
+
+### Graceful shutdown/runtime handlers en validación
+Se agrega cierre controlado de runtime:
+- SIGTERM/SIGINT dejan de aceptar conexiones y cierran PostgreSQL;
+- timers de mantenimiento/outbox se cancelan;
+- cierre idempotente;
+- timeout de 10 s fuerza cierre de conexiones HTTP restantes;
+- unhandled rejection/uncaught exception registran error sanitizado y salen con código 1;
+- fallo al cerrar PostgreSQL también queda sanitizado y fuerza salida no-cero.
+
+Confirmar CI antes de cerrar.
