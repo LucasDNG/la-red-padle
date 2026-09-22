@@ -128,6 +128,14 @@ Valida sin mutar datos:
 
 Vercel ya reporta status `success` a GitHub sobre el último commit. Render todavía no reporta status/check al repo y debe validarse por separado.
 
+## 6.2 Recuperación Neon
+Seguir `PRODUCTION_RECOVERY.md`:
+- confirmar el plan y restore window reales;
+- definir RPO/RTO;
+- ejecutar una prueba de recuperación aislada;
+- verificar schema/datos críticos;
+- definir backup externo si el negocio necesita retención superior a Instant Restore.
+
 ## 7. Smoke final
 Antes de abrir públicamente:
 registro → verificación → invitación → pareja → assignment → propuesta → aceptación → resultado → confirmación → ranking.

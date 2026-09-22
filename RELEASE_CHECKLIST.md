@@ -42,7 +42,11 @@
 - [ ] WhatsApp Meta real configurado y mensaje de prueba entregado;
 - [x] retries/outbox probados;
 - [x] rate limiting revisado; contador por IP + endpoint en auth, con limitación conocida de memoria local por instancia;
-- [ ] backups/PITR Neon confirmados;
+- [x] procedimiento `PRODUCTION_RECOVERY.md` preparado;
+- [ ] plan + restore window real de Neon confirmados;
+- [ ] RPO/RTO de recuperación acordados;
+- [ ] prueba de recuperación aislada completada;
+- [ ] backup externo definido si se necesita más retención que Instant Restore;
 - [x] pruebas PostgreSQL/concurrencia 45/45 verdes;
 - [x] logs de errores sanitizados para no persistir PII/SQL/details en producción;
 - [x] CORS de producción validado como orígenes HTTPS puros.

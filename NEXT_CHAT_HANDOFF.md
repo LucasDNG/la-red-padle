@@ -298,3 +298,14 @@ CI confirmado sobre `079272a061d150db2c712e1a64f2474cc17bcc4e`:
 - Vercel `success`.
 
 `LA RED production smoke` usa `PROD_API_URL` y `PROD_FRONTEND_URL` del Environment `production`, sin URLs manuales por ejecución, y rechaza entradas que no sean orígenes HTTPS puros.
+
+
+### Recuperación Neon preparada
+Se agrega `PRODUCTION_RECOVERY.md`.
+
+No marcar backups/PITR como verde hasta:
+- confirmar plan y restore window reales de la Neon final;
+- definir RPO/RTO;
+- completar una prueba de recuperación sobre una branch/restauración aislada.
+
+La documentación pública de Neon sirve como referencia; la configuración real del proyecto prevalece.
