@@ -18,7 +18,10 @@ export async function pairHub(userId){
     const pair=await currentPairForUser(client,userId); if(pair)pair.members=await memberRows(client,pair.id);
     const incoming=(await q(client,`SELECT pi.*,u.first_name,u.last_name FROM pair_invitations pi JOIN users u ON u.id=pi.inviter_user_id WHERE pi.invitee_user_id=$1 AND pi.status='pending' AND pi.expires_at>now() ORDER BY pi.created_at DESC`,[userId])).rows;
     const outgoing=(await q(client,`SELECT pi.*,u.first_name,u.last_name FROM pair_invitations pi JOIN users u ON u.id=pi.invitee_user_id WHERE pi.inviter_user_id=$1 AND pi.status='pending' AND pi.expires_at>now() ORDER BY pi.created_at DESC`,[userId])).rows;
-    return {user,pair,incoming,outgoing,available:pair?[]:await availablePartners(userId)};
+    const hasOpenAssignment=pair?Boolean((await q(client,`SELECT 1 FROM wheel_assignment_participants WHERE pair_id=$1`,[pair.id])).rowCount):false;
+    const pauseRequest=pair?(await q(client,`SELECT * FROM pair_pause_requests WHERE pair_id=$1 AND status='pending' ORDER BY id DESC LIMIT 1`,[pair.id])).rows[0]||null:null;
+    const dissolutionRequest=pair?(await q(client,`SELECT * FROM pair_dissolution_requests WHERE pair_id=$1 AND status IN('pending','confirmed','awaiting_result') ORDER BY id DESC LIMIT 1`,[pair.id])).rows[0]||null:null;
+    return {user,pair,incoming,outgoing,available:pair?[]:await availablePartners(userId),hasOpenAssignment,pauseRequest,dissolutionRequest};
   }finally{client.release();}
 }
 export async function invitePartner(userId,inviteeId,requestedCategoryNumber){
