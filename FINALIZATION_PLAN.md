@@ -4,7 +4,7 @@
 - package `5.0.9`;
 - motor `wheel-v2`;
 - Neon nueva como base actual; la histórica fue eliminada;
-- 65/65 tests puros;
+- 67/67 tests puros;
 - 45/45 integración PostgreSQL;
 - `verify:db` verde;
 - frontend build verde;
