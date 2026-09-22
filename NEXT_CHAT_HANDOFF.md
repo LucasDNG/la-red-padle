@@ -29,7 +29,7 @@ Después leer, como mínimo:
 - Neon histórica: eliminada; no asumir recuperable.
 - Neon nueva: base de referencia actual.
 - runtime objetivo: Node 22.
-- 70/70 tests puros verdes en el último checkpoint verificado.
+- 71/71 tests puros verdes en el último checkpoint verificado.
 - 46/46 integración PostgreSQL verdes.
 - `verify:db` verde.
 - frontend build verde.
@@ -110,7 +110,7 @@ La primera ejecución real de `preflight:core` alcanzó Neon pero `pg_stat_ssl` 
 - No existe desafío manual por diseño: la rueda asigna rival.
 - Pausa/disolución, extensión, no-show, resultados/disputas y disciplina post-partido tienen flujos visibles.
 - `tests/frontend-user-journey.test.js` verifica paridad entre endpoints funcionales y frontend.
-- Estado verificado: 70/70 puros + 46/46 PostgreSQL + verify:db + frontend build + Actions/Vercel verdes.
+- Estado verificado: 71/71 puros + 46/46 PostgreSQL + verify:db + frontend build + Actions/Vercel verdes.
 - Producción necesita desplegar el HEAD nuevo para aplicar `PATCH_FREE_TEXT_LOCATIONS_2026-09-22.sql`, y después ejecutar un preflight core NUEVO.
 
 
@@ -127,3 +127,7 @@ La primera ejecución real de `preflight:core` alcanzó Neon pero `pg_stat_ssl` 
 - Snapshots manuales disponibles; schedules requieren upgrade.
 - Drill de recuperación aislado diferido por decisión del propietario hasta que haya datos/cambios que permitan comprobar algo útil.
 - Próximo gate externo: WhatsApp Meta real, luego preflight full.
+
+
+### Service Worker /liga — CORREGIDO
+Se corrigió un fallo real de producción: ante error transitorio de red, el Service Worker podía devolver `undefined` para una navegación como `/liga`, causando `Failed to convert value to 'Response'`. Ahora solo intercepta GET same-origin no-API, usa shell `/` como fallback de navegación y siempre devuelve una `Response`. Regresión automática agregada. Estado verificado: 71/71 puros + 46/46 PostgreSQL + frontend build + Vercel success.
