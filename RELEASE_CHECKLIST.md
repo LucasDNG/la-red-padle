@@ -40,7 +40,7 @@
 - [x] eliminar bypass `rejectUnauthorized:false` y validar TLS por configuración; conexión Neon final todavía debe pasar preflight real;
 - [x] TOTP fail-closed y requisitos de secreto automatizados;
 - [x] generador local de secretos JWT/TOTP preparado;
-- [ ] TOTP Admin real configurado y probado con autenticador;
+- [x] TOTP Admin real configurado y probado con autenticador;
 - [x] WhatsApp sender con retries/dedupe y Graph version configurable;
 - [ ] WhatsApp Meta real configurado y mensaje de prueba entregado;
 - [x] retries/outbox probados;
@@ -65,7 +65,7 @@
 - [x] migración de abandono automatizada al startup, idempotente y serializada con advisory lock; `npm run migrate:prod` disponible manualmente;
 - [x] liveness `/api/live` separada de readiness DB-aware `/api/health`;
 - [x] Blueprint con shutdown budget de 15 s preparado;
-- [ ] confirmar startup productivo exitoso contra la Neon real y patch presente;
+- [x] confirmar startup productivo exitoso contra la Neon real y patch presente;
 
 ## Preflight
 - [x] preflight bloquea reloj global pausado y patch de abandono incompleto;
@@ -73,24 +73,24 @@
 - [x] modo `core`/`full` validado en CI;
 - [x] comandos `preflight:core` / `preflight:full` preparados y verdes en CI;
 - [x] guía exacta `PRODUCTION_ENVIRONMENT_SETUP.md` y validación de inputs preparadas y verdes en CI;
-- [ ] secrets/variables core cargados en el Environment `production`;
-- [ ] preflight `core` verde contra Neon real;
+- [x] secrets/variables core cargados en el Environment `production`;
+- [x] preflight `core` verde contra Neon real;
 - [ ] secrets/variables WhatsApp cargados;
 - [ ] preflight `full` verde antes del release público.
 
 ## Deploy
 - [x] GitHub Actions verde;
-- [ ] Render health verde contra health DB-aware;
+- [x] Render health verde contra health DB-aware;
 - [ ] confirmar si el servicio Render existente se administra manualmente o mediante Blueprint; `render.yaml` solo gobierna servicios vinculados/sincronizados como Blueprint;
 - [x] Vercel build/deploy status verde reportado a GitHub;
 - [x] `VITE_API_URL` validado en build productivo y Vercel nuevamente verde;
-- [ ] variables producción correctas;
-- [ ] al menos una cancha activa;
+- [x] variables producción core correctas;
+- [x] no se requiere cancha comercial activa al lanzamiento; los lugares de partido son texto libre;
 - [x] smoke público automatizado preparado (`production-smoke.yml`);
 - [x] smoke ligado al Environment `production` con URLs validadas como orígenes HTTPS;
 - [x] smoke productivo valida headers de seguridad y `no-store` en el workflow preparado;
-- [ ] ejecutar ese smoke contra producción real y confirmar headers efectivos;
-- [ ] smoke público ejecutado contra Render/Vercel reales;
+- [x] ejecutar ese smoke contra producción real y confirmar headers efectivos;
+- [x] smoke público ejecutado contra Render/Vercel reales;
 - [ ] smoke completo autenticado/UX en producción.
 
 ## Legal
@@ -111,5 +111,11 @@ Solo después de todo lo anterior: **lanzamiento público**.
 - [x] Extensión/no-show respetan ventanas temporales en UI.
 - [x] Corrección/confirmación/disputa de resultado tienen estados visibles.
 - [x] Reporte disciplinario post-partido accesible durante 15 días.
-- [ ] Render desplegó el HEAD que contiene `PATCH_FREE_TEXT_LOCATIONS_2026-09-22.sql`.
-- [ ] Nuevo `preflight:core` real verde después de ese deploy.
+- [x] Render desplegó el HEAD que contiene `PATCH_FREE_TEXT_LOCATIONS_2026-09-22.sql`.
+- [x] Nuevo `preflight:core` real verde después de ese deploy.
+
+
+## Gates reales cerrados — 2026-09-22
+- [x] Preflight CORE real contra Neon: `ok:true`, engine `wheel-v2`, timezone Argentina, reloj activo, migrations listas, TLS 1.3, 1 admin, outbox sin fallos.
+- [x] Production smoke real contra Render + Vercel: `ok:true`, health/DB/CORS/headers/request-id/no-store/endpoints públicos verdes.
+- [x] Login Admin real con contraseña + TOTP de 6 dígitos confirmado desde producción.
