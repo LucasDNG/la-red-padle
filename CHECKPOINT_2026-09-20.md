@@ -242,3 +242,14 @@ Confirmado sobre `7836e8854eb0a4150cfe6391e073b891e0f24c39`:
 - Vercel `success`.
 
 Los comandos `preflight:core` y `preflight:full` quedaron validados. El siguiente gate requiere infraestructura real.
+
+
+## Smoke Environment — VERDE
+Confirmado sobre `079272a061d150db2c712e1a64f2474cc17bcc4e`:
+- 40/40 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db`;
+- frontend build;
+- Vercel `success`.
+
+El smoke público queda ligado a variables del Environment `production` y valida orígenes HTTPS estrictos.

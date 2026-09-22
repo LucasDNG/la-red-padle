@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 39/39 tests puros + 45/45 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
+Suite actual: 40/40 tests puros + 45/45 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
 
 ## Metodología
 
@@ -289,16 +289,12 @@ Quedan disponibles:
 Próximo paso real: cargar inputs core del Environment `production` y ejecutar el preflight `core` contra Neon.
 
 
-### Smoke ligado al Environment production en validación
-Se prepara un cierre operativo:
-- `LA RED production smoke` usa GitHub Environment `production`;
-- toma `PROD_API_URL` y `PROD_FRONTEND_URL` desde variables, sin tipearlas por ejecución;
-- el smoke exige orígenes HTTPS puros y rechaza path/query/fragmento/credenciales;
-- se agrega regresión automática para esos casos.
+### Smoke ligado al Environment production — VERDE
+CI confirmado sobre `079272a061d150db2c712e1a64f2474cc17bcc4e`:
+- 40/40 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db` verde;
+- frontend build verde;
+- Vercel `success`.
 
-Confirmar CI antes de cerrar. Después, con variables reales cargadas, la secuencia es:
-1. preflight `core`;
-2. deploy/startup Render;
-3. production smoke;
-4. TOTP real;
-5. preflight `full` cuando Meta esté listo.
+`LA RED production smoke` usa `PROD_API_URL` y `PROD_FRONTEND_URL` del Environment `production`, sin URLs manuales por ejecución, y rechaza entradas que no sean orígenes HTTPS puros.

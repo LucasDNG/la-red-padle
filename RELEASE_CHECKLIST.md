@@ -9,7 +9,7 @@
 - [x] Purga documental al verificar.
 - [x] Reenvío documental implementado.
 - [x] Layout/identidad visual recuperados.
-- [x] Tests puros actuales 39/39 verdes.
+- [x] Tests puros actuales 40/40 verdes.
 - [x] Simulación longitudinal 5/10/20 años con variantes y válvula 2/3 validada.
 - [x] Push del checkpoint actual.
 - [x] CI del checkpoint actual verde.
