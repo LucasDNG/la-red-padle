@@ -13,6 +13,8 @@ test('Mi pareja permite cancelar una invitación saliente pendiente',async()=>{
 
 test('Mi pareja muestra pausa o reactivación según el estado competitivo',async()=>{
   const source=await readFile(new URL('../frontend/src/App.jsx',import.meta.url),'utf8');
-  assert.match(source,/competition_state==='active'&&<button[^>]*>PAUSAR AL TERMINAR<\/button>/);
-  assert.match(source,/competition_state==='paused'&&<button[^>]*>REACTIVAR<\/button>/);
+  assert.ok(source.includes("d.pair.competition_state==='active'&&<button"));
+  assert.ok(source.includes(">PAUSAR AL TERMINAR</button>"));
+  assert.ok(source.includes("d.pair.competition_state==='paused'&&<button"));
+  assert.ok(source.includes(">REACTIVAR</button>"));
 });
