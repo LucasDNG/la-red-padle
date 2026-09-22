@@ -48,9 +48,9 @@
 - [x] store de rate limit acotado y fail-closed ante saturación;
 - [x] jobs background aislados entre mantenimiento/outbox y logs sanitizados;
 - [x] procedimiento `PRODUCTION_RECOVERY.md` preparado;
-- [ ] plan + restore window real de Neon confirmados;
+- [x] restore window real de Neon confirmada: 8 horas; plan exacto todavía pendiente;
 - [ ] RPO/RTO de recuperación acordados;
-- [ ] prueba de recuperación aislada completada;
+- [ ] prueba de recuperación aislada completada; diferida intencionalmente hasta que haya datos/cambios útiles para validar;
 - [ ] backup externo definido si se necesita más retención que Instant Restore;
 - [x] pruebas PostgreSQL/concurrencia 46/46 verdes;
 - [x] logs de errores sanitizados para no persistir PII/SQL/details en producción;
