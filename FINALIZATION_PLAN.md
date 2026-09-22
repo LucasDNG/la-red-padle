@@ -4,7 +4,7 @@
 - package `5.0.9`;
 - motor `wheel-v2`;
 - Neon nueva como base actual; la histórica fue eliminada;
-- 67/67 tests puros;
+- 70/70 tests puros;
 - 46/46 integración PostgreSQL;
 - `verify:db` verde;
 - frontend build verde;
@@ -29,7 +29,7 @@ Debe validar, sin modificar datos:
 - reloj global;
 - patch de abandono;
 - Admin verificado;
-- cancha activa;
+- patch de lugares libres;
 - invariantes de `verify.sql`.
 
 ### Gate C — Render
@@ -100,3 +100,13 @@ Antes de continuar con smoke/TOTP/WhatsApp:
 3. Ejecutar un workflow **nuevo** `LA RED production preflight` en modo `core`.
 4. El preflight ya no requiere ninguna cancha comercial activa.
 5. Una vez verde, continuar con production smoke y los gates externos restantes.
+
+
+## Estado real de gates — 2026-09-22
+- Gate A Environment production core: VERDE.
+- Gate B Preflight core real: VERDE.
+- Gate C Render startup + health: VERDE.
+- Gate D Production smoke real: VERDE.
+- Gate E TOTP Admin real: VERDE.
+- Próximo gate operativo: Gate F Recuperación Neon.
+- Después: WhatsApp Meta real -> preflight full -> smoke UX autenticado -> legal/seguro.
