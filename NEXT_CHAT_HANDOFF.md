@@ -381,5 +381,19 @@ CI confirmado sobre `d565968140b81ce996ee144694763c1cecd617f7`:
 `/api/live` es dependency-free; `/api/health` conserva DB/engine y sigue como health check de Render. El Blueprint deja 15 s de shutdown budget frente a los 10 s internos.
 
 
-### Pool PostgreSQL idle-error handling en validación
-Se conecta explícitamente el evento `error` del pool al shutdown fatal sanitizado. Un fallo asíncrono de una conexión idle cierra HTTP/DB de forma controlada y sale no-cero.
+### Pool PostgreSQL idle-error handling — VERDE
+CI confirmado sobre `1c7473acb3d7a08e004a1d098d4b369a0b2dc1f7`:
+- 62/62 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db`, frontend y Vercel verdes.
+
+Errores asíncronos de clientes idle del pool disparan shutdown fatal sanitizado.
+
+
+### Installs reproducibles backend/workflows en validación
+Se cambia a `npm ci --ignore-scripts` en:
+- job backend de CI;
+- production preflight;
+- production smoke.
+
+El lock raíz queda con metadata de versión 5.0.9. Frontend sigue usando `npm install` porque no existe `frontend/package-lock.json`; se intentó generarlo desde el registry pero el entorno agotó timeout, por lo que no se fabricó manualmente.
