@@ -110,3 +110,11 @@ Antes de continuar con smoke/TOTP/WhatsApp:
 - Gate E TOTP Admin real: VERDE.
 - Próximo gate operativo: Gate F Recuperación Neon.
 - Después: WhatsApp Meta real -> preflight full -> smoke UX autenticado -> legal/seguro.
+
+
+## Recuperación Neon — estado 2026-09-22
+- Backup & Restore disponible en producción.
+- Ventana histórica real observada: 8 horas.
+- Preview/restore desde historial y snapshots manuales disponibles.
+- Drill aislado diferido intencionalmente hasta que existan cambios/datos útiles para comprobar la recuperación.
+- No tocar `production` para una prueba artificial sin valor.
