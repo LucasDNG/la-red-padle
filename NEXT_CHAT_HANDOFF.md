@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 40/40 tests puros + 45/45 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
+Suite actual: 44/44 tests puros + 45/45 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
 
 ## Metodología
 
@@ -311,13 +311,19 @@ No marcar backups/PITR como verde hasta:
 La documentación pública de Neon sirve como referencia; la configuración real del proyecto prevalece.
 
 
-### Background/rate-limit hardening en validación
-Se prepara un bloque de seguridad operativa:
-- logs de jobs background sanitizados en producción;
-- fallo de mantenimiento ya no impide intentar el outbox en el mismo tick;
-- fallo de outbox tampoco rompe el scheduler;
-- rate limiter auth usa store acotado a 10.000 claves activas;
-- al saturarse, falla cerrado para claves nuevas en vez de crecer sin límite;
-- claves expiradas se purgan al necesitar capacidad.
+### Background/rate-limit hardening — VERDE
+CI confirmado sobre `f1dbea68dcbe3a347c13373a5352f171539cad8b`:
+- 44/44 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db` verde;
+- frontend build verde;
+- Vercel `success`.
 
-Confirmar CI antes de cerrar. La limitación de rate limit por instancia sigue existiendo; para múltiples instancias se requerirá storage compartido.
+Quedó confirmado:
+- logs background sanitizados;
+- mantenimiento y outbox aislados entre sí;
+- rate limiter acotado a 10.000 claves activas;
+- saturación fail-closed para claves nuevas;
+- limpieza de claves expiradas al necesitar capacidad.
+
+La limitación por instancia sigue documentada; múltiples instancias requieren almacenamiento compartido.

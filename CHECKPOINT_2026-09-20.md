@@ -253,3 +253,14 @@ Confirmado sobre `079272a061d150db2c712e1a64f2474cc17bcc4e`:
 - Vercel `success`.
 
 El smoke público queda ligado a variables del Environment `production` y valida orígenes HTTPS estrictos.
+
+
+## Background/rate-limit hardening — VERDE
+Confirmado sobre `f1dbea68dcbe3a347c13373a5352f171539cad8b`:
+- 44/44 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db`;
+- frontend build;
+- Vercel `success`.
+
+Los jobs background ya no bloquean uno al otro ante fallos y sus errores productivos se registran sin payload crudo. El rate limiter quedó acotado y fail-closed ante saturación.
