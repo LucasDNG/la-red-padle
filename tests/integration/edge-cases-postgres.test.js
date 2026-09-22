@@ -84,8 +84,8 @@ async function insertHistoricalProposal(assignment,pairId,hoursBeforeDeadline,st
   const created=new Date(new Date(assignment.deadline_at).getTime()-hoursBeforeDeadline*3600000);
   return (await testPool.query(`
     INSERT INTO wheel_schedule_proposals(
-      assignment_id,proposed_by_pair_id,scheduled_at,venue_id,status,response_deadline_at,created_at,responded_at
-    ) VALUES($1,$2,$3,$4,$5,$6,$7,$7) RETURNING *
+      assignment_id,proposed_by_pair_id,scheduled_at,location_text,venue_id,status,response_deadline_at,created_at,responded_at
+    ) VALUES($1,$2,$3,'Lugar de prueba',$4,$5,$6,$7,$7) RETURNING *
   `,[
     assignment.id,pairId,new Date(new Date(assignment.deadline_at).getTime()-3600000),v.id,status,
     new Date(created.getTime()+48*3600000),created
@@ -161,7 +161,7 @@ test('uncontested no-show is attributable, gives one positional penalty, and sec
   const {a,b,assignment}=await seedAssignedMatch({missStreak:1},{missStreak:1});
   await testPool.query(`
     UPDATE wheel_assignments
-    SET scheduled_at=now()-interval '1 hour',schedule_confirmed_at=now()-interval '2 hours'
+    SET scheduled_at=now()-interval '1 hour',location_text='Lugar de prueba',schedule_confirmed_at=now()-interval '2 hours'
     WHERE id=$1
   `,[assignment.id]);
   await reportNoShow(a.members[0].id,assignment.id);
