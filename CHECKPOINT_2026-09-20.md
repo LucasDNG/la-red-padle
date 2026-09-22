@@ -275,3 +275,14 @@ Confirmado sobre `023bc126308201b68bf0c3ea229e577b02753602`:
 - Vercel `success`.
 
 Backend oculta `X-Powered-By` y backend/frontend aplican headers de seguridad de bajo riesgo sin restringir recursos necesarios de la SPA.
+
+
+## No-store/startup hardening — VERDE
+Confirmado sobre `e2aa61e5d2c9472b8f8af292636de74903df1319`:
+- 51/51 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db`;
+- frontend build;
+- Vercel `success`.
+
+Tokens/respuestas privadas quedan explícitamente no-cacheables y los errores fatales de startup ya no imprimen payload crudo en producción.

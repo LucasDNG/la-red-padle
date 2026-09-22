@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 46/46 tests puros + 45/45 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
+Suite actual: 51/51 tests puros + 45/45 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
 
 ## Metodología
 
@@ -339,12 +339,16 @@ CI/Vercel confirmados sobre `023bc126308201b68bf0c3ea229e577b02753602`:
 
 Backend y Vercel aplican `nosniff`, anti-frame, referrer policy y HSTS productivo. La CSP se limita a `frame-ancestors 'none'` para no romper scripts/styles/connect; no se bloquea cámara por el flujo de captura de DNI.
 
-### No-store/startup hardening en validación
-Se prepara un último bloque técnico:
-- respuestas `/api/auth/*`, `/api/me*` y `/api/admin*` llevan `Cache-Control: no-store` + `Pragma: no-cache`;
-- evita cache accidental de tokens/login, cuenta y administración;
-- startup/migración se encapsula con release garantizado del cliente;
-- errores fatales de startup se registran sanitizados en producción;
-- errores del socket de escucha también usan log sanitizado y terminan el proceso.
+### No-store/startup hardening — VERDE
+CI confirmado sobre `e2aa61e5d2c9472b8f8af292636de74903df1319`:
+- 51/51 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db` verde;
+- frontend build verde;
+- Vercel `success`.
 
-Confirmar CI antes de cerrar.
+Quedó confirmado:
+- `/api/auth/*`, `/api/me*` y `/api/admin*` son explícitamente `no-store`;
+- startup productivo libera cliente aun si falla migración;
+- fallos fatales de startup/listen se loguean sanitizados;
+- startup no productivo no intenta migraciones.

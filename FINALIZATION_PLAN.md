@@ -19,7 +19,7 @@ Estado:
 - frontend build verde;
 - Node 22 + PostgreSQL 16 verdes en GitHub Actions.
 
-El bloque deploy-health también quedó verde en CI. Estado actual: 40/40 tests puros, 45/45 integración PostgreSQL, `verify:db`, frontend build y Vercel verdes.
+El bloque deploy-health también quedó verde en CI. Estado actual: 51/51 tests puros, 45/45 integración PostgreSQL, `verify:db`, frontend build y Vercel verdes.
 
 ## 3. Auditoría funcional automatizada
 Recorrer en orden:
