@@ -69,16 +69,19 @@ La evidencia está en `SIMULATION_AUDIT_2026-09-20.md`.
 
 ## Pendientes externos reales
 
-1. cargar secrets/vars core del Environment `production`;
-2. ejecutar `preflight:core` contra Neon real;
-3. confirmar startup productivo Render y `/api/health`;
-4. ejecutar production smoke real contra Render/Vercel;
-5. probar TOTP con autenticador real;
-6. confirmar plan/restore window Neon, definir RPO/RTO y completar drill aislado;
-7. configurar Meta WhatsApp + mensaje real;
-8. ejecutar `preflight:full`;
-9. smoke UX autenticado final;
-10. revisión legal/seguro Argentina.
+Cerrados en producción real:
+- Environment `production` core cargado;
+- preflight core real verde;
+- Render startup/health verde;
+- production smoke real verde;
+- TOTP Admin real probado con autenticador.
+
+Pendientes:
+1. confirmar plan/restore window Neon, definir RPO/RTO y completar drill aislado;
+2. configurar Meta WhatsApp + mensaje real;
+3. ejecutar `preflight:full`;
+4. smoke UX autenticado final;
+5. revisión legal/seguro Argentina.
 
 ## Deuda técnica no bloqueante
 
@@ -109,3 +112,10 @@ La primera ejecución real de `preflight:core` alcanzó Neon pero `pg_stat_ssl` 
 - `tests/frontend-user-journey.test.js` verifica paridad entre endpoints funcionales y frontend.
 - Estado verificado: 70/70 puros + 46/46 PostgreSQL + verify:db + frontend build + Actions/Vercel verdes.
 - Producción necesita desplegar el HEAD nuevo para aplicar `PATCH_FREE_TEXT_LOCATIONS_2026-09-22.sql`, y después ejecutar un preflight core NUEVO.
+
+
+### Gates productivos reales — 2026-09-22
+- `LA RED production preflight` core sobre HEAD vigente: success.
+- salida del preflight: `ok:true`, `wheel-v2`, TLS 1.3, migrations ready, reloj activo, 1 admin, 0 sedes comerciales válidas, outbox limpio.
+- `LA RED production smoke`: success; Render/Vercel/CORS/headers/request-id/no-store/endpoints públicos verdes.
+- Login Admin real con TOTP confirmado por el propietario.
