@@ -150,7 +150,7 @@ test('contested no-show penalizes position but does not create attributable miss
     await testPool.query('INSERT INTO active_pair_memberships(user_id,pair_id) VALUES($1,$2)',[users[i].id,p.id]);
     pairs.push(p);
   }
-  const a=(await testPool.query(`INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,scheduled_at,schedule_confirmed_at) VALUES($1,$2,$3,$4,now()-interval '1 hour',now()-interval '2 hours') RETURNING *`,[l.id,c.id,pairs[0].id,pairs[1].id])).rows[0];
+  const a=(await testPool.query(`INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,scheduled_at,location_text,schedule_confirmed_at) VALUES($1,$2,$3,$4,now()-interval '1 hour','Lugar de prueba',now()-interval '2 hours') RETURNING *`,[l.id,c.id,pairs[0].id,pairs[1].id])).rows[0];
   await testPool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[a.id,pairs[0].id,pairs[1].id]);
   await testPool.query(`INSERT INTO wheel_no_shows(assignment_id,reported_by_pair_id,reported_pair_id,response_deadline_at) VALUES($1,$2,$3,now()+interval '1 hour')`,[a.id,pairs[0].id,pairs[1].id]);
   await contestNoShow(users[1].id,a.id);
