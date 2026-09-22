@@ -286,3 +286,24 @@ Confirmado sobre `e2aa61e5d2c9472b8f8af292636de74903df1319`:
 - Vercel `success`.
 
 Tokens/respuestas privadas quedan explícitamente no-cacheables y los errores fatales de startup ya no imprimen payload crudo en producción.
+
+
+## Hardening automatizable final — VERDE
+Estado confirmado al cierre:
+- 65/65 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db`;
+- frontend build;
+- Vercel `success`.
+
+Últimos cierres:
+- graceful shutdown SIGTERM/SIGINT;
+- separación liveness/readiness;
+- shutdown budget Render;
+- manejo explícito de errores idle del pool PostgreSQL;
+- production smoke de headers/no-store/request-id;
+- installs backend/preflight/smoke con `npm ci`;
+- `X-Request-ID` server-side y correlación segura;
+- workflows con `contents: read` y timeouts.
+
+A partir de este punto los gates principales restantes requieren infraestructura/credenciales reales.

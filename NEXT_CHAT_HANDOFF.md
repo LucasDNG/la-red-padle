@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 51/51 tests puros + 45/45 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
+Suite actual: 65/65 tests puros + 45/45 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
 
 ## Metodología
 
@@ -409,12 +409,44 @@ CI confirmado sobre `3d120b2aac8494e39a4d0b04d2dfdbe43f43c722`:
 Cada respuesta API expone un `X-Request-ID` UUID generado por servidor; logs de error incluyen ese ID y un `CF-Ray` solo si pasa sanitización estricta. El smoke productivo exige request ID válido.
 
 
-### Workflows least-privilege/timeouts en validación
-Se endurecen los workflows:
-- token de GitHub limitado explícitamente a `contents: read`;
-- CI backend: timeout 20 min;
-- CI frontend: timeout 15 min;
-- preflight productivo: timeout 15 min;
-- smoke productivo: timeout 10 min.
+### Workflows least-privilege/timeouts — VERDE
+CI confirmado sobre `aa2ae08011cc987c80c4302982f90c8fa0edfad7`:
+- 65/65 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db` verde;
+- frontend build verde;
+- Vercel `success`.
 
-Los límites son deliberadamente holgados frente a las duraciones actuales y evitan ejecuciones colgadas indefinidamente.
+Los workflows usan `contents: read` explícito y límites de ejecución:
+- CI backend: 20 min;
+- CI frontend: 15 min;
+- preflight productivo: 15 min;
+- smoke productivo: 10 min.
+
+
+### Estado técnico al cierre del hardening automatizable
+Queda verde y automatizado todo lo que no requiere credenciales/infraestructura real:
+- motor deportivo + concurrencia PostgreSQL;
+- schema/patch/verify;
+- preflight core/full;
+- startup migrations + advisory lock;
+- shutdown gracioso y fallos fatales sanitizados;
+- pool PostgreSQL con manejo explícito de errores idle;
+- liveness/readiness;
+- seguridad HTTP, no-store y request correlation;
+- smoke público fuerte;
+- installs reproducibles del backend con `npm ci`;
+- workflows con permisos mínimos y timeouts.
+
+Pendientes externos reales:
+1. cargar secrets/vars core del Environment `production`;
+2. ejecutar preflight `core` contra Neon real;
+3. confirmar Render startup + `/api/health`;
+4. ejecutar production smoke real;
+5. probar TOTP con autenticador real;
+6. confirmar restore window/RPO/RTO y drill Neon;
+7. configurar Meta WhatsApp + mensaje real;
+8. ejecutar preflight `full`;
+9. smoke UX autenticado y revisión legal/seguro.
+
+Deuda técnica no bloqueante pero pendiente: generar legítimamente `frontend/package-lock.json` y migrar el job frontend a `npm ci`.

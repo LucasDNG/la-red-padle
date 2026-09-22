@@ -19,7 +19,7 @@ Estado:
 - frontend build verde;
 - Node 22 + PostgreSQL 16 verdes en GitHub Actions.
 
-El bloque deploy-health también quedó verde en CI. Estado actual: 51/51 tests puros, 45/45 integración PostgreSQL, `verify:db`, frontend build y Vercel verdes.
+El bloque deploy-health también quedó verde en CI. Estado actual: 65/65 tests puros, 45/45 integración PostgreSQL, `verify:db`, frontend build y Vercel verdes.
 
 ## 3. Auditoría funcional automatizada
 Recorrer en orden:
@@ -165,3 +165,16 @@ Variables:
 - `PROD_WHATSAPP_TEMPLATE_LANGUAGE`
 
 Después ejecutar manualmente `LA RED production preflight` desde GitHub Actions. Si el Environment tiene aprobación requerida, GitHub pedirá esa aprobación antes de acceder a los secretos.
+
+
+## Hardening automatizable cerrado
+Antes de pasar a los gates externos quedaron cubiertos:
+- shutdown gracioso y errores fatales sanitizados;
+- liveness independiente + readiness DB-aware;
+- errores idle del pool PostgreSQL;
+- headers/no-store/request correlation;
+- smoke productivo que exige esos controles;
+- `npm ci` en backend/preflight/smoke;
+- permisos mínimos y timeouts de workflows.
+
+No seguir agregando hardening especulativo si no responde a evidencia real de producción. El siguiente valor principal viene de preflight/smoke sobre Neon + Render reales.

@@ -9,7 +9,7 @@
 - [x] Purga documental al verificar.
 - [x] Reenvío documental implementado.
 - [x] Layout/identidad visual recuperados.
-- [x] Tests puros actuales 51/51 verdes.
+- [x] Tests puros actuales 65/65 verdes.
 - [x] Simulación longitudinal 5/10/20 años con variantes y válvula 2/3 validada.
 - [x] Push del checkpoint actual.
 - [x] CI del checkpoint actual verde.
@@ -35,7 +35,7 @@
 ## Seguridad/operación
 - [x] probar con Node 22 real;
 - [x] backend/preflight/smoke usan `npm ci` y lock raíz alineado;
-- [ ] workflows con `contents: read` explícito y timeouts máximos validados;
+- [x] workflows con `contents: read` explícito y timeouts máximos validados;
 - [ ] generar y versionar `frontend/package-lock.json` para poder usar `npm ci` también en frontend;
 - [x] eliminar bypass `rejectUnauthorized:false` y validar TLS por configuración; conexión Neon final todavía debe pasar preflight real;
 - [x] TOTP fail-closed y requisitos de secreto automatizados;
