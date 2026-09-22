@@ -363,12 +363,20 @@ CI confirmado sobre `1a8a55c5ffe652b930a56fecbe18ba9610ced10c`:
 SIGTERM/SIGINT cierran HTTP + PostgreSQL y cancelan timers; fallos fatales de proceso se sanitizan y terminan con código no-cero.
 
 
-### Smoke de headers/cache en validación
-El smoke productivo ahora exige:
-- headers de seguridad en API y frontend;
-- HSTS;
-- ausencia de `X-Powered-By`;
-- CSP anti-frame;
-- probe auth 404 no destructivo con `Cache-Control: no-store` + `Pragma: no-cache`.
+### Smoke de headers/cache — VERDE
+CI confirmado sobre `b0c5c54110d0d87695b1434dc2b0099110868b30`:
+- 57/57 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db`, frontend y Vercel verdes.
 
-Así los controles ya no quedan solo en tests unitarios: se validan contra Render/Vercel reales cuando corre el smoke.
+El smoke real exige headers de seguridad, HSTS, ausencia de `X-Powered-By` y `no-store` en un probe auth 404 no destructivo.
+
+
+### Liveness/readiness + shutdown budget Render en validación
+Se agrega:
+- `GET /api/live`: liveness barata, sin depender de PostgreSQL;
+- `GET /api/health`: se mantiene como readiness DB-aware y sigue siendo el health check de Render;
+- production smoke valida ambos niveles;
+- Blueprint fija `maxShutdownDelaySeconds: 15`, coherente con el timeout interno de shutdown de 10 s.
+
+No se debilita el health de Render: continúa validando DB/engine.

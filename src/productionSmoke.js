@@ -34,6 +34,10 @@ export async function runProductionSmoke({apiUrl,frontendUrl,fetchImpl=globalThi
   const api=normalizeHttps(apiUrl,'PROD_API_URL');
   const frontend=normalizeHttps(frontendUrl,'PROD_FRONTEND_URL');
 
+  const liveResult=await jsonGet(fetchImpl,api+'/api/live',frontend);
+  if(liveResult.data?.ok!==true||liveResult.data?.engine!=='wheel-v2'||liveResult.data?.process!=='ok')throw new Error('Liveness productiva inválida');
+  requireSecurityHeaders(liveResult.response,'API liveness');
+
   const healthResult=await jsonGet(fetchImpl,api+'/api/health',frontend);
   const health=healthResult.data;
   if(health?.ok!==true||health?.engine!=='wheel-v2'||health?.database!=='ok')throw new Error('Health productivo inválido');
@@ -69,6 +73,7 @@ export async function runProductionSmoke({apiUrl,frontendUrl,fetchImpl=globalThi
     api,
     frontend,
     engine:health.engine,
+    process:liveResult.data.process,
     database:health.database,
     cors:true,
     securityHeaders:true,

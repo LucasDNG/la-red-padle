@@ -1,3 +1,13 @@
+export function readLiveness(){
+  return {
+    ok:true,
+    name:'LA RED Pádel',
+    engine:'wheel-v2',
+    timezone:'America/Argentina/Buenos_Aires',
+    process:'ok'
+  };
+}
+
 export async function readHealth(client){
   const row=(await client.query(`SELECT value FROM app_settings WHERE key='engine'`)).rows[0];
   const engine=row?.value;

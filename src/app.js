@@ -10,7 +10,7 @@ import {reportDiscipline} from './discipline.js';
 import {pendingUsers,searchUsers,setUserVerification,updateUserDni,identityDocument,requestIdentityResubmission,listVenues,createVenue,updateVenue,disputes,resolveDispute,disciplineQueue,resolveDiscipline,systemStatus,auditLog,setLeagueClockPause,retryWhatsApp,verifyTotp} from './admin.js';
 import {problem} from './core.js';
 import {safeErrorLog,authRateLimitKey,safeClientErrorMessage,createFixedWindowRateLimitStore,securityResponseHeaders,privateResponseHeaders} from './httpSecurity.js';
-import {readHealth} from './health.js';
+import {readHealth,readLiveness} from './health.js';
 import {frontendOrigins} from './config.js';
 
 export const app=express();
@@ -33,6 +33,7 @@ const identityUpload=multer({
 const authAttempts=createFixedWindowRateLimitStore({windowMs:15*60*1000,maxEntries:10000});
 function rateLimit(req,res,next){const v=authAttempts.hit(authRateLimitKey(req));if(v.saturated||v.count>25)return res.status(429).json({error:'Demasiados intentos. Probá nuevamente en unos minutos.'});next();}
 
+app.get('/api/live',(req,res)=>res.json(readLiveness()));
 app.get('/api/health',wrap(async(req,res)=>res.json(await readHealth(pool))));
 app.get('/api/legal/versions',(req,res)=>res.json(LEGAL_VERSIONS));
 app.get('/api/ranking',wrap(async(req,res)=>res.json(await ranking())));

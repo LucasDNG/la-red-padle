@@ -58,6 +58,8 @@
 
 ## Migración producción
 - [x] migración de abandono automatizada al startup, idempotente y serializada con advisory lock; `npm run migrate:prod` disponible manualmente;
+- [x] liveness `/api/live` separada de readiness DB-aware `/api/health`;
+- [x] Blueprint con shutdown budget de 15 s preparado;
 - [ ] confirmar startup productivo exitoso contra la Neon real y patch presente;
 
 ## Preflight
@@ -81,7 +83,8 @@
 - [ ] al menos una cancha activa;
 - [x] smoke público automatizado preparado (`production-smoke.yml`);
 - [x] smoke ligado al Environment `production` con URLs validadas como orígenes HTTPS;
-- [ ] smoke productivo valida headers de seguridad y `no-store` reales;
+- [x] smoke productivo valida headers de seguridad y `no-store` en el workflow preparado;
+- [ ] ejecutar ese smoke contra producción real y confirmar headers efectivos;
 - [ ] smoke público ejecutado contra Render/Vercel reales;
 - [ ] smoke completo autenticado/UX en producción.
 

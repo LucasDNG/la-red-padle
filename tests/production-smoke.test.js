@@ -21,6 +21,7 @@ test('production smoke validates DB-aware health, CORS and public endpoints',asy
   const seen=[];
   const fetchImpl=async(url,options={})=>{
     seen.push({url,options});
+    if(url==='https://api.example.com/api/live')return response({ok:true,engine:'wheel-v2',process:'ok'});
     if(url==='https://api.example.com/api/health')return response(
       {ok:true,engine:'wheel-v2',database:'ok'},
       {headers:{'access-control-allow-origin':'https://app.example.com'}}
@@ -40,11 +41,13 @@ test('production smoke validates DB-aware health, CORS and public endpoints',asy
   assert.equal(result.publicEndpoints,5);
   assert.equal(result.securityHeaders,true);
   assert.equal(result.privateNoStore,true);
-  assert.equal(seen.length,8);
+  assert.equal(result.process,'ok');
+  assert.equal(seen.length,9);
 });
 
 test('production smoke rejects wrong CORS even when health is otherwise green',async()=>{
   const fetchImpl=async(url)=>{
+    if(url.endsWith('/api/live'))return response({ok:true,engine:'wheel-v2',process:'ok'});
     if(url.endsWith('/api/health'))return response(
       {ok:true,engine:'wheel-v2',database:'ok'},
       {headers:{'access-control-allow-origin':'https://wrong.example.com'}}
@@ -93,6 +96,7 @@ test('production smoke rejects non-origin production URLs before making requests
 
 test('production smoke rejects missing security headers',async()=>{
   const fetchImpl=async(url)=>{
+    if(url.endsWith('/api/live'))return response({ok:true,engine:'wheel-v2',process:'ok'});
     if(url.endsWith('/api/health'))return response(
       {ok:true,engine:'wheel-v2',database:'ok'},
       {headers:{
@@ -114,6 +118,7 @@ test('production smoke rejects missing security headers',async()=>{
 
 test('production smoke rejects auth responses without no-store',async()=>{
   const fetchImpl=async(url)=>{
+    if(url.endsWith('/api/live'))return response({ok:true,engine:'wheel-v2',process:'ok'});
     if(url.endsWith('/api/health'))return response(
       {ok:true,engine:'wheel-v2',database:'ok'},
       {headers:{'access-control-allow-origin':'https://app.example.com'}}
@@ -130,5 +135,21 @@ test('production smoke rejects auth responses without no-store',async()=>{
       fetchImpl
     }),
     /Cache-Control: no-store/
+  );
+});
+
+
+test('production smoke rejects invalid liveness before readiness checks',async()=>{
+  const fetchImpl=async(url)=>{
+    if(url.endsWith('/api/live'))return response({ok:false,engine:'wheel-v2',process:'starting'});
+    throw new Error('no debería continuar');
+  };
+  await assert.rejects(
+    ()=>runProductionSmoke({
+      apiUrl:'https://api.example.com',
+      frontendUrl:'https://app.example.com',
+      fetchImpl
+    }),
+    /Liveness productiva inválida/
   );
 });
