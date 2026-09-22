@@ -29,7 +29,7 @@ Después leer, como mínimo:
 - Neon histórica: eliminada; no asumir recuperable.
 - Neon nueva: base de referencia actual.
 - runtime objetivo: Node 22.
-- 65/65 tests puros verdes en el último checkpoint verificado.
+- 67/67 tests puros verdes en el último checkpoint verificado.
 - 45/45 integración PostgreSQL verdes.
 - `verify:db` verde.
 - frontend build verde.
