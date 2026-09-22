@@ -9,7 +9,7 @@
 Los ZIPs históricos `v1`…`v11` no son fuente de verdad y no deben reaplicarse sobre `main`.
 
 ## Validación automatizada vigente
-- 65/65 tests puros;
+- 67/67 tests puros;
 - 45/45 integración PostgreSQL;
 - `verify:db` verde;
 - frontend build verde;
