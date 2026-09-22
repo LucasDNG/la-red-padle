@@ -321,3 +321,7 @@ Se corrigió una omisión de UX: el backend ya permitía cancelar una invitació
 
 ## Acciones de pareja coherentes con su estado
 `Mi pareja` ya no muestra PAUSAR y REACTIVAR simultáneamente: activa => pausa; pausada => reactivación. Es un ajuste UX sobre reglas existentes, sin cambio de motor.
+
+
+## Preflight TLS contra Neon
+La primera ejecución real alcanzó Neon y reveló que `pg_stat_ssl` no era una prueba válida del tramo cliente→endpoint de Neon. Se reemplazó por verificación del socket TLS real de `node-postgres`. La exigencia TLS sigue siendo fail-closed y CI quedó verde.
