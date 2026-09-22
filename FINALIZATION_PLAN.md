@@ -4,7 +4,7 @@
 - package `5.0.9`;
 - motor `wheel-v2`;
 - Neon nueva como base actual; la histórica fue eliminada;
-- 70/70 tests puros;
+- 71/71 tests puros;
 - 46/46 integración PostgreSQL;
 - `verify:db` verde;
 - frontend build verde;
@@ -118,3 +118,7 @@ Antes de continuar con smoke/TOTP/WhatsApp:
 - Preview/restore desde historial y snapshots manuales disponibles.
 - Drill aislado diferido intencionalmente hasta que existan cambios/datos útiles para comprobar la recuperación.
 - No tocar `production` para una prueba artificial sin valor.
+
+
+## Service Worker productivo
+Bug de fallback observado en navegador real y corregido. La navegación SPA offline/transitoria ya no devuelve valores inválidos; regresión automática incluida. Estado: 71/71 puros + 46/46 PostgreSQL, frontend y Vercel verdes.
