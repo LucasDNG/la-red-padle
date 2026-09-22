@@ -57,3 +57,15 @@ Este archivo contiene únicamente decisiones que siguen vigentes. Las decisiones
 
 53. El descenso usa una válvula de equilibrio: normalmente exige 3 derrotas consecutivas siendo última; si la categoría tiene al menos 5 parejas activas más que la categoría inferior, exige 2. La regla anterior de población totalmente irrelevante queda reemplazada solo para este umbral de descenso.
 54. Cinco derrotas consecutivas no se adopta: matemáticamente haría el descenso mucho menos frecuente y agravaría la acumulación hacia categorías superiores.
+
+
+## Decisiones de superficie de usuario y canchas — 2026-09-22
+48. El rival no se elige mediante un botón de “desafiar”: la rueda automática sigue siendo la única fuente ordinaria de asignación.
+49. Todo flujo ordinario que requiera una acción humana debe poder completarse desde la web; no se considera terminado si exige consola, llamada manual a API o conocimiento técnico.
+50. El lugar de un partido es texto libre propuesto por una pareja y aceptado por la otra; no depende de una cancha precargada.
+51. Una mención de lugar hecha por jugadores no implica vínculo comercial, recomendación ni patrocinio de LA RED.
+52. El catálogo de canchas queda reservado a la capa comercial: solo sedes activas marcadas explícitamente como adheridas se publican como “Canchas adheridas a LA RED”.
+53. Pausa y disolución muestran en frontend quién pidió la acción, cuándo falta confirmación del compañero y cuál es la siguiente acción disponible.
+54. Extensión extraordinaria y no-show se ofrecen en pantalla únicamente cuando la ventana temporal correspondiente está habilitada.
+55. Un resultado propio todavía editable se vuelve a mostrar precargado para corregirlo; una disputa incompatible pasa a estado de espera de resolución administrativa.
+56. La ventana disciplinaria de 15 días posterior al cierre de un partido debe ser accesible desde Mi liga mediante partidos recientes reportables.

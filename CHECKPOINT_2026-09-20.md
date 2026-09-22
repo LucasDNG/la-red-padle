@@ -186,13 +186,13 @@ El primer CI del preflight reforzado detectó que el CHECK de abandono era anón
 
 
 ## Preflight DB explícito — VERDE
-CI confirmado: 37/37 tests puros + 45/45 integración PostgreSQL + `verify:db` + frontend build; Vercel `success`. El preflight sano pasa y falla explícitamente ante reloj pausado o patch incompleto.
+CI confirmado: 37/37 tests puros + 46/46 integración PostgreSQL + `verify:db` + frontend build; Vercel `success`. El preflight sano pasa y falla explícitamente ante reloj pausado o patch incompleto.
 
 
 ## Gate VITE_API_URL — VERDE
 Confirmado sobre `b4640a863b8f41ae744798731b0184becaa02d85`:
 - 39/39 tests puros;
-- 45/45 integración PostgreSQL;
+- 46/46 integración PostgreSQL;
 - `verify:db`;
 - frontend build;
 - Vercel `success`.
@@ -203,7 +203,7 @@ El frontend de producción ya no puede compilar con fallback silencioso a `/api`
 ## Workflow de preflight real — VERDE
 Confirmado sobre `a29c047a8233671d5126345444a483b86359bb4d`:
 - 39/39 tests puros;
-- 45/45 integración PostgreSQL;
+- 46/46 integración PostgreSQL;
 - `verify:db`;
 - frontend build;
 - Vercel `success`.
@@ -214,7 +214,7 @@ El workflow manual de preflight de producción está listo y es read-only. Sigui
 ## Bootstrap de Environment production — VERDE
 Confirmado sobre `4a6508001ff6a1fa3e63b5b2af3035d75cce49c2`:
 - 39/39 tests puros;
-- 45/45 integración PostgreSQL;
+- 46/46 integración PostgreSQL;
 - `verify:db`;
 - frontend build;
 - Vercel `success`.
@@ -225,7 +225,7 @@ La guía `PRODUCTION_ENVIRONMENT_SETUP.md` y la validación previa de inputs del
 ## Preflight core/full — VERDE
 Confirmado sobre `495902ce8950eabcc4fde18435e7ae0bc3e6f072`:
 - 39/39 tests puros;
-- 45/45 integración PostgreSQL;
+- 46/46 integración PostgreSQL;
 - `verify:db`;
 - frontend build;
 - Vercel `success`.
@@ -236,7 +236,7 @@ El preflight `core` permite validar Neon/Render/TOTP/CORS sin bloquearse por Met
 ## Comandos explícitos de preflight — VERDE
 Confirmado sobre `7836e8854eb0a4150cfe6391e073b891e0f24c39`:
 - 39/39 tests puros;
-- 45/45 integración PostgreSQL;
+- 46/46 integración PostgreSQL;
 - `verify:db`;
 - frontend build;
 - Vercel `success`.
@@ -247,7 +247,7 @@ Los comandos `preflight:core` y `preflight:full` quedaron validados. El siguient
 ## Smoke Environment — VERDE
 Confirmado sobre `079272a061d150db2c712e1a64f2474cc17bcc4e`:
 - 40/40 tests puros;
-- 45/45 integración PostgreSQL;
+- 46/46 integración PostgreSQL;
 - `verify:db`;
 - frontend build;
 - Vercel `success`.
@@ -258,7 +258,7 @@ El smoke público queda ligado a variables del Environment `production` y valida
 ## Background/rate-limit hardening — VERDE
 Confirmado sobre `f1dbea68dcbe3a347c13373a5352f171539cad8b`:
 - 44/44 tests puros;
-- 45/45 integración PostgreSQL;
+- 46/46 integración PostgreSQL;
 - `verify:db`;
 - frontend build;
 - Vercel `success`.
@@ -269,7 +269,7 @@ Los jobs background ya no bloquean uno al otro ante fallos y sus errores product
 ## Security headers — VERDE
 Confirmado sobre `023bc126308201b68bf0c3ea229e577b02753602`:
 - 46/46 tests puros;
-- 45/45 integración PostgreSQL;
+- 46/46 integración PostgreSQL;
 - `verify:db`;
 - frontend build;
 - Vercel `success`.
@@ -280,7 +280,7 @@ Backend oculta `X-Powered-By` y backend/frontend aplican headers de seguridad de
 ## No-store/startup hardening — VERDE
 Confirmado sobre `e2aa61e5d2c9472b8f8af292636de74903df1319`:
 - 51/51 tests puros;
-- 45/45 integración PostgreSQL;
+- 46/46 integración PostgreSQL;
 - `verify:db`;
 - frontend build;
 - Vercel `success`.
@@ -291,7 +291,7 @@ Tokens/respuestas privadas quedan explícitamente no-cacheables y los errores fa
 ## Hardening automatizable final — VERDE
 Estado confirmado al cierre:
 - 65/65 tests puros;
-- 45/45 integración PostgreSQL;
+- 46/46 integración PostgreSQL;
 - `verify:db`;
 - frontend build;
 - Vercel `success`.
@@ -325,3 +325,11 @@ Se corrigió una omisión de UX: el backend ya permitía cancelar una invitació
 
 ## Preflight TLS contra Neon
 La primera ejecución real alcanzó Neon y reveló que `pg_stat_ssl` no era una prueba válida del tramo cliente→endpoint de Neon. Se reemplazó por verificación del socket TLS real de `node-postgres`. La exigencia TLS sigue siendo fail-closed y CI quedó verde.
+
+
+## Lugar libre + recorrido completo de usuario
+Se eliminó la dependencia funcional de una cancha precargada para coordinar partidos. Los jugadores proponen fecha y `location_text`; la mención no implica afiliación. `venues` queda como catálogo comercial separado y solo active+associated se publica.
+
+La pasada de journey cerró huecos de UI en pausa/disolución, extensión, no-show, revisión/confirmación de resultados y reportes disciplinarios posteriores al partido. Existe una regresión que exige que todo endpoint funcional ordinario tenga superficie frontend.
+
+Último código verificado antes de esta actualización documental: `fe67dbb3239d4c9490d0e2cd5fd82743bf0dde1c` — 70/70 puros, 46/46 PostgreSQL, verify:db, frontend build, Actions y Vercel verdes.

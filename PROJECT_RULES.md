@@ -104,7 +104,10 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Resolver rápido libera inmediatamente para una nueva asignación.
 
 ## 12. Programación
-- Una sola programación oficial vigente: día, hora y lugar.
+- Una sola programación oficial vigente: día, hora y **lugar escrito libremente por los jugadores**.
+- Proponer un partido no requiere que el lugar exista previamente en el catálogo de canchas de LA RED.
+- El texto del lugar puede ser un club, complejo, cancha particular u otra referencia útil para coordinar; se limita a 160 caracteres.
+- La mención escrita por un jugador **no crea una cancha adherida, no implica recomendación, patrocinio ni vínculo comercial con LA RED**.
 - Una propuesta tiene 48 horas para responder.
 - Aceptar la propuesta la convierte en programación oficial y la publica en Próximos partidos.
 - Una nueva propuesta no borra la programación oficial anterior hasta que ambas acepten el cambio.
@@ -187,11 +190,15 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Pausa puede mostrarse como estado neutro; nunca su motivo.
 
 ## 22. Canchas y negocio
-- Canchas administrables: alta, edición, activa/inactiva, asociada, reservas futuras.
-- Desactivar no borra historial ni programaciones ya confirmadas.
+- El **lugar de un partido** y una **cancha adherida a LA RED** son conceptos separados.
+- Los jugadores escriben libremente el lugar al coordinar. Ese texto no crea ni modifica una ficha comercial.
+- Las canchas administrables por LA RED son una capa comercial separada: alta, edición, activa/inactiva, adherida, Instagram/web, reservas futuras y orden de aparición.
+- Solo una cancha marcada explícitamente por administración como **adherida** y activa puede mostrarse públicamente en la sección de sedes adheridas.
+- Una cancha mencionada por jugadores nunca se convierte automáticamente en sede adherida.
+- Desactivar una ficha comercial no borra historial ni programaciones ya confirmadas.
 - LA RED no se define como “sin fines de lucro” ni promete gratuidad permanente.
 - Etapa inicial puede ser gratuita para jugadores.
-- Evolución prevista: reservas/pagos de cancha y comisión comercial a sedes mediante proveedor de pagos adecuado.
+- Evolución prevista: acuerdos comerciales con sedes, reservas/pagos de cancha y comisión mediante proveedor de pagos adecuado.
 - La capa comercial nunca altera resultados, rueda o ranking.
 
 ## 23. Administración

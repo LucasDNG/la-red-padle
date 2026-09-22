@@ -29,8 +29,8 @@ Después leer, como mínimo:
 - Neon histórica: eliminada; no asumir recuperable.
 - Neon nueva: base de referencia actual.
 - runtime objetivo: Node 22.
-- 68/68 tests puros verdes en el último checkpoint verificado.
-- 45/45 integración PostgreSQL verdes.
+- 70/70 tests puros verdes en el último checkpoint verificado.
+- 46/46 integración PostgreSQL verdes.
 - `verify:db` verde.
 - frontend build verde.
 - Vercel `success` en el último checkpoint verificado.
@@ -99,3 +99,13 @@ La UI muestra PAUSAR solo para pareja `active` y REACTIVAR solo para pareja `pau
 
 ### Preflight TLS Neon — CORREGIDO
 La primera ejecución real de `preflight:core` alcanzó Neon pero `pg_stat_ssl` dio un falso negativo de TLS. El preflight ahora valida el `TLSSocket` real de `node-postgres`; CI quedó verde. Falta ejecutar un workflow manual NUEVO sobre el HEAD actualizado para validar producción real.
+
+
+### Lugar libre y surface audit — IMPLEMENTADOS
+- Programación usa `location_text` libre escrito por jugadores; ya no exige una cancha precargada.
+- `venues` es una capa comercial separada. Solo active+associated se publica como “Cancha adherida”.
+- No existe desafío manual por diseño: la rueda asigna rival.
+- Pausa/disolución, extensión, no-show, resultados/disputas y disciplina post-partido tienen flujos visibles.
+- `tests/frontend-user-journey.test.js` verifica paridad entre endpoints funcionales y frontend.
+- Estado verificado: 70/70 puros + 46/46 PostgreSQL + verify:db + frontend build + Actions/Vercel verdes.
+- Producción necesita desplegar el HEAD nuevo para aplicar `PATCH_FREE_TEXT_LOCATIONS_2026-09-22.sql`, y después ejecutar un preflight core NUEVO.

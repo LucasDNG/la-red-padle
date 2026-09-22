@@ -113,3 +113,14 @@ El checkpoint alcanza 20/20 tests puros, 35/35 integración PostgreSQL, `verify:
 
 ## Cierre del último caso deportivo
 Lesión/abandono fue el último ítem funcional que quedaba explícitamente abierto. La auditoría detectó que el abandonante se conservaba en la versión cargada pero no en el match oficial. Se agregó persistencia oficial, constraint de consistencia, patch para la base existente y regresiones que prueban cero games, swap de escalera, rachas, ascenso y descenso. Con esto el checklist funcional deportivo queda cerrado en 26/26 tests puros y 39/39 tests PostgreSQL.
+
+
+## Auditoría de superficie real de usuario — 2026-09-22
+
+Al entrar en producción apareció una diferencia importante entre “el motor puede hacerlo” y “una persona puede hacerlo desde la página”. Se hizo entonces una recorrida transversal tomando las reglas y endpoints como inventario, no como garantía de UX.
+
+La auditoría confirmó que LA RED **no usa desafíos manuales**: la pareja se forma por invitación/aceptación y la rueda asigna rival. Lo que sí debía quedar visible era todo lo que ocurre después. Se completaron estados y botones para pausa, confirmación de pausa, disolución, confirmación de disolución, reactivación, propuestas, aceptación, extensión, no-show, objeción, carga/corrección/confirmación de resultados, disputa y disciplina incluso durante los 15 días posteriores al cierre.
+
+En paralelo se separó definitivamente la coordinación deportiva del negocio de canchas. El jugador escribe el lugar que acordó; eso no transforma al club mencionado en socio de LA RED. Las futuras sedes comerciales viven en un catálogo administrado aparte y solo aparecen públicamente si el propietario de LA RED las marca de forma explícita como adheridas.
+
+Desde este punto existe además una regresión automática de paridad backend/frontend: salvo endpoints técnicos de salud, una capacidad ordinaria expuesta por API no puede quedar nuevamente sin una superficie de uso en el frontend.

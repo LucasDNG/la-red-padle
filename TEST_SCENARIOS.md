@@ -332,3 +332,26 @@ Estos escenarios deben recorrerse manualmente y luego convertirse/confirmarse co
 - TOTP válido es aceptado y código incorrecto rechazado;
 - `verify.sql` permite pending sin fotos únicamente durante un reenvío solicitado;
 - `npm run verify:db` reconstruye el esquema de prueba y exige cero inconsistencias.
+
+
+## Recorrido de usuario visible — 2026-09-22
+- todos los endpoints funcionales ordinarios del backend tienen al menos un flujo/llamada visible desde frontend; se excluyen solo `/api/live` y `/api/health` por ser operativos;
+- no existe desafío manual: una pareja formada entra a la rueda y el rival se asigna automáticamente;
+- una pareja propone fecha + lugar escrito libremente sin requerir ninguna fila en `venues`;
+- la otra pareja ve y acepta la propuesta; solo entonces fecha/hora/lugar se vuelven oficiales y públicos;
+- el texto libre del lugar no crea una cancha comercial;
+- una sede solo aparece públicamente en “Canchas adheridas a LA RED” cuando Admin la marca activa + adherida;
+- Admin puede crear y editar nombre, dirección, Instagram/web, link de reserva, estado activo, adherida, reservas y orden;
+- solicitud de pausa muestra estado de espera y el compañero dispone de CONFIRMAR PAUSA;
+- con assignment abierto, la pausa se ofrece como PAUSAR AL TERMINAR;
+- solicitud de disolución muestra estado de espera y el compañero dispone de CONFIRMAR DISOLUCIÓN;
+- reactivación solo aparece para pareja pausada;
+- CAUSA EXTERNA solo aparece dentro de las 48 h posteriores al vencimiento original y deja de ofrecer doble voto;
+- REPORTAR NO-SHOW solo aparece después de la fecha/hora oficial;
+- la pareja reportada puede OBJETAR NO-SHOW desde la misma pantalla;
+- resultado cargado por el rival ofrece CONFIRMAR RESULTADO CARGADO;
+- resultado propio aún sin respuesta se precarga y ofrece GUARDAR CORRECCIÓN;
+- versiones incompatibles muestran estado de disputa y no un formulario engañoso;
+- lesión/abandono exige ganador, abandonante y fecha, sin sets;
+- partidos cerrados de los últimos 15 días aparecen en Mi liga para reportes disciplinarios posteriores;
+- la regresión `frontend-user-journey.test.js` impide que un endpoint funcional ordinario quede sin superficie frontend.
