@@ -55,6 +55,7 @@
 - [x] headers HTTP de seguridad backend/Vercel validados en CI y deploy;
 - [x] respuestas auth/me/admin con `no-store` y startup fatal sanitizado validados en CI;
 - [x] shutdown gracioso SIGTERM/SIGINT + handlers fatales sanitizados validados en CI;
+- [ ] errores idle del pool PostgreSQL conectados al shutdown sanitizado y validados en CI;
 
 ## Migración producción
 - [x] migración de abandono automatizada al startup, idempotente y serializada con advisory lock; `npm run migrate:prod` disponible manualmente;

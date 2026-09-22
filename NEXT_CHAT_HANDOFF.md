@@ -372,11 +372,14 @@ CI confirmado sobre `b0c5c54110d0d87695b1434dc2b0099110868b30`:
 El smoke real exige headers de seguridad, HSTS, ausencia de `X-Powered-By` y `no-store` en un probe auth 404 no destructivo.
 
 
-### Liveness/readiness + shutdown budget Render en validación
-Se agrega:
-- `GET /api/live`: liveness barata, sin depender de PostgreSQL;
-- `GET /api/health`: se mantiene como readiness DB-aware y sigue siendo el health check de Render;
-- production smoke valida ambos niveles;
-- Blueprint fija `maxShutdownDelaySeconds: 15`, coherente con el timeout interno de shutdown de 10 s.
+### Liveness/readiness + shutdown budget Render — VERDE
+CI confirmado sobre `d565968140b81ce996ee144694763c1cecd617f7`:
+- 61/61 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db`, frontend y Vercel verdes.
 
-No se debilita el health de Render: continúa validando DB/engine.
+`/api/live` es dependency-free; `/api/health` conserva DB/engine y sigue como health check de Render. El Blueprint deja 15 s de shutdown budget frente a los 10 s internos.
+
+
+### Pool PostgreSQL idle-error handling en validación
+Se conecta explícitamente el evento `error` del pool al shutdown fatal sanitizado. Un fallo asíncrono de una conexión idle cierra HTTP/DB de forma controlada y sale no-cero.

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {EventEmitter} from 'node:events';
-import {createGracefulShutdown,installRuntimeHandlers} from '../src/runtimeLifecycle.js';
+import {createGracefulShutdown,installRuntimeHandlers,bindPoolErrorHandler} from '../src/runtimeLifecycle.js';
 
 test('graceful shutdown closes server and pool once and exits with requested code',async()=>{
   let closes=0,poolEnds=0;
@@ -77,4 +77,22 @@ test('runtime handlers map signals and fatal process events to shutdown',()=>{
   cleanup();
   assert.equal(processRef.listenerCount('SIGINT'),0);
   assert.equal(processRef.listenerCount('uncaughtException'),0);
+});
+
+
+test('idle PostgreSQL pool errors trigger sanitized fatal shutdown path',()=>{
+  const pool=new EventEmitter();
+  const seen=[];
+  const cleanup=bindPoolErrorHandler({
+    pool,
+    shutdown:(reason,options)=>seen.push({reason,options}),
+  });
+  const error=new Error('connection terminated with secret');
+  pool.emit('error',error);
+  assert.equal(seen.length,1);
+  assert.equal(seen[0].reason,'postgres-pool');
+  assert.equal(seen[0].options.error,error);
+  assert.equal(seen[0].options.exitCode,1);
+  cleanup();
+  assert.equal(pool.listenerCount('error'),0);
 });

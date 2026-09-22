@@ -7,7 +7,7 @@ import {pool} from './db.js';
 import {applyProductionMigrations} from './migrations.js';
 import {runBackgroundTasks} from './background.js';
 import {prepareStartup,startupFailureEntry} from './startup.js';
-import {createGracefulShutdown,installRuntimeHandlers} from './runtimeLifecycle.js';
+import {createGracefulShutdown,installRuntimeHandlers,bindPoolErrorHandler} from './runtimeLifecycle.js';
 
 try{
   const startup=await prepareStartup({
@@ -34,6 +34,7 @@ try{
     timers:[initialTick,maintenanceInterval],
   });
   installRuntimeHandlers({shutdown});
+  bindPoolErrorHandler({pool,shutdown});
   server.on('error',err=>void shutdown('listen',{error:err,exitCode:1}));
 }catch(err){
   console.error(JSON.stringify(startupFailureEntry(err)));

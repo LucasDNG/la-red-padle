@@ -58,3 +58,10 @@ export function installRuntimeHandlers({processRef=process,shutdown}={}){
     processRef.removeListener('uncaughtException',onUncaught);
   };
 }
+
+
+export function bindPoolErrorHandler({pool,shutdown}={}){
+  const onPoolError=error=>void shutdown('postgres-pool',{error,exitCode:1});
+  pool.on('error',onPoolError);
+  return ()=>pool.removeListener('error',onPoolError);
+}
