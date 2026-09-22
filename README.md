@@ -17,7 +17,7 @@ Empezar por `START_HERE.md` y `NEXT_CHAT_HANDOFF.md`. Reglas y decisiones viven 
 
 ## Estado automatizado confirmado
 - package `5.0.9`;
-- 65/65 tests puros;
+- 67/67 tests puros;
 - 45/45 integración PostgreSQL;
 - `verify:db` verde;
 - frontend build verde;
