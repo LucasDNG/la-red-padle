@@ -400,5 +400,21 @@ CI confirmado sobre `9bcc462b3511dd053af3d004196ed04f4a13a72c`:
 Preflight y smoke también usan el lock raíz con `npm ci`. Frontend sigue usando `npm install` porque aún no existe `frontend/package-lock.json`; no se fabricó uno manualmente tras agotarse el timeout del registry.
 
 
-### Request correlation en validación
-Se agrega un `X-Request-ID` UUID generado por el servidor en cada respuesta API. Los logs de error incluyen ese ID y, cuando existe, un `CF-Ray` estrictamente sanitizado. No se confía en un `X-Request-ID` enviado por el cliente. El production smoke exige un request ID válido para comprobar trazabilidad real.
+### Request correlation — VERDE
+CI confirmado sobre `3d120b2aac8494e39a4d0b04d2dfdbe43f43c722`:
+- 65/65 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db`, frontend y Vercel verdes.
+
+Cada respuesta API expone un `X-Request-ID` UUID generado por servidor; logs de error incluyen ese ID y un `CF-Ray` solo si pasa sanitización estricta. El smoke productivo exige request ID válido.
+
+
+### Workflows least-privilege/timeouts en validación
+Se endurecen los workflows:
+- token de GitHub limitado explícitamente a `contents: read`;
+- CI backend: timeout 20 min;
+- CI frontend: timeout 15 min;
+- preflight productivo: timeout 15 min;
+- smoke productivo: timeout 10 min.
+
+Los límites son deliberadamente holgados frente a las duraciones actuales y evitan ejecuciones colgadas indefinidamente.

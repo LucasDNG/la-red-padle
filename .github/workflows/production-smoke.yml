@@ -3,9 +3,13 @@ name: LA RED production smoke
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   public-smoke:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     environment: production
     env:
       PROD_API_URL: ${{ vars.PROD_API_URL }}

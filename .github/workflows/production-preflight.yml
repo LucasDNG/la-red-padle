@@ -12,9 +12,13 @@ on:
           - core
           - full
 
+permissions:
+  contents: read
+
 jobs:
   preflight:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     environment: production
     env:
       NODE_ENV: production
