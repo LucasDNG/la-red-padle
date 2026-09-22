@@ -9,7 +9,7 @@
 - [x] Purga documental al verificar.
 - [x] Reenvío documental implementado.
 - [x] Layout/identidad visual recuperados.
-- [x] Tests puros actuales 44/44 verdes.
+- [x] Tests puros actuales 46/46 verdes.
 - [x] Simulación longitudinal 5/10/20 años con variantes y válvula 2/3 validada.
 - [x] Push del checkpoint actual.
 - [x] CI del checkpoint actual verde.
@@ -52,7 +52,7 @@
 - [x] pruebas PostgreSQL/concurrencia 45/45 verdes;
 - [x] logs de errores sanitizados para no persistir PII/SQL/details en producción;
 - [x] CORS de producción validado como orígenes HTTPS puros.
-- [ ] headers HTTP de seguridad backend/Vercel validados en CI y deploy;
+- [x] headers HTTP de seguridad backend/Vercel validados en CI y deploy;
 
 ## Migración producción
 - [x] migración de abandono automatizada al startup, idempotente y serializada con advisory lock; `npm run migrate:prod` disponible manualmente;

@@ -60,7 +60,7 @@ El próximo bloque debe:
 8. recién después hacer smoke manual de UX.
 
 Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 44/44 tests puros + 45/45 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
+Suite actual: 46/46 tests puros + 45/45 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
 
 ## Metodología
 
@@ -329,13 +329,12 @@ Quedó confirmado:
 La limitación por instancia sigue documentada; múltiples instancias requieren almacenamiento compartido.
 
 
-### Security headers en validación
-Se agrega hardening HTTP de bajo riesgo:
-- backend oculta `X-Powered-By`;
-- API y frontend envían `X-Content-Type-Options: nosniff`;
-- `X-Frame-Options: DENY`;
-- `Referrer-Policy: strict-origin-when-cross-origin`;
-- CSP limitada a `frame-ancestors 'none'`, sin restringir scripts/styles/connect;
-- HSTS de 1 año solo en backend production y en Vercel.
+### Security headers — VERDE
+CI/Vercel confirmados sobre `023bc126308201b68bf0c3ea229e577b02753602`:
+- 46/46 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db` verde;
+- frontend build verde;
+- Vercel `success`.
 
-No se bloquea `camera` mediante Permissions-Policy porque el flujo de DNI usa captura desde móvil. Confirmar CI/Vercel antes de cerrar.
+Backend y Vercel aplican `nosniff`, anti-frame, referrer policy y HSTS productivo. La CSP se limita a `frame-ancestors 'none'` para no romper scripts/styles/connect; no se bloquea cámara por el flujo de captura de DNI.

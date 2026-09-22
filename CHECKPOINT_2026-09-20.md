@@ -264,3 +264,14 @@ Confirmado sobre `f1dbea68dcbe3a347c13373a5352f171539cad8b`:
 - Vercel `success`.
 
 Los jobs background ya no bloquean uno al otro ante fallos y sus errores productivos se registran sin payload crudo. El rate limiter quedó acotado y fail-closed ante saturación.
+
+
+## Security headers — VERDE
+Confirmado sobre `023bc126308201b68bf0c3ea229e577b02753602`:
+- 46/46 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db`;
+- frontend build;
+- Vercel `success`.
+
+Backend oculta `X-Powered-By` y backend/frontend aplican headers de seguridad de bajo riesgo sin restringir recursos necesarios de la SPA.
