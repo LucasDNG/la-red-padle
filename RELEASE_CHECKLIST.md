@@ -119,3 +119,5 @@ Solo después de todo lo anterior: **lanzamiento público**.
 - [x] Preflight CORE real contra Neon: `ok:true`, engine `wheel-v2`, timezone Argentina, reloj activo, migrations listas, TLS 1.3, 1 admin, outbox sin fallos.
 - [x] Production smoke real contra Render + Vercel: `ok:true`, health/DB/CORS/headers/request-id/no-store/endpoints públicos verdes.
 - [x] Login Admin real con contraseña + TOTP de 6 dígitos confirmado desde producción.
+
+- [x] fallback SPA del Service Worker verificado y corregido para rutas como `/liga`;
