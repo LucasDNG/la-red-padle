@@ -9,7 +9,7 @@ import {myLeague,proposeSchedule,acceptSchedule,voteExtension,reportNoShow,conte
 import {reportDiscipline} from './discipline.js';
 import {pendingUsers,searchUsers,setUserVerification,updateUserDni,identityDocument,requestIdentityResubmission,listVenues,createVenue,updateVenue,disputes,resolveDispute,disciplineQueue,resolveDiscipline,systemStatus,auditLog,setLeagueClockPause,retryWhatsApp,verifyTotp} from './admin.js';
 import {problem} from './core.js';
-import {safeErrorLog,authRateLimitKey,safeClientErrorMessage,createFixedWindowRateLimitStore,securityResponseHeaders,privateResponseHeaders} from './httpSecurity.js';
+import {safeErrorLog,authRateLimitKey,safeClientErrorMessage,createFixedWindowRateLimitStore,securityResponseHeaders,privateResponseHeaders,createRequestTrace} from './httpSecurity.js';
 import {readHealth,readLiveness} from './health.js';
 import {frontendOrigins} from './config.js';
 
@@ -17,7 +17,10 @@ export const app=express();
 app.disable('x-powered-by');
 app.set('trust proxy',1);
 app.use((req,res,next)=>{
-  const headers={...securityResponseHeaders(),...privateResponseHeaders(req.path)};
+  const trace=createRequestTrace(req);
+  req.requestId=trace.requestId;
+  req.cfRay=trace.cfRay;
+  const headers={...securityResponseHeaders(),...privateResponseHeaders(req.path),'X-Request-ID':trace.requestId};
   for(const [name,value] of Object.entries(headers))res.setHeader(name,value);
   next();
 });

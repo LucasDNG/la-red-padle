@@ -390,10 +390,15 @@ CI confirmado sobre `1c7473acb3d7a08e004a1d098d4b369a0b2dc1f7`:
 Errores asíncronos de clientes idle del pool disparan shutdown fatal sanitizado.
 
 
-### Installs reproducibles backend/workflows en validación
-Se cambia a `npm ci --ignore-scripts` en:
-- job backend de CI;
-- production preflight;
-- production smoke.
+### Installs reproducibles backend/workflows — VERDE
+CI confirmado sobre `9bcc462b3511dd053af3d004196ed04f4a13a72c`:
+- 62/62 tests puros;
+- 45/45 integración PostgreSQL;
+- `npm ci --ignore-scripts` backend verde;
+- `verify:db`, frontend y Vercel verdes.
 
-El lock raíz queda con metadata de versión 5.0.9. Frontend sigue usando `npm install` porque no existe `frontend/package-lock.json`; se intentó generarlo desde el registry pero el entorno agotó timeout, por lo que no se fabricó manualmente.
+Preflight y smoke también usan el lock raíz con `npm ci`. Frontend sigue usando `npm install` porque aún no existe `frontend/package-lock.json`; no se fabricó uno manualmente tras agotarse el timeout del registry.
+
+
+### Request correlation en validación
+Se agrega un `X-Request-ID` UUID generado por el servidor en cada respuesta API. Los logs de error incluyen ese ID y, cuando existe, un `CF-Ray` estrictamente sanitizado. No se confía en un `X-Request-ID` enviado por el cliente. El production smoke exige un request ID válido para comprobar trazabilidad real.

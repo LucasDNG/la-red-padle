@@ -1,3 +1,5 @@
+import crypto from 'node:crypto';
+
 const SAFE_ERROR_CODES=new Set([
   'LIMIT_FILE_SIZE','LIMIT_FILE_COUNT','23505','23503','23514','22P02','42P08'
 ]);
@@ -11,6 +13,8 @@ export function safeErrorLog(err,req,{production=process.env.NODE_ENV==='product
     path:String(req?.path||req?.originalUrl||'').split('?')[0].slice(0,200),
     status,
     ...(code?{code}:{}),
+    ...(req?.requestId?{requestId:String(req.requestId).slice(0,80)}:{}),
+    ...(req?.cfRay?{cfRay:String(req.cfRay).slice(0,80)}:{}),
     name:String(err?.name||'Error').slice(0,80),
   };
   if(!production)entry.message=String(err?.message||'Error interno').slice(0,500);
@@ -105,4 +109,12 @@ export function privateResponseHeaders(path){
     return {'Cache-Control':'no-store','Pragma':'no-cache'};
   }
   return {};
+}
+
+
+export function createRequestTrace(req,{generate=()=>crypto.randomUUID()}={}){
+  const requestId=String(generate()).slice(0,80);
+  const rawCfRay=String(req?.headers?.['cf-ray']||'').trim();
+  const cfRay=/^[A-Za-z0-9-]{1,80}$/.test(rawCfRay)?rawCfRay:undefined;
+  return {requestId,...(cfRay?{cfRay}:{})};
 }

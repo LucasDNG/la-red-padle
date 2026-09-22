@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {safeErrorLog,authRateLimitKey,safeClientErrorMessage,safeBackgroundErrorLog,createFixedWindowRateLimitStore} from '../src/httpSecurity.js';
+import {safeErrorLog,authRateLimitKey,safeClientErrorMessage,safeBackgroundErrorLog,createFixedWindowRateLimitStore,createRequestTrace} from '../src/httpSecurity.js';
 
 test('production error logs never expose PostgreSQL detail or user message',()=>{
   const err={
@@ -85,4 +85,32 @@ test('fixed-window rate limit store is bounded and fails closed when saturated',
   assert.equal(afterExpiry.saturated,false);
   assert.equal(afterExpiry.count,1);
   assert.equal(store.size(),1);
+});
+
+
+test('request trace uses server-generated id and only accepts safe CF-Ray metadata',()=>{
+  const trace=createRequestTrace(
+    {headers:{'x-request-id':'spoofed-user-id','cf-ray':'abc123-EZE'}},
+    {generate:()=> '11111111-2222-4333-8444-555555555555'}
+  );
+  assert.equal(trace.requestId,'11111111-2222-4333-8444-555555555555');
+  assert.equal(trace.cfRay,'abc123-EZE');
+  assert.notEqual(trace.requestId,'spoofed-user-id');
+
+  const unsafe=createRequestTrace(
+    {headers:{'cf-ray':'bad value with spaces / secret'}},
+    {generate:()=> 'trace-safe'}
+  );
+  assert.equal(unsafe.cfRay,undefined);
+});
+
+test('error log carries safe request correlation metadata without trusting payload fields',()=>{
+  const entry=safeErrorLog(
+    {message:'secret detail',detail:'DNI 12345678'},
+    {method:'GET',path:'/api/test',requestId:'req-123',cfRay:'ray-456-EZE'},
+    {production:true}
+  );
+  assert.equal(entry.requestId,'req-123');
+  assert.equal(entry.cfRay,'ray-456-EZE');
+  assert.equal(JSON.stringify(entry).includes('12345678'),false);
 });

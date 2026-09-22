@@ -12,6 +12,7 @@ test('HTTP middleware emits security headers and no-store on private namespaces'
     assert.equal(publicResponse.status,200);
     assert.equal(publicResponse.headers.get('x-content-type-options'),'nosniff');
     assert.equal(publicResponse.headers.get('x-frame-options'),'DENY');
+    assert.match(publicResponse.headers.get('x-request-id')||'',/^[0-9a-f-]{36}$/i);
     assert.equal(publicResponse.headers.get('cache-control'),null);
 
     const privateResponse=await fetch(`http://127.0.0.1:${port}/api/auth/not-a-route`);

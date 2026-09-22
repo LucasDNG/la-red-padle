@@ -37,6 +37,8 @@ export async function runProductionSmoke({apiUrl,frontendUrl,fetchImpl=globalThi
   const liveResult=await jsonGet(fetchImpl,api+'/api/live',frontend);
   if(liveResult.data?.ok!==true||liveResult.data?.engine!=='wheel-v2'||liveResult.data?.process!=='ok')throw new Error('Liveness productiva inválida');
   requireSecurityHeaders(liveResult.response,'API liveness');
+  const requestId=liveResult.response.headers.get('x-request-id')||'';
+  if(!/^[A-Za-z0-9-]{8,80}$/.test(requestId))throw new Error('API productiva no envía X-Request-ID válido');
 
   const healthResult=await jsonGet(fetchImpl,api+'/api/health',frontend);
   const health=healthResult.data;
@@ -75,6 +77,7 @@ export async function runProductionSmoke({apiUrl,frontendUrl,fetchImpl=globalThi
     engine:health.engine,
     process:liveResult.data.process,
     database:health.database,
+    requestId:true,
     cors:true,
     securityHeaders:true,
     privateNoStore:true,

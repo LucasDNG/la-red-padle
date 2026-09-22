@@ -34,7 +34,7 @@
 
 ## Seguridad/operación
 - [x] probar con Node 22 real;
-- [ ] backend/preflight/smoke usan `npm ci` y lock raíz alineado;
+- [x] backend/preflight/smoke usan `npm ci` y lock raíz alineado;
 - [ ] generar y versionar `frontend/package-lock.json` para poder usar `npm ci` también en frontend;
 - [x] eliminar bypass `rejectUnauthorized:false` y validar TLS por configuración; conexión Neon final todavía debe pasar preflight real;
 - [x] TOTP fail-closed y requisitos de secreto automatizados;
@@ -58,6 +58,7 @@
 - [x] respuestas auth/me/admin con `no-store` y startup fatal sanitizado validados en CI;
 - [x] shutdown gracioso SIGTERM/SIGINT + handlers fatales sanitizados validados en CI;
 - [x] errores idle del pool PostgreSQL conectados al shutdown sanitizado y validados en CI;
+- [ ] `X-Request-ID` server-side + correlación segura de errores validada en CI/smoke;
 
 ## Migración producción
 - [x] migración de abandono automatizada al startup, idempotente y serializada con advisory lock; `npm run migrate:prod` disponible manualmente;

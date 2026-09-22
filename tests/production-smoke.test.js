@@ -8,6 +8,7 @@ const secureHeaders={
   'referrer-policy':'strict-origin-when-cross-origin',
   'content-security-policy':"frame-ancestors 'none'",
   'strict-transport-security':'max-age=31536000',
+  'x-request-id':'11111111-2222-4333-8444-555555555555',
 };
 
 function response(body,{status=200,headers={}}={}){
@@ -151,5 +152,24 @@ test('production smoke rejects invalid liveness before readiness checks',async()
       fetchImpl
     }),
     /Liveness productiva inválida/
+  );
+});
+
+
+test('production smoke rejects missing request correlation header',async()=>{
+  const fetchImpl=async(url)=>{
+    if(url.endsWith('/api/live'))return response(
+      {ok:true,engine:'wheel-v2',process:'ok'},
+      {headers:{'x-request-id':''}}
+    );
+    throw new Error('no debería continuar');
+  };
+  await assert.rejects(
+    ()=>runProductionSmoke({
+      apiUrl:'https://api.example.com',
+      frontendUrl:'https://app.example.com',
+      fetchImpl
+    }),
+    /X-Request-ID/
   );
 });
