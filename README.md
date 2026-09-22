@@ -18,7 +18,7 @@ Empezar por `START_HERE.md` y `NEXT_CHAT_HANDOFF.md`. Reglas y decisiones viven 
 ## Estado automatizado confirmado
 - package `5.0.9`;
 - 67/67 tests puros;
-- 45/45 integración PostgreSQL;
+- 46/46 integración PostgreSQL;
 - `verify:db` verde;
 - frontend build verde;
 - Node 22/PostgreSQL 16 verdes en CI;
@@ -83,3 +83,9 @@ No pegar secretos en Git ni en chats. Generarlos localmente con:
 ```bash
 npm run generate:secrets -- --account=admin
 ```
+
+
+## Flujo visible actual
+La pareja se forma por invitación + aceptación y la rueda automática asigna el rival; no existe selección manual de desafío. Desde `Mi liga` se coordinan fecha y lugar libre, aceptación de propuesta, resultado, corrección/confirmación, no-show, extensión extraordinaria e incidentes. `Mi pareja` expone pausa, confirmación, disolución y reactivación.
+
+Los lugares escritos por jugadores son solo referencias de coordinación. El catálogo `venues` queda reservado para canchas adheridas/comerciales que administración decida publicar explícitamente.

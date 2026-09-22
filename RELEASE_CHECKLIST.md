@@ -52,7 +52,7 @@
 - [ ] RPO/RTO de recuperación acordados;
 - [ ] prueba de recuperación aislada completada;
 - [ ] backup externo definido si se necesita más retención que Instant Restore;
-- [x] pruebas PostgreSQL/concurrencia 45/45 verdes;
+- [x] pruebas PostgreSQL/concurrencia 46/46 verdes;
 - [x] logs de errores sanitizados para no persistir PII/SQL/details en producción;
 - [x] CORS de producción validado como orígenes HTTPS puros.
 - [x] headers HTTP de seguridad backend/Vercel validados en CI y deploy;
@@ -101,3 +101,15 @@
 - [ ] seguro/RC/accidentes evaluado.
 
 Solo después de todo lo anterior: **lanzamiento público**.
+
+
+## Lugar y surface audit — 2026-09-22
+- [x] Lugar de partido libre, sin dependencia de cancha precargada.
+- [x] Canchas comerciales separadas de menciones de jugadores.
+- [x] Todos los endpoints funcionales ordinarios tienen superficie frontend.
+- [x] Pausa/disolución tienen confirmación visible entre compañeros.
+- [x] Extensión/no-show respetan ventanas temporales en UI.
+- [x] Corrección/confirmación/disputa de resultado tienen estados visibles.
+- [x] Reporte disciplinario post-partido accesible durante 15 días.
+- [ ] Render desplegó el HEAD que contiene `PATCH_FREE_TEXT_LOCATIONS_2026-09-22.sql`.
+- [ ] Nuevo `preflight:core` real verde después de ese deploy.

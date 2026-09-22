@@ -22,8 +22,8 @@ Si un resumen de chat contradice el repo, manda el repo. Si dos documentos se co
 - motor único: `wheel-v2`.
 - runtime objetivo: Node 22.
 - PostgreSQL de CI: 16.
-- tests puros: 68/68 verdes en el último checkpoint verificado.
-- integración PostgreSQL: 45/45 verdes.
+- tests puros: 70/70 verdes en el último checkpoint verificado.
+- integración PostgreSQL: 46/46 verdes.
 - `verify:db`: verde.
 - frontend build: verde.
 - Vercel: status `success` en el último checkpoint verificado.
@@ -59,3 +59,11 @@ Los gates principales ya requieren infraestructura/credenciales reales:
 10. revisión legal/seguro en Argentina.
 
 Deuda técnica no bloqueante: generar legítimamente `frontend/package-lock.json` y recién entonces migrar el job frontend a `npm ci`.
+
+
+## Estado UX vigente — 2026-09-22
+- Rival: lo asigna la rueda automática; no existe desafío manual.
+- Programación: lugar libre escrito por jugadores, sin cancha precargada obligatoria.
+- Canchas adheridas: capa comercial separada, publicada solo por decisión Admin.
+- La auditoría `USER_JOURNEY_AUDIT_2026-09-22.md` documenta cada flujo visible.
+- Producción debe desplegar el patch de lugares libres y correr un preflight core nuevo.

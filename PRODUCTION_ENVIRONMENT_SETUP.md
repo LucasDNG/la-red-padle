@@ -103,3 +103,7 @@ El smoke valida de forma no destructiva:
 - CORS;
 - endpoints públicos críticos;
 - frontend SPA.
+
+
+## Nota 2026-09-22 — canchas
+`preflight:core` ya no exige una fila activa en `venues`. Los jugadores escriben libremente el lugar de cada partido. `venues` es únicamente la capa de sedes adheridas/comerciales y puede permanecer vacía al lanzamiento.

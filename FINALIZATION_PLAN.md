@@ -5,7 +5,7 @@
 - motor `wheel-v2`;
 - Neon nueva como base actual; la histórica fue eliminada;
 - 67/67 tests puros;
-- 45/45 integración PostgreSQL;
+- 46/46 integración PostgreSQL;
 - `verify:db` verde;
 - frontend build verde;
 - Node 22/PostgreSQL 16 verdes en CI;
@@ -91,3 +91,12 @@ Solo después de todos los gates obligatorios verdes se considera LA RED lista p
 
 ## 5. Deuda no bloqueante
 Generar legítimamente `frontend/package-lock.json` y recién entonces sustituir `npm install` por `npm ci` en el job frontend.
+
+
+## Actualización 2026-09-22 — gate de producción inmediato
+Antes de continuar con smoke/TOTP/WhatsApp:
+1. Render debe desplegar el HEAD vigente.
+2. Startup debe aplicar `PATCH_FREE_TEXT_LOCATIONS_2026-09-22.sql`.
+3. Ejecutar un workflow **nuevo** `LA RED production preflight` en modo `core`.
+4. El preflight ya no requiere ninguna cancha comercial activa.
+5. Una vez verde, continuar con production smoke y los gates externos restantes.

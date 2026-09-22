@@ -10,7 +10,7 @@ Los ZIPs históricos `v1`…`v11` no son fuente de verdad y no deben reaplicarse
 
 ## Validación automatizada vigente
 - 67/67 tests puros;
-- 45/45 integración PostgreSQL;
+- 46/46 integración PostgreSQL;
 - `verify:db` verde;
 - frontend build verde;
 - Node 22 + PostgreSQL 16;
@@ -53,3 +53,11 @@ Los ZIPs históricos `v1`…`v11` no son fuente de verdad y no deben reaplicarse
 Generar legítimamente `frontend/package-lock.json` y después migrar el job frontend a `npm ci`.
 
 Antes de declarar release, verificar el HEAD actual y sus checks; no reutilizar el estado de un commit anterior.
+
+
+### UX / lugares — 2026-09-22
+- free-text `location_text` para programación;
+- migración `PATCH_FREE_TEXT_LOCATIONS_2026-09-22.sql`;
+- catálogo comercial de canchas separado;
+- auditoría de superficie `USER_JOURNEY_AUDIT_2026-09-22.md`;
+- regresión de paridad API/frontend.
