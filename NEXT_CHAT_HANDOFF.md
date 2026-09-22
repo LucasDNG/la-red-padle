@@ -91,3 +91,7 @@ La cronología extensa está en `AUDIT_2026-09-20.md`, `CHECKPOINT_2026-09-20.md
 
 ### Cancelación de invitación saliente — CORREGIDA
 `Mi pareja` ya muestra la invitación saliente activa, su vencimiento/categoría, permite cancelarla y bloquea el envío de otra mientras siga pendiente. Se agregó regresión automática. No cambia reglas deportivas.
+
+
+### Acciones pausa/reactivación en Mi pareja — CORREGIDAS
+La UI muestra PAUSAR solo para pareja `active` y REACTIVAR solo para pareja `paused`. Se agregó regresión automática.

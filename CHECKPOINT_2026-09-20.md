@@ -317,3 +317,7 @@ Este cambio es de higiene/reproducibilidad y no modifica funcionalidad. La deuda
 
 ## Cancelación visible de invitación de pareja
 Se corrigió una omisión de UX: el backend ya permitía cancelar una invitación saliente, pero el frontend no ofrecía esa acción. `Mi pareja` ahora muestra la invitación enviada, permite cancelarla y evita ofrecer una segunda mientras la primera siga pendiente.
+
+
+## Acciones de pareja coherentes con su estado
+`Mi pareja` ya no muestra PAUSAR y REACTIVAR simultáneamente: activa => pausa; pausada => reactivación. Es un ajuste UX sobre reglas existentes, sin cambio de motor.

@@ -177,6 +177,7 @@ Antes de release deben correrse miles de rondas con 101+ parejas y verificarse:
 - Cards hermanas nunca quedan pegadas: grids y stacks conservan separación visible.
 - Formularios dejan espacio entre explicación, labels, inputs y CTA.
 - `Mi pareja` en estado sin pareja muestra formulario y guía separados; invitaciones viven en una sección independiente.
+- `Mi pareja` con pareja activa muestra pausa y no reactivación; con pareja pausada muestra reactivación y no pausa.
 - `Mi liga` sin pareja muestra onboarding, estado de identidad y secuencia de próximos pasos.
 - `Mi liga` con assignment separa claramente partido, programación, resultado e incidentes.
 - Cuenta, Avisos, Perfil, Próximos, Ranking, Instalar y Admin mantienen jerarquía de título/subtítulo/contenido.
