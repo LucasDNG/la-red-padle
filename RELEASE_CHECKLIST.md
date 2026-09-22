@@ -52,6 +52,7 @@
 - [x] pruebas PostgreSQL/concurrencia 45/45 verdes;
 - [x] logs de errores sanitizados para no persistir PII/SQL/details en producción;
 - [x] CORS de producción validado como orígenes HTTPS puros.
+- [ ] headers HTTP de seguridad backend/Vercel validados en CI y deploy;
 
 ## Migración producción
 - [x] migración de abandono automatizada al startup, idempotente y serializada con advisory lock; `npm run migrate:prod` disponible manualmente;

@@ -327,3 +327,15 @@ Quedó confirmado:
 - limpieza de claves expiradas al necesitar capacidad.
 
 La limitación por instancia sigue documentada; múltiples instancias requieren almacenamiento compartido.
+
+
+### Security headers en validación
+Se agrega hardening HTTP de bajo riesgo:
+- backend oculta `X-Powered-By`;
+- API y frontend envían `X-Content-Type-Options: nosniff`;
+- `X-Frame-Options: DENY`;
+- `Referrer-Policy: strict-origin-when-cross-origin`;
+- CSP limitada a `frame-ancestors 'none'`, sin restringir scripts/styles/connect;
+- HSTS de 1 año solo en backend production y en Vercel.
+
+No se bloquea `camera` mediante Permissions-Policy porque el flujo de DNI usa captura desde móvil. Confirmar CI/Vercel antes de cerrar.

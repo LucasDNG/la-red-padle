@@ -87,3 +87,14 @@ export function createFixedWindowRateLimitStore({windowMs=15*60*1000,maxEntries=
     capacity,
   };
 }
+
+
+export function securityResponseHeaders({production=process.env.NODE_ENV==='production'}={}){
+  return {
+    'X-Content-Type-Options':'nosniff',
+    'X-Frame-Options':'DENY',
+    'Referrer-Policy':'strict-origin-when-cross-origin',
+    'Content-Security-Policy':"frame-ancestors 'none'",
+    ...(production?{'Strict-Transport-Security':'max-age=31536000'}:{}),
+  };
+}
