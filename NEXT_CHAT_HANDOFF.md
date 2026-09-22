@@ -1,10 +1,12 @@
 # NEXT_CHAT_HANDOFF.md — LA RED Pádel
 
-## Instrucción para el próximo chat
+## Instrucción obligatoria
 
-Antes de proponer cambios o escribir código, leer el estado actual del repositorio `LucasDNG/la-red-padle`, rama `main`, y tomar los archivos `.md` como fuente de verdad.
+Continuar desde el repositorio `LucasDNG/la-red-padle`, rama `main`. No reconstruir el proyecto desde memoria del chat ni desde ZIPs históricos.
 
-Orden mínimo de lectura:
+Primera acción en un chat nuevo: obtener el HEAD real de `main` y comprobar GitHub Actions + status Vercel de ese HEAD. No afirmar CI verde antes de verificarlo.
+
+Después leer, como mínimo:
 
 1. `CHECKPOINT_2026-09-20.md`
 2. `PROJECT_RULES.md`
@@ -15,444 +17,73 @@ Orden mínimo de lectura:
 7. `ARCHITECTURE.md`
 8. `PROJECT_JOURNEY.md`
 9. `RELEASE_MANIFEST.md`
+10. `RELEASE_CHECKLIST.md`
+11. `FINALIZATION_PLAN.md`
+12. `PRODUCTION_ENVIRONMENT_SETUP.md`
+13. `PRODUCTION_RECOVERY.md`
 
-Si el chat anterior y los `.md` difieren, prevalece el estado documentado más reciente y se debe señalar la discrepancia antes de cambiar código.
+## Estado consolidado
 
-## Estado de producto al cerrar este chat
+- package: `5.0.9`.
+- motor activo: `wheel-v2`.
+- Neon histórica: eliminada; no asumir recuperable.
+- Neon nueva: base de referencia actual.
+- runtime objetivo: Node 22.
+- 65/65 tests puros verdes en el último checkpoint verificado.
+- 45/45 integración PostgreSQL verdes.
+- `verify:db` verde.
+- frontend build verde.
+- Vercel `success` en el último checkpoint verificado.
+- el corazón deportivo, concurrencia, edge cases y lesión/abandono están cubiertos automáticamente.
+- liveness/readiness, migrations startup, shutdown, pool errors, seguridad HTTP, no-store, request correlation, preflight y production smoke están implementados y testeados.
+- backend/preflight/smoke usan `npm ci`.
+- workflows tienen `contents: read` y timeouts.
+- `frontend/.vite/` ya no está versionado.
 
-- Motor activo: `wheel-v2`.
-- Package actual: `5.0.9`.
-- Neon nueva activa; la Neon histórica fue eliminada y no existe como backup.
-- Registro con DNI + frente/dorso: probado.
-- Admin privado `/admin-la-red`: probado.
-- Verificación `pending -> verified`: probada.
-- Purga de documentación temporal: probada.
-- Reenvío de DNI: implementado.
-- CI del checkpoint anterior en Node 22: verde.
-- Suite actual después de la auditoría ampliada: 20/20 tests verdes.
-- No asumir todavía que el ciclo deportivo completo está validado en integración real.
+El último commit de código/higiene verificado antes de esta normalización documental fue `5ad90c16f2e000d3ceb2f6bfed4d7e737563402b` (`Limpia cache generada de Vite`): GitHub Actions y Vercel terminaron `success`. Si `main` está más adelante, verificar el HEAD nuevo en lugar de reutilizar ese estado.
 
-## Auditoría longitudinal ya realizada
+## Regla deportiva congelada de equilibrio
 
-La deriva de categorías fue simulada y la regla vigente quedó validada con una auditoría ampliada a 5, 10 y 20 años.
+No reabrir por intuición.
 
-Hallazgos:
-1. P3/R3 fijo deriva hacia categorías superiores.
-2. La hipótesis de 5 derrotas para descender fue medida y descartada: reduce demasiado el flujo descendente y agrava fuertemente la acumulación en Primera.
-3. P4/R3 sobrecorrige hacia categorías inferiores.
-4. Entre válvulas adaptativas gap 4/5/6, gap 5 da el mejor compromiso medido a 20 años.
-5. La regla vigente queda sin cambios: 3 derrotas normalmente; 2 si la categoría tiene al menos 5 parejas activas más que la inferior.
-6. El simulador ahora mide población, ascensos, descensos, categorías vacías y RMSE de estabilidad en 5/10/20 años.
-7. Sigue pendiente auditar la inconsistencia probable de no-show objetado/indeterminado y `monthly_miss_streak`.
+- ascenso: #1 + 3 victorias consecutivas;
+- descenso: última + 3 derrotas consecutivas;
+- válvula: si la categoría tiene al menos 5 parejas activas más que la inferior, el umbral de descenso baja a 2;
+- el cambio de población por sí solo no mueve parejas;
+- R5 fue descartado matemática y longitudinalmente.
 
-## Próximo problema a resolver
-
-Pasar a integración PostgreSQL del ascenso/descenso y la válvula de equilibrio, sin pedir pruebas manuales largas.
-
-El próximo bloque debe:
-1. probar diferencia poblacional 4 => umbral de descenso 3;
-2. probar diferencia 5 => umbral 2;
-3. confirmar que el cambio de población no mueve parejas por sí solo;
-4. confirmar que una derrota deportiva posterior de la última dispara el movimiento exactamente una vez;
-5. validar entrada base #2, deuda, renumeración y ELO;
-6. validar ascenso al fondo activo;
-7. probar retries/concurrencia/idempotencia;
-8. recién después hacer smoke manual de UX.
-
-Simulación reproducible: `npm run simulate:balance`.
-Suite actual: 65/65 tests puros + 45/45 integración PostgreSQL + `verify:db`, CI verde en Node 22/PostgreSQL 16; Vercel status success.
+La evidencia está en `SIMULATION_AUDIT_2026-09-20.md`.
 
 ## Metodología
 
-- No pedir al usuario que simule años manualmente.
-- El usuario solo debería hacer smoke tests humanos/UX cuando sean necesarios.
-- Primero simulación y tests automáticos.
-- Luego integración PostgreSQL/concurrencia.
-- Después smoke manual.
-- Antes de cada bloque grande, actualizar `.md` y hacer checkpoint/push.
+- `.md` > memoria informal del chat.
+- No cambiar reglas por fallas de tests sin compararlas con docs.
+- Primero tests/simulaciones automáticas, después PostgreSQL, manual solo para UX/smoke.
+- Distinguir fixture/test debt de bugs reales.
+- Push directo a `main`.
+- Actualizar checkpoint/handoff después de cambios importantes.
+- No tocar ni imprimir secretos reales.
+- Avanzar autónomamente todo lo posible.
+- No agregar hardening especulativo si no responde a evidencia.
+- No interpretar DNS bloqueado del entorno del chat como caída de Render/Vercel.
+
+## Pendientes externos reales
 
-## Regla de continuidad
-
-Los `.md` son la memoria oficial del proyecto. El objetivo de este archivo es que un chat nuevo pueda reconstruir el contexto sin depender de un resumen informal del chat anterior.
-
-
-### Cambio en curso: integración PostgreSQL
-Se agregó `npm run test:integration` y PostgreSQL 16 como service de GitHub Actions. También se corrigió el bug de no-show objetado que sumaba strikes no atribuibles y se endureció la concurrencia de `applySportingResult()`.
-
-Antes de seguir con otro bloque:
-1. continuar integración PostgreSQL de formación de pareja y primera asignación de rueda;
-2. probar concurrencia de dos aceptaciones/altas en la misma categoría y máxima una membresía vigente;
-3. probar assignWheel concurrente, máximo un assignment por pareja, odd/byes y waiting time;
-4. después programación/resultado end-to-end.
-
-
-### Bloque pareja → rueda en validación
-Se corrigieron dos riesgos detectados por auditoría:
-- orden de locks/posición transitoria al aceptar parejas concurrentemente;
-- prioridad de espera en categorías impares antes del matching de rival.
-
-Se agregaron 5 escenarios PostgreSQL: altas simultáneas, invitaciones compartiendo jugador, `assignWheel()` concurrente, bye impar y pareja sola. CI confirmado: 20/20 tests puros + 12/12 PostgreSQL, Node 22 y frontend build verdes. El siguiente bloque es programación + resultado end-to-end sobre PostgreSQL.
-
-
-### Bloque programación → resultado en validación
-Se agregaron 7 escenarios PostgreSQL que cubren propuesta/aceptación, conservación de programación oficial, revisión de la primera versión, confirmación, matching versions, disputa + resolución Admin, auto-validación a 15 días y rechazo después de 30 días.
-
-También se corrigió que la resolución Admin de disputa no notificaba a ambas parejas. CI confirmado: 20/20 tests puros + 19/19 integración PostgreSQL, Node 22/PostgreSQL 16 y frontend build verdes. Siguiente paso: edge cases de vencimiento/extensión/no-show/pausa/disolución y luego smoke UX.
-
-
-### Edge cases competitivos en validación
-Se detectaron y corrigieron tres desvíos de implementación sin cambiar reglas:
-- voto de extensión fuera de las 48 h técnicas;
-- atribución incorrecta cuando ambas parejas actuaron pero una lo hizo tarde;
-- ELO no recalculado al confirmar pausa voluntaria.
-
-Se agregaron 10 escenarios PostgreSQL sobre vencimientos/extensión/no-show/pausa/disolución. CI confirmado: 20/20 tests puros + 29/29 integración PostgreSQL, Node 22/PostgreSQL 16 y frontend build verdes. El corazón deportivo automatizado queda cubierto. Pasan a primer plano hardening restante: disciplina, pausa global de relojes, schema/verify, outbox/TOTP y configuración real de WhatsApp/deploy/backups; smoke UX/legal al final.
-
-
-### Hardening lateral en validación
-El corazón deportivo quedó en 20/20 tests puros + 29/29 PostgreSQL. El bloque actual agrega:
-- `verify:db` sobre una base de prueba reconstruida desde `schema.sql`;
-- corrección del falso positivo de `verify.sql` durante reenvío de DNI;
-- integración de disciplina y pausa global de relojes;
-- dedupe de notificaciones/outbox;
-- validación TOTP.
-
-CI confirmado: `verify:db` verde, 20/20 tests puros + 35/35 integración PostgreSQL y frontend build verde. El hardening automatizado queda cerrado. El trabajo pendiente se concentra en configuración real de producción: WhatsApp Meta, secreto TOTP, Neon/SSL/backups-PITR, Render/Vercel, variables/cron y smoke UX/legal.
-
-
-### Preflight de producción en validación
-Después del hardening 20/20 + 35/35 + `verify:db`, el bloque actual:
-- elimina `rejectUnauthorized:false` en PostgreSQL;
-- rechaza modos SSL explícitamente inseguros;
-- valida JWT, HTTPS/CORS, TOTP y WhatsApp;
-- agrega `npm run preflight:prod`, no destructivo, para Neon/configuración reales.
-
-CI del código de preflight confirmado: 26/26 tests puros + 35/35 PostgreSQL + `verify:db` + frontend build verdes. Con credenciales reales, ejecutar `npm run preflight:prod` contra producción. Lo que no puede cerrarse desde CI: WhatsApp Meta real, secreto TOTP real, backups/PITR Neon, Render/Vercel y smoke/legal.
-
-
-### Lesión / abandono en validación
-Último caso deportivo explícitamente pendiente del checklist. Se corrigió la persistencia oficial de `abandoned_pair_id` y se agregaron 4 escenarios PostgreSQL para ladder/rachas/ascenso/descenso/cero games.
-
-También existe `database/PATCH_MATCH_ABANDONMENT_2026-09-21.sql` para aplicar en la Neon existente antes de desplegar código que escriba ese campo. CI confirmado; el caso deportivo queda cerrado.
-
-
-### Estado funcional deportivo cerrado
-Todos los ítems funcionales deportivos del release checklist están cubiertos automáticamente. Estado: 26/26 tests puros, 39/39 integración PostgreSQL, `verify:db` y frontend build verdes.
-
-Lo pendiente ya es operativo/deploy: aplicar patch de abandono en Neon existente, cargar secretos reales, ejecutar `npm run preflight:prod`, configurar/probar WhatsApp Meta y TOTP, confirmar backups/PITR, validar Render/Vercel, cancha activa, smoke UX y revisión legal/seguro.
-
-
-### Hardening de logs/outbox en validación
-Se detectó un riesgo de PII en logs: `console.error(err)` podía persistir `detail` de PostgreSQL con valores como DNI. Se preparó logging seguro de producción, aislamiento del rate limit por IP+endpoint y una prueba de retry real del outbox WhatsApp (fallo 500 -> failed -> retry -> sent).
-
-CI confirmado: 29/29 tests puros + 40/40 integración PostgreSQL + `verify:db` + frontend build verdes. Después de este bloque, lo restante sigue siendo principalmente operativo: patch Neon de abandono, preflight real, WhatsApp/TOTP reales, backups/PITR, Render/Vercel, cancha activa, smoke UX y legal/seguro.
-
-
-### Deploy/migración/health en validación
-Se preparó un bloque de deploy seguro:
-- `npm run migrate:prod` aplica de forma idempotente el patch de abandono y verifica columna/constraint;
-- `render.yaml` usa `autoDeployTrigger: checksPass`, pre-deploy de migración y health `/api/health`;
-- el health ahora consulta PostgreSQL y exige engine `wheel-v2`;
-- los errores 500 productivos ya no devuelven `err.message` crudo.
-
-CI confirmado: 30/30 tests puros + 42/42 integración PostgreSQL + `verify:db` + frontend build verdes. Quedan pendientes los gates reales: ejecución contra Neon, secretos/TOTP/WhatsApp, Render/Vercel efectivos, backups/PITR, cancha real, smoke UX y legal/seguro.
-
-
-### Smoke público automatizado en validación
-Vercel ya reporta `success` a GitHub. Render no aparece como status/check del repo.
-
-Se preparó `npm run smoke:prod` + workflow manual `LA RED production smoke`, que valida health DB-aware, CORS, endpoints públicos y frontend sin modificar datos. CI confirmado: 32/32 tests puros + 42/42 integración PostgreSQL + `verify:db` + frontend build verdes. Después ejecutar ese workflow cuando Render esté realmente desplegado.
-
-
-### TOTP/CORS fail-closed en validación
-Se endureció la configuración productiva:
-- admin-login falla cerrado si falta `ADMIN_TOTP_SECRET` en producción;
-- secreto TOTP mínimo 32 caracteres Base32 (~160 bits);
-- JWT y TOTP deben ser distintos;
-- `FRONTEND_URL` solo acepta orígenes HTTPS puros y CORS normaliza trailing slash.
-
-Confirmar CI antes de cerrar este bloque. Después quedan únicamente gates de infraestructura/operación real.
-
-
-### Generador local de secretos en validación
-Se preparó `npm run generate:secrets -- --account=admin` para generar localmente JWT, TOTP Base32 de 160 bits y URI `otpauth://` sin persistir nada en Git.
-
-Confirmar CI del candidato. Después el siguiente paso real es cargar los valores en Render/Authenticator y ejecutar migración + preflight sobre Neon real.
-
-
-### Migración startup compatible con plan free en validación
-La documentación actual de Render muestra que `preDeployCommand` requiere servicio pago. Se elimina esa dependencia:
-- producción migra antes de `app.listen()`;
-- advisory lock serializa instancias concurrentes;
-- `render.yaml` no usa `preDeployCommand`;
-- `migrate:prod` sigue disponible manualmente.
-
-CI confirmado: la migración startup multi-plan quedó verde. El deploy real puede funcionar tanto en free como en paid.
-
-
-### Login Admin HTTP en validación
-Se prepara el último hardening de acceso:
-- campo TOTP requerido, numérico y de 6 dígitos en frontend;
-- prueba HTTP con PostgreSQL real de fail-closed sin secreto y éxito con TOTP válido.
-
-CI confirmado: TOTP de código cerrado. El TOTP real en autenticador sigue siendo gate externo.
-
-
-### WhatsApp configurable/sanitizado en validación
-Se elimina la versión Graph hardcodeada:
-- nueva variable `WHATSAPP_GRAPH_VERSION`;
-- preflight valida versión, phone-number-id y template;
-- el sender no guarda cuerpos crudos de error Meta, solo HTTP/code/subcode;
-- la regresión verifica que datos simulados del destinatario no lleguen a `last_error`.
-
-CI confirmado: WhatsApp de código cerrado. Solo queda conectar Meta real y enviar un mensaje de prueba aprobado.
-
-
-### Preflight DB explícito en validación
-Se prepara `databasePreflight()`, read-only y testeable. Además de TLS/Admin/cancha/verify, bloquea si:
-- el reloj global quedó pausado;
-- falta columna/constraint del patch de abandono.
-
-Confirmar CI. Si queda verde, el próximo paso requiere infraestructura real: Neon/Render + secretos + `npm run preflight:prod`.
-
-
-### Fix de paridad schema/patch en validación
-El preflight reforzado encontró una diferencia de identidad, no de regla: `schema.sql` tenía el CHECK de abandono anónimo y el patch lo nombra `matches_abandonment_consistency`.
-
-Se corrige el schema base para crear el constraint con ese nombre. No se debilita el preflight. CI confirmado: preflight sano verde y fallo explícito al eliminar el constraint.
-
-
-### Gate VITE_API_URL — VERDE
-CI + Vercel confirmados sobre `b4640a863b8f41ae744798731b0184becaa02d85`:
-- 39/39 tests puros;
-- 45/45 integración PostgreSQL;
-- `verify:db` verde;
-- frontend build verde;
-- Vercel `success`.
-
-El build de producción ya exige `VITE_API_URL` HTTPS terminado exactamente en `/api`. Próximo paso: infraestructura real Neon/Render/preflight; mantener checkpoints cortos por turno.
-
-
-### Workflow de preflight real — VERDE
-CI confirmado sobre `a29c047a8233671d5126345444a483b86359bb4d`:
-- 39/39 tests puros;
-- 45/45 integración PostgreSQL;
-- `verify:db` verde;
-- frontend build verde;
-- Vercel `success`.
-
-El workflow manual `LA RED production preflight` queda listo. Usa GitHub Environment `production` y ejecuta `npm run preflight:prod` contra Neon de forma read-only.
-
-Próximo paso real: cargar secretos/variables del Environment `production` y ejecutar el workflow manual. Mantener checkpoints cortos.
-
-
-### Bootstrap de Environment production — VERDE
-CI confirmado sobre `4a6508001ff6a1fa3e63b5b2af3035d75cce49c2`:
-- 39/39 tests puros;
-- 45/45 integración PostgreSQL;
-- `verify:db` verde;
-- frontend build verde;
-- Vercel `success`.
-
-`PRODUCTION_ENVIRONMENT_SETUP.md` y la validación de inputs del workflow quedaron confirmados.
-
-El conector GitHub del chat no expone APIs de secrets/environments sensibles. Próximo paso manual/externo: cargar los secrets/variables reales del Environment `production` siguiendo la guía y ejecutar `LA RED production preflight`. Mantener checkpoints cortos.
-
-
-### Preflight core/full — VERDE
-CI confirmado sobre `495902ce8950eabcc4fde18435e7ae0bc3e6f072`:
-- 39/39 tests puros;
-- 45/45 integración PostgreSQL;
-- `verify:db` verde;
-- frontend build verde;
-- Vercel `success`.
-
-El workflow manual permite:
-- `core`: validar Neon/TLS/JWT/CORS/TOTP/engine/timezone/reloj/patch/Admin/cancha/verify sin exigir Meta;
-- `full`: todo lo anterior + configuración WhatsApp completa.
-
-Próximo paso: cargar los inputs core reales y ejecutar el preflight `core` contra Neon. `full` sigue siendo obligatorio antes del release público.
-
-
-### Comandos explícitos de preflight — VERDE
-CI confirmado sobre `7836e8854eb0a4150cfe6391e073b891e0f24c39`:
-- 39/39 tests puros;
-- 45/45 integración PostgreSQL;
-- `verify:db` verde;
-- frontend build verde;
-- Vercel `success`.
-
-Quedan disponibles:
-- `npm run preflight:core`
-- `npm run preflight:full`
-
-Próximo paso real: cargar inputs core del Environment `production` y ejecutar el preflight `core` contra Neon.
-
-
-### Smoke ligado al Environment production — VERDE
-CI confirmado sobre `079272a061d150db2c712e1a64f2474cc17bcc4e`:
-- 40/40 tests puros;
-- 45/45 integración PostgreSQL;
-- `verify:db` verde;
-- frontend build verde;
-- Vercel `success`.
-
-`LA RED production smoke` usa `PROD_API_URL` y `PROD_FRONTEND_URL` del Environment `production`, sin URLs manuales por ejecución, y rechaza entradas que no sean orígenes HTTPS puros.
-
-
-### Recuperación Neon preparada
-Se agrega `PRODUCTION_RECOVERY.md`.
-
-No marcar backups/PITR como verde hasta:
-- confirmar plan y restore window reales de la Neon final;
-- definir RPO/RTO;
-- completar una prueba de recuperación sobre una branch/restauración aislada.
-
-La documentación pública de Neon sirve como referencia; la configuración real del proyecto prevalece.
-
-
-### Background/rate-limit hardening — VERDE
-CI confirmado sobre `f1dbea68dcbe3a347c13373a5352f171539cad8b`:
-- 44/44 tests puros;
-- 45/45 integración PostgreSQL;
-- `verify:db` verde;
-- frontend build verde;
-- Vercel `success`.
-
-Quedó confirmado:
-- logs background sanitizados;
-- mantenimiento y outbox aislados entre sí;
-- rate limiter acotado a 10.000 claves activas;
-- saturación fail-closed para claves nuevas;
-- limpieza de claves expiradas al necesitar capacidad.
-
-La limitación por instancia sigue documentada; múltiples instancias requieren almacenamiento compartido.
-
-
-### Security headers — VERDE
-CI/Vercel confirmados sobre `023bc126308201b68bf0c3ea229e577b02753602`:
-- 46/46 tests puros;
-- 45/45 integración PostgreSQL;
-- `verify:db` verde;
-- frontend build verde;
-- Vercel `success`.
-
-Backend y Vercel aplican `nosniff`, anti-frame, referrer policy y HSTS productivo. La CSP se limita a `frame-ancestors 'none'` para no romper scripts/styles/connect; no se bloquea cámara por el flujo de captura de DNI.
-
-### No-store/startup hardening — VERDE
-CI confirmado sobre `e2aa61e5d2c9472b8f8af292636de74903df1319`:
-- 51/51 tests puros;
-- 45/45 integración PostgreSQL;
-- `verify:db` verde;
-- frontend build verde;
-- Vercel `success`.
-
-Quedó confirmado:
-- `/api/auth/*`, `/api/me*` y `/api/admin*` son explícitamente `no-store`;
-- startup productivo libera cliente aun si falla migración;
-- fallos fatales de startup/listen se loguean sanitizados;
-- startup no productivo no intenta migraciones.
-
-
-### Graceful shutdown/runtime handlers — VERDE
-CI confirmado sobre `1a8a55c5ffe652b930a56fecbe18ba9610ced10c`:
-- 55/55 tests puros;
-- 45/45 integración PostgreSQL;
-- `verify:db`, frontend y Vercel verdes.
-
-SIGTERM/SIGINT cierran HTTP + PostgreSQL y cancelan timers; fallos fatales de proceso se sanitizan y terminan con código no-cero.
-
-
-### Smoke de headers/cache — VERDE
-CI confirmado sobre `b0c5c54110d0d87695b1434dc2b0099110868b30`:
-- 57/57 tests puros;
-- 45/45 integración PostgreSQL;
-- `verify:db`, frontend y Vercel verdes.
-
-El smoke real exige headers de seguridad, HSTS, ausencia de `X-Powered-By` y `no-store` en un probe auth 404 no destructivo.
-
-
-### Liveness/readiness + shutdown budget Render — VERDE
-CI confirmado sobre `d565968140b81ce996ee144694763c1cecd617f7`:
-- 61/61 tests puros;
-- 45/45 integración PostgreSQL;
-- `verify:db`, frontend y Vercel verdes.
-
-`/api/live` es dependency-free; `/api/health` conserva DB/engine y sigue como health check de Render. El Blueprint deja 15 s de shutdown budget frente a los 10 s internos.
-
-
-### Pool PostgreSQL idle-error handling — VERDE
-CI confirmado sobre `1c7473acb3d7a08e004a1d098d4b369a0b2dc1f7`:
-- 62/62 tests puros;
-- 45/45 integración PostgreSQL;
-- `verify:db`, frontend y Vercel verdes.
-
-Errores asíncronos de clientes idle del pool disparan shutdown fatal sanitizado.
-
-
-### Installs reproducibles backend/workflows — VERDE
-CI confirmado sobre `9bcc462b3511dd053af3d004196ed04f4a13a72c`:
-- 62/62 tests puros;
-- 45/45 integración PostgreSQL;
-- `npm ci --ignore-scripts` backend verde;
-- `verify:db`, frontend y Vercel verdes.
-
-Preflight y smoke también usan el lock raíz con `npm ci`. Frontend sigue usando `npm install` porque aún no existe `frontend/package-lock.json`; no se fabricó uno manualmente tras agotarse el timeout del registry.
-
-
-### Request correlation — VERDE
-CI confirmado sobre `3d120b2aac8494e39a4d0b04d2dfdbe43f43c722`:
-- 65/65 tests puros;
-- 45/45 integración PostgreSQL;
-- `verify:db`, frontend y Vercel verdes.
-
-Cada respuesta API expone un `X-Request-ID` UUID generado por servidor; logs de error incluyen ese ID y un `CF-Ray` solo si pasa sanitización estricta. El smoke productivo exige request ID válido.
-
-
-### Workflows least-privilege/timeouts — VERDE
-CI confirmado sobre `aa2ae08011cc987c80c4302982f90c8fa0edfad7`:
-- 65/65 tests puros;
-- 45/45 integración PostgreSQL;
-- `verify:db` verde;
-- frontend build verde;
-- Vercel `success`.
-
-Los workflows usan `contents: read` explícito y límites de ejecución:
-- CI backend: 20 min;
-- CI frontend: 15 min;
-- preflight productivo: 15 min;
-- smoke productivo: 10 min.
-
-
-### Estado técnico al cierre del hardening automatizable
-Queda verde y automatizado todo lo que no requiere credenciales/infraestructura real:
-- motor deportivo + concurrencia PostgreSQL;
-- schema/patch/verify;
-- preflight core/full;
-- startup migrations + advisory lock;
-- shutdown gracioso y fallos fatales sanitizados;
-- pool PostgreSQL con manejo explícito de errores idle;
-- liveness/readiness;
-- seguridad HTTP, no-store y request correlation;
-- smoke público fuerte;
-- installs reproducibles del backend con `npm ci`;
-- workflows con permisos mínimos y timeouts.
-
-Pendientes externos reales:
 1. cargar secrets/vars core del Environment `production`;
-2. ejecutar preflight `core` contra Neon real;
-3. confirmar Render startup + `/api/health`;
-4. ejecutar production smoke real;
+2. ejecutar `preflight:core` contra Neon real;
+3. confirmar startup productivo Render y `/api/health`;
+4. ejecutar production smoke real contra Render/Vercel;
 5. probar TOTP con autenticador real;
-6. confirmar restore window/RPO/RTO y drill Neon;
+6. confirmar plan/restore window Neon, definir RPO/RTO y completar drill aislado;
 7. configurar Meta WhatsApp + mensaje real;
-8. ejecutar preflight `full`;
-9. smoke UX autenticado y revisión legal/seguro.
+8. ejecutar `preflight:full`;
+9. smoke UX autenticado final;
+10. revisión legal/seguro Argentina.
 
-Deuda técnica no bloqueante pero pendiente: generar legítimamente `frontend/package-lock.json` y migrar el job frontend a `npm ci`.
+## Deuda técnica no bloqueante
 
+Generar legítimamente `frontend/package-lock.json` con npm y solo después cambiar el frontend de CI de `npm install` a `npm ci`. No fabricar el lock manualmente.
 
-### Limpieza de caché Vite versionada
-Se eliminó `frontend/.vite/` del repositorio y se agregó al `.gitignore`. Era caché generada, no código fuente ni configuración intencional.
+## Nota de continuidad
 
-No se modificó el runtime. La deuda técnica no bloqueante de `frontend/package-lock.json` continúa pendiente: no migrar frontend a `npm ci` hasta generar el lock legítimamente con npm.
+La cronología extensa está en `AUDIT_2026-09-20.md`, `CHECKPOINT_2026-09-20.md` y `PROJECT_JOURNEY.md`. Este handoff debe mantenerse corto y representar únicamente el estado vigente.

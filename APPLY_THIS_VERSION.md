@@ -1,21 +1,19 @@
-# Aplicar este checkpoint documental
+# APPLY_THIS_VERSION.md — archivo histórico
 
-Este paquete de checkpoint contiene **solo documentación `.md`**. No cambia backend, frontend ni base.
+Este archivo existía para aplicar un checkpoint documental/ZIP anterior.
 
-## Uso
-1. Descomprimir sobre la raíz del proyecto actual.
-2. Elegir reemplazar archivos existentes.
-3. Ejecutar:
-```bash
-git add -A
-git status
-```
-4. Confirmar que los cambios de este paquete son únicamente `.md`.
-5. Hacer el commit/push del estado actual completo del proyecto.
+## Estado actual
 
-## Importante
-El código de referencia de este checkpoint es el candidato `LA_RED_FINAL_2026-09-20_v11.zip` / package `5.0.9`.
+**NO usar este procedimiento sobre el proyecto actual.**
 
-No volver a aplicar ZIPs funcionales anteriores (`v1`…`v9`) sobre esta versión.
+La fuente de verdad es el repositorio `LucasDNG/la-red-padle`, rama `main`, junto con `START_HERE.md` y `NEXT_CHAT_HANDOFF.md`.
 
-Después del push se continúa con búsqueda de inconsistencias/bugs; no con una nueva reconstrucción.
+Los ZIPs históricos `v1`…`v11` no deben reaplicarse: podrían reintroducir código, reglas o documentación ya reemplazados.
+
+Para continuar:
+1. obtener el HEAD real de `main`;
+2. verificar sus checks;
+3. leer `NEXT_CHAT_HANDOFF.md`;
+4. trabajar y pushear directamente sobre `main` según la metodología documentada.
+
+Se conserva este archivo únicamente como señal explícita de que el viejo flujo basado en ZIP quedó retirado.

@@ -1,88 +1,55 @@
-# Release Manifest — checkpoint pre-auditoría
+# Release Manifest — estado actual
 
 ## Candidato de referencia
-- paquete completo: `LA_RED_FINAL_2026-09-20_v11.zip`
-- package version: `5.0.9`
-- motor: `wheel-v2`
-- estado: **candidato en estabilización, no release final**
+- fuente de verdad: repositorio `LucasDNG/la-red-padle`, rama `main`;
+- package: `5.0.9`;
+- motor: `wheel-v2`;
+- estado: **candidato técnicamente estabilizado, no release público final**.
 
-## Bloques incorporados hasta este checkpoint
-- reconstrucción limpia sin runtime legacy;
-- schema consolidado;
-- rueda automática;
-- resultados/versiones;
-- ranking/escalera;
-- categorías individuales;
-- invitaciones/parejas;
-- pausa/disolución;
-- disciplina;
-- notificaciones/outbox;
-- Admin;
-- login Admin privado;
-- DNI + frente/dorso;
-- reenvío documental;
-- purga documental;
-- identidad visual restaurada;
-- orden visual global;
-- fix navegación login/registro;
-- fix import/export de reenvío;
-- fix PostgreSQL `42P08` en verificación.
+Los ZIPs históricos `v1`…`v11` no son fuente de verdad y no deben reaplicarse sobre `main`.
 
-## Cambios posteriores al checkpoint
+## Validación automatizada vigente
+- 65/65 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db` verde;
+- frontend build verde;
+- Node 22 + PostgreSQL 16;
+- Vercel `success` en el último checkpoint verificado.
 
-- válvula longitudinal de descenso 2/3 según diferencia de población adyacente;
-- simulador reproducible de balance a 5/10/20 años con variantes P3/R3, P3/R5, gaps 4/5/6 y P4/R3;
+## Bloques cerrados
+- motor deportivo `wheel-v2`;
+- escalera/ELO/ascenso/descenso y válvula poblacional;
+- pareja/rueda/programación/resultados;
+- no-show/extensión/pausa/disolución/disciplina;
+- lesión/abandono;
+- concurrencia/idempotencia PostgreSQL;
+- schema/patch/verify;
+- identidad DNI + reenvío/purga;
+- Admin privado + TOTP fail-closed en código;
+- outbox WhatsApp con dedupe/retry y errores sanitizados;
+- TLS/config preflight;
+- migrations startup con advisory lock;
+- liveness/readiness;
+- graceful shutdown y pool errors;
+- headers/no-store/request correlation;
+- smoke público automatizado;
+- backend/preflight/smoke con `npm ci`;
+- workflows least-privilege/timeouts;
+- caché generada `frontend/.vite/` fuera del repo.
 
-## WhatsApp hardening
-- Graph version configurable;
-- validación de Phone Number ID/template/version;
-- errores de Meta sanitizados;
-- retries/dedupe ya cubiertos.
+## Pendientes de release
+- secrets/variables core del Environment `production`;
+- `preflight:core` real contra Neon;
+- Render startup + `/api/health`;
+- production smoke real;
+- TOTP con autenticador real;
+- restore window/RPO/RTO + drill Neon;
+- Meta WhatsApp + mensaje real;
+- `preflight:full`;
+- smoke UX autenticado;
+- revisión legal/seguro Argentina.
 
-## Preparación de secretos
-- generación local segura de JWT/TOTP;
-- URI `otpauth://` para autenticador;
-- secretos nunca persistidos en repo.
+## Deuda no bloqueante
+Generar legítimamente `frontend/package-lock.json` y después migrar el job frontend a `npm ci`.
 
-## Hardening de seguridad de producción
-- TOTP Admin fail-closed;
-- secreto TOTP Base32 >=160 bits;
-- JWT/TOTP separados;
-- CORS restringido a orígenes HTTPS puros.
-
-## Preflight
-- preflight DB read-only;
-- bloqueo por reloj global pausado;
-- verificación explícita del patch de abandono;
-- TLS/Admin/cancha/verify.sql/outbox.
-
-## Hardening de deploy incorporado
-- deploy Render codificado en `render.yaml`;
-- migración idempotente del patch de abandono al startup, con advisory lock;
-- health DB-aware;
-- respuestas 500 productivas sin mensajes internos.
-
-## Deploy público
-- Vercel reporta status de deploy `success` a GitHub;
-- smoke público automatizado preparado para Render/Vercel;
-- Render real sigue pendiente de status/health.
-
-## Validación conocida
-- backend syntax/check en candidatos previos: verde;
-- suite base: 26/26 tests puros + 39/39 integración PostgreSQL verdes en CI; 37/37 tests puros + 44/44 integración PostgreSQL + `verify:db` + frontend build verdes; logging seguro/rate-limit, retry real de outbox y deploy-health confirmados;
-- verificación de identidad probada manualmente con éxito;
-- base Neon nueva conectada.
-
-## No declarar release hasta completar
-El corazón funcional/deportivo ya está cubierto automáticamente. Pendientes externos/operativos:
-- aplicar patch de abandono en la Neon existente;
-- ejecutar `npm run preflight:prod` con variables reales;
-- WhatsApp Meta real;
-- TOTP Admin real;
-- confirmar backups/PITR Neon;
-- Render health + Vercel producción;
-- al menos una cancha activa real;
-- smoke UX final;
-- revisión legal/seguro.
-
-Los hashes de ZIPs intermedios no son fuente de verdad. La fuente de verdad es el repo después del próximo push + estos `.md`.
+Antes de declarar release, verificar el HEAD actual y sus checks; no reutilizar el estado de un commit anterior.

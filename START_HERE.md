@@ -1,125 +1,61 @@
 # START_HERE.md — LA RED Pádel
 
-Este archivo es el punto de entrada obligatorio para cualquier chat nuevo, sesión nueva o handoff.
+Este archivo es un índice de continuidad. La memoria oficial vive en el repositorio `LucasDNG/la-red-padle`, rama `main`.
 
-## 1. Estado de referencia
+## Orden para retomar
 
-- Repo: `LucasDNG/la-red-padle`
-- Branch: `main`
-- Commit de checkpoint confirmado: `05fc27e1511d7bfcd4df6d3ea18c41f280b4ea5b`
-- Commit: `Consolida checkpoint wheel-v2 e identidad`
-- CI de ese commit: backend + frontend OK en Node 22
-- Candidato local/documental de referencia: `v10`
-- package: `5.0.8`
-- motor competitivo: `wheel-v2`
-- DB activa: Neon nueva
-- DB histórica: eliminada, no asumir recuperable
+1. Verificar el HEAD actual de `main` y sus checks.
+2. Leer `NEXT_CHAT_HANDOFF.md`.
+3. Leer `CHECKPOINT_2026-09-20.md`.
+4. Leer `PROJECT_RULES.md`.
+5. Leer `DECISIONS.md`.
+6. Leer `SIMULATION_AUDIT_2026-09-20.md`.
+7. Leer `AUDIT_2026-09-20.md`.
+8. Leer `TEST_SCENARIOS.md`.
+9. Si corresponde: `ARCHITECTURE.md`, `PROJECT_JOURNEY.md`, `RELEASE_CHECKLIST.md`, `FINALIZATION_PLAN.md`.
 
-## 2. Regla de continuidad
+Si un resumen de chat contradice el repo, manda el repo. Si dos documentos se contradicen, prevalece el checkpoint/handoff más reciente y se corrige la documentación antes de tocar reglas.
 
-En un chat nuevo NO reconstruir el proyecto desde memoria ni desde mensajes antiguos.
+## Estado técnico actual
 
-Orden obligatorio:
-1. leer este archivo;
-2. leer `PROJECT_RULES.md`;
-3. leer `DECISIONS.md`;
-4. leer `CHECKPOINT_2026-09-20.md`;
-5. leer `AUDIT_2026-09-20.md`;
-6. leer `TEST_SCENARIOS.md`;
-7. si el trabajo toca arquitectura: `ARCHITECTURE.md`;
-8. si toca historia/por qué: `PROJECT_JOURNEY.md`.
+- package: `5.0.9`.
+- motor único: `wheel-v2`.
+- runtime objetivo: Node 22.
+- PostgreSQL de CI: 16.
+- tests puros: 65/65 verdes en el último checkpoint verificado.
+- integración PostgreSQL: 45/45 verdes.
+- `verify:db`: verde.
+- frontend build: verde.
+- Vercel: status `success` en el último checkpoint verificado.
+- corazón deportivo y edge cases críticos: cubiertos automáticamente.
+- `frontend/.vite/`: eliminado del repo y agregado a `.gitignore`.
 
-Si chat y archivos difieren, los `.md` vigentes mandan hasta que se haga una corrección explícita.
+No asumir un CI nuevo como verde hasta consultarlo directamente en GitHub Actions.
 
-## 3. Qué ya está probado
+## Reglas de trabajo
 
-- registro;
-- DNI frente/dorso;
-- identidad pending;
-- Admin privado `/admin-la-red`;
-- verificación `pending -> verified`;
-- purga documental;
-- reenvío de DNI;
-- frontend/backend CI verde;
-- tests actuales 14/14.
+- No reconstruir desde memoria ni desde ZIPs.
+- No cambiar reglas deportivas por un fallo de test sin compararlo con `PROJECT_RULES.md` y `DECISIONS.md`.
+- Primero simulaciones/tests, luego PostgreSQL, manual solo para UX/smoke.
+- Distinguir fixture/test debt de bugs reales.
+- Push directo a `main`.
+- Después de cambios importantes, actualizar checkpoint/handoff.
+- No tocar, imprimir ni pegar secretos reales en chats.
+- No interpretar limitaciones DNS del entorno del chat como caída de producción.
 
-## 4. Qué NO debe asumirse probado
+## Lo que queda
 
-- formación de pareja completa;
-- rueda real de punta a punta;
-- programación;
-- resultado;
-- ranking real con DB;
-- ascenso/descenso longitudinal definitivo;
-- no-show completo;
-- pausa/disolución;
-- disciplina real;
-- WhatsApp Meta real;
-- TOTP Admin real;
-- deploy final.
+Los gates principales ya requieren infraestructura/credenciales reales:
 
-## 5. Hallazgos abiertos
+1. cargar secrets/variables core del GitHub Environment `production`;
+2. ejecutar `preflight:core` contra Neon real;
+3. confirmar startup Render + `/api/health`;
+4. ejecutar production smoke real;
+5. probar TOTP con autenticador real;
+6. confirmar restore window/RPO/RTO y hacer drill de recuperación Neon;
+7. configurar Meta WhatsApp y entregar un mensaje real;
+8. ejecutar `preflight:full`;
+9. smoke UX autenticado;
+10. revisión legal/seguro en Argentina.
 
-### A. Deriva de categorías
-La simulación longitudinal detectó posible acumulación de parejas en categorías altas.
-
-No cambiar producción por intuición.
-
-Próximo análisis:
-- comparar reglas de descenso alternativas;
-- medir población estable por categoría;
-- medir tiempo medio de permanencia;
-- medir flujo ascenso/descenso;
-- medir probabilidad de categorías vacías.
-
-Hipótesis a probar:
-- ascenso: #1 + 3 victorias consecutivas;
-- descenso candidato: último + 5 derrotas consecutivas;
-- otras variantes si 5 no compensa matemáticamente.
-
-La regla final debe salir de simulación, no de preferencia estética.
-
-### B. No-show objetado
-Existe una posible inconsistencia:
-un no-show objetado/indeterminado suma `monthly_miss_streak` a ambas parejas en código, pero la regla dice que la auto-pausa debe depender de incumplimientos atribuibles.
-
-No corregir sin actualizar:
-- código;
-- `PROJECT_RULES.md`;
-- `DECISIONS.md`;
-- tests;
-- auditoría.
-
-## 6. Regla de cambios
-
-Todo cambio significativo debe actualizar en el mismo lote:
-- código;
-- tests;
-- `PROJECT_RULES.md` si cambia una regla;
-- `DECISIONS.md` si se toma una decisión;
-- `AUDIT_2026-09-20.md` si corrige un bug;
-- `PROJECT_JOURNEY.md` si cambia el rumbo;
-- este `START_HERE.md` si cambia el checkpoint o el próximo paso.
-
-## 7. Qué NO hacer
-
-- no reintroducir runtime legacy;
-- no volver a aplicar ZIPs viejos;
-- no cambiar reglas deportivas sin simulación previa;
-- no usar Admin para tareas que debe resolver el sistema;
-- no cambiar identidad visual aprobada;
-- no asumir que una prueba manual reemplaza stress tests;
-- no depender del resumen automático del chat como única memoria.
-
-## 8. Próximo paso exacto
-
-Antes de más UI o features:
-
-**simular variantes de descenso para corregir la deriva hacia arriba y elegir una regla estable a largo plazo.**
-
-Después:
-1. fijar regla;
-2. actualizar docs/tests;
-3. corregir bug de no-show atribuible;
-4. stress test integral;
-5. recién después continuar con pruebas reales de pareja/rueda.
+Deuda técnica no bloqueante: generar legítimamente `frontend/package-lock.json` y recién entonces migrar el job frontend a `npm ci`.
