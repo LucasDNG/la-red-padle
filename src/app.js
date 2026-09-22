@@ -44,7 +44,7 @@ app.get('/api/records',wrap(async(req,res)=>res.json(await records())));
 app.get('/api/upcoming',wrap(async(req,res)=>res.json(await publicUpcoming())));
 app.get('/api/results/recent',wrap(async(req,res)=>res.json(await recentResults())));
 app.get('/api/pairs/:id/profile',wrap(async(req,res)=>res.json(await pairProfile(Number(req.params.id)))));
-app.get('/api/venues',wrap(async(req,res)=>res.json((await listVenues()).filter(v=>v.active))));
+app.get('/api/venues',wrap(async(req,res)=>res.json((await listVenues()).filter(v=>v.active&&v.associated))));
 
 app.post('/api/auth/register',rateLimit,identityUpload,wrap(async(req,res)=>{let legalAcceptances=req.body.legalAcceptances;try{if(typeof legalAcceptances==='string')legalAcceptances=JSON.parse(legalAcceptances);}catch{throw problem('Aceptaciones legales inválidas');}const user=await register({...req.body,legalAcceptances},{ip:req.ip,userAgent:req.get('user-agent')||null,identityDocuments:{front:req.files?.dniFront?.[0],back:req.files?.dniBack?.[0]}});res.status(201).json({token:sign(user),user});}));
 app.post('/api/auth/login',rateLimit,wrap(async(req,res)=>{const user=await findLogin(req.body.dni,req.body.password);if(user.role==='admin')throw problem('Credenciales inválidas',401);res.json({token:sign(user),user:publicUser(user)});}));

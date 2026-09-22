@@ -30,4 +30,7 @@ test('journey visible cubre lugar libre, confirmaciones y acciones temporales',(
   assert.match(frontSource,/GUARDAR CORRECCIÓN/);
   assert.match(frontSource,/VENTANA DE 15 DÍAS/);
   assert.match(frontSource,/ENVIAR REPORTE DEL PARTIDO RECIENTE/);
+  assert.match(frontSource,/Canchas adheridas a LA RED/);
+  assert.match(frontSource,/Sede adherida \/ visible públicamente/);
+  assert.match(frontSource,/GUARDAR CAMBIOS/);
 });
