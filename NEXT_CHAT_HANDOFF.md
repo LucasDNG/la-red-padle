@@ -309,3 +309,15 @@ No marcar backups/PITR como verde hasta:
 - completar una prueba de recuperación sobre una branch/restauración aislada.
 
 La documentación pública de Neon sirve como referencia; la configuración real del proyecto prevalece.
+
+
+### Background/rate-limit hardening en validación
+Se prepara un bloque de seguridad operativa:
+- logs de jobs background sanitizados en producción;
+- fallo de mantenimiento ya no impide intentar el outbox en el mismo tick;
+- fallo de outbox tampoco rompe el scheduler;
+- rate limiter auth usa store acotado a 10.000 claves activas;
+- al saturarse, falla cerrado para claves nuevas en vez de crecer sin límite;
+- claves expiradas se purgan al necesitar capacidad.
+
+Confirmar CI antes de cerrar. La limitación de rate limit por instancia sigue existiendo; para múltiples instancias se requerirá storage compartido.

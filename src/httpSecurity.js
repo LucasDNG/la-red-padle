@@ -35,3 +35,55 @@ export function safeClientErrorMessage(err,{production=process.env.NODE_ENV==='p
   if(production&&status>=500)return 'Error interno';
   return String(err?.message||'Error interno').slice(0,500);
 }
+
+
+export function safeBackgroundErrorLog(err,task,{production=process.env.NODE_ENV==='production'}={}){
+  const code=SAFE_ERROR_CODES.has(String(err?.code||''))?String(err.code):undefined;
+  const entry={
+    level:'error',
+    task:String(task||'background').slice(0,80),
+    ...(code?{code}:{}),
+    name:String(err?.name||'Error').slice(0,80),
+  };
+  if(!production)entry.message=String(err?.message||'Error interno').slice(0,500);
+  return entry;
+}
+
+export function createFixedWindowRateLimitStore({windowMs=15*60*1000,maxEntries=10000}={}){
+  const duration=Math.max(1,Number(windowMs)||1);
+  const capacity=Math.max(1,Number(maxEntries)||1);
+  const entries=new Map();
+
+  function cleanup(now=Date.now()){
+    for(const [key,value] of entries){
+      if(value.reset<=now)entries.delete(key);
+    }
+    return entries.size;
+  }
+
+  function hit(key,now=Date.now()){
+    const normalized=String(key||'unknown').slice(0,300);
+    let entry=entries.get(normalized);
+    if(entry&&entry.reset<=now){
+      entries.delete(normalized);
+      entry=null;
+    }
+    if(!entry){
+      if(entries.size>=capacity)cleanup(now);
+      if(entries.size>=capacity){
+        return {count:0,reset:now+duration,saturated:true,size:entries.size};
+      }
+      entry={count:0,reset:now+duration};
+      entries.set(normalized,entry);
+    }
+    entry.count+=1;
+    return {count:entry.count,reset:entry.reset,saturated:false,size:entries.size};
+  }
+
+  return {
+    hit,
+    cleanup,
+    size:()=>entries.size,
+    capacity,
+  };
+}

@@ -9,7 +9,7 @@ import {myLeague,proposeSchedule,acceptSchedule,voteExtension,reportNoShow,conte
 import {reportDiscipline} from './discipline.js';
 import {pendingUsers,searchUsers,setUserVerification,updateUserDni,identityDocument,requestIdentityResubmission,listVenues,createVenue,updateVenue,disputes,resolveDispute,disciplineQueue,resolveDiscipline,systemStatus,auditLog,setLeagueClockPause,retryWhatsApp,verifyTotp} from './admin.js';
 import {problem} from './core.js';
-import {safeErrorLog,authRateLimitKey,safeClientErrorMessage} from './httpSecurity.js';
+import {safeErrorLog,authRateLimitKey,safeClientErrorMessage,createFixedWindowRateLimitStore} from './httpSecurity.js';
 import {readHealth} from './health.js';
 import {frontendOrigins} from './config.js';
 
@@ -24,8 +24,8 @@ const identityUpload=multer({
   fileFilter:(req,file,cb)=>cb(null,['image/jpeg','image/png','image/webp'].includes(file.mimetype))
 }).fields([{name:'dniFront',maxCount:1},{name:'dniBack',maxCount:1}]);
 
-const attempts=new Map();
-function rateLimit(req,res,next){const key=authRateLimitKey(req),now=Date.now(),window=15*60*1000,max=25;let v=attempts.get(key);if(!v||v.reset<=now)v={count:0,reset:now+window};v.count++;attempts.set(key,v);if(v.count>max)return res.status(429).json({error:'Demasiados intentos. Probá nuevamente en unos minutos.'});next();}
+const authAttempts=createFixedWindowRateLimitStore({windowMs:15*60*1000,maxEntries:10000});
+function rateLimit(req,res,next){const v=authAttempts.hit(authRateLimitKey(req));if(v.saturated||v.count>25)return res.status(429).json({error:'Demasiados intentos. Probá nuevamente en unos minutos.'});next();}
 
 app.get('/api/health',wrap(async(req,res)=>res.json(await readHealth(pool))));
 app.get('/api/legal/versions',(req,res)=>res.json(LEGAL_VERSIONS));

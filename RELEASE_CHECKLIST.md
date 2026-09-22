@@ -42,6 +42,8 @@
 - [ ] WhatsApp Meta real configurado y mensaje de prueba entregado;
 - [x] retries/outbox probados;
 - [x] rate limiting revisado; contador por IP + endpoint en auth, con limitación conocida de memoria local por instancia;
+- [x] store de rate limit acotado y fail-closed ante saturación;
+- [x] jobs background aislados entre mantenimiento/outbox y logs sanitizados;
 - [x] procedimiento `PRODUCTION_RECOVERY.md` preparado;
 - [ ] plan + restore window real de Neon confirmados;
 - [ ] RPO/RTO de recuperación acordados;
