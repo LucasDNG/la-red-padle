@@ -112,6 +112,12 @@ Variable:
 `VITE_API_URL=https://la-red-padle-api.onrender.com/api`
 
 ## 6.1 Smoke público automatizado
+El Environment `production` debe incluir:
+- `PROD_API_URL=https://la-red-padle-api.onrender.com` (origen, sin `/api`);
+- `PROD_FRONTEND_URL=https://la-red-padle.vercel.app`.
+
+El workflow toma esas variables directamente del Environment y rechaza URLs con path/query/fragmento/credenciales; ya no se tipean manualmente en cada ejecución.
+
 Existe un workflow manual `.github/workflows/production-smoke.yml` que ejecuta `npm run smoke:prod` contra orígenes HTTPS configurables.
 
 Valida sin mutar datos:

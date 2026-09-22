@@ -24,6 +24,7 @@ Cargar como **Environment variables**:
 
 | Nombre | Valor esperado |
 |---|---|
+| `PROD_API_URL` | Origen HTTPS del backend Render, sin `/api`, por ejemplo `https://la-red-padle-api.onrender.com` |
 | `PROD_FRONTEND_URL` | `https://la-red-padle.vercel.app` o el dominio final real |
 | `PROD_WHATSAPP_TEMPLATE_NAME` | Nombre exacto de la plantilla aprobada |
 | `PROD_WHATSAPP_GRAPH_VERSION` | Versión Graph configurada, formato `vN.N` |
@@ -84,3 +85,21 @@ Las migraciones productivas siguen ejecutándose al startup del backend o median
 
 ## Resultado esperado
 Primero puede ejecutarse `core` para destrabar Neon/Render sin esperar Meta. Antes del release debe ejecutarse `full` y quedar verde. Si falla por un input ausente, cargar solo ese input y volver a ejecutarlo. Si falla dentro del preflight, corregir la infraestructura/configuración indicada antes de continuar con smoke de producción.
+
+
+## Ejecutar el smoke público
+Después de un `preflight:core` verde y con el backend desplegado:
+
+GitHub → Actions → `LA RED production smoke` → Run workflow.
+
+El workflow usa exclusivamente variables del Environment `production`:
+- `PROD_API_URL`
+- `PROD_FRONTEND_URL`
+
+No se tipean URLs en cada ejecución. Ambas deben ser orígenes HTTPS puros, sin path/query/fragmento/credenciales. El backend se pasa **sin** `/api`; el smoke agrega los paths API internamente.
+
+El smoke valida de forma no destructiva:
+- health DB-aware;
+- CORS;
+- endpoints públicos críticos;
+- frontend SPA.

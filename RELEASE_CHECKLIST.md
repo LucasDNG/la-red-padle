@@ -71,6 +71,7 @@
 - [ ] variables producción correctas;
 - [ ] al menos una cancha activa;
 - [x] smoke público automatizado preparado (`production-smoke.yml`);
+- [x] smoke ligado al Environment `production` con URLs validadas como orígenes HTTPS;
 - [ ] smoke público ejecutado contra Render/Vercel reales;
 - [ ] smoke completo autenticado/UX en producción.
 

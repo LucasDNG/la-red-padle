@@ -49,3 +49,32 @@ test('production smoke rejects wrong CORS even when health is otherwise green',a
     /CORS productivo/
   );
 });
+
+
+test('production smoke rejects non-origin production URLs before making requests',async()=>{
+  const never=async()=>{throw new Error('fetch no debería ejecutarse');};
+  await assert.rejects(
+    ()=>runProductionSmoke({
+      apiUrl:'https://api.example.com/api',
+      frontendUrl:'https://app.example.com',
+      fetchImpl:never
+    }),
+    /sin path/
+  );
+  await assert.rejects(
+    ()=>runProductionSmoke({
+      apiUrl:'https://api.example.com',
+      frontendUrl:'https://app.example.com/?preview=1',
+      fetchImpl:never
+    }),
+    /sin credenciales\/query\/fragmento/
+  );
+  await assert.rejects(
+    ()=>runProductionSmoke({
+      apiUrl:'https://user:pass@api.example.com',
+      frontendUrl:'https://app.example.com',
+      fetchImpl:never
+    }),
+    /sin credenciales\/query\/fragmento/
+  );
+});

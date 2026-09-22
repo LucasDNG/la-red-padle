@@ -1,12 +1,12 @@
 function normalizeHttps(value,label){
   const raw=String(value||'').trim();
   if(!raw)throw new Error(label+' es obligatorio');
-  const url=new URL(raw);
-  if(url.protocol!=='https:')throw new Error(label+' debe usar HTTPS');
-  url.search='';
-  url.hash='';
-  url.pathname=url.pathname.replace(/\/+$/,'');
-  return url.toString().replace(/\/$/,'');
+  let url=null;
+  try{url=new URL(raw);}catch{}
+  if(!url||url.protocol!=='https:')throw new Error(label+' debe usar HTTPS');
+  if(url.username||url.password||url.search||url.hash)throw new Error(label+' debe ser un origen HTTPS sin credenciales/query/fragmento');
+  if(url.pathname&&url.pathname!=='/')throw new Error(label+' debe ser un origen HTTPS sin path');
+  return url.origin;
 }
 
 async function jsonGet(fetchImpl,url,frontendOrigin){

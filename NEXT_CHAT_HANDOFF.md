@@ -287,3 +287,18 @@ Quedan disponibles:
 - `npm run preflight:full`
 
 Próximo paso real: cargar inputs core del Environment `production` y ejecutar el preflight `core` contra Neon.
+
+
+### Smoke ligado al Environment production en validación
+Se prepara un cierre operativo:
+- `LA RED production smoke` usa GitHub Environment `production`;
+- toma `PROD_API_URL` y `PROD_FRONTEND_URL` desde variables, sin tipearlas por ejecución;
+- el smoke exige orígenes HTTPS puros y rechaza path/query/fragmento/credenciales;
+- se agrega regresión automática para esos casos.
+
+Confirmar CI antes de cerrar. Después, con variables reales cargadas, la secuencia es:
+1. preflight `core`;
+2. deploy/startup Render;
+3. production smoke;
+4. TOTP real;
+5. preflight `full` cuando Meta esté listo.
