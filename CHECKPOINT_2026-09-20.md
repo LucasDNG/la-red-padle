@@ -332,7 +332,7 @@ Se eliminó la dependencia funcional de una cancha precargada para coordinar par
 
 La pasada de journey cerró huecos de UI en pausa/disolución, extensión, no-show, revisión/confirmación de resultados y reportes disciplinarios posteriores al partido. Existe una regresión que exige que todo endpoint funcional ordinario tenga superficie frontend.
 
-Último código verificado antes de esta actualización documental: `fe67dbb3239d4c9490d0e2cd5fd82743bf0dde1c` — 70/70 puros, 46/46 PostgreSQL, verify:db, frontend build, Actions y Vercel verdes.
+Último código verificado antes de esta actualización documental: `fe67dbb3239d4c9490d0e2cd5fd82743bf0dde1c` — 71/71 puros, 46/46 PostgreSQL, verify:db, frontend build, Actions y Vercel verdes.
 
 
 ## Producción real — gates cerrados el 2026-09-22
@@ -345,3 +345,7 @@ Se validó la infraestructura real:
 - login Admin real con contraseña + TOTP: verde.
 
 Próximo frente externo: recuperación Neon (plan/restore window + RPO/RTO + drill), luego WhatsApp Meta y preflight FULL.
+
+
+## Service Worker de producción — VERDE
+Se detectó en navegador real un error de fallback al navegar a `/liga`. Se corrigió el Service Worker para no interceptar APIs/otros orígenes, usar el shell SPA en navegaciones fallidas y devolver siempre una `Response`. CI confirmado: 71/71 tests puros + 46/46 PostgreSQL + frontend build verde; Vercel `success`.
