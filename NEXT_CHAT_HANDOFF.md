@@ -29,7 +29,7 @@ Después leer, como mínimo:
 - Neon histórica: eliminada; no asumir recuperable.
 - Neon nueva: base de referencia actual.
 - runtime objetivo: Node 22.
-- 67/67 tests puros verdes en el último checkpoint verificado.
+- 68/68 tests puros verdes en el último checkpoint verificado.
 - 45/45 integración PostgreSQL verdes.
 - `verify:db` verde.
 - frontend build verde.
@@ -95,3 +95,7 @@ La cronología extensa está en `AUDIT_2026-09-20.md`, `CHECKPOINT_2026-09-20.md
 
 ### Acciones pausa/reactivación en Mi pareja — CORREGIDAS
 La UI muestra PAUSAR solo para pareja `active` y REACTIVAR solo para pareja `paused`. Se agregó regresión automática.
+
+
+### Preflight TLS Neon — CORREGIDO
+La primera ejecución real de `preflight:core` alcanzó Neon pero `pg_stat_ssl` dio un falso negativo de TLS. El preflight ahora valida el `TLSSocket` real de `node-postgres`; CI quedó verde. Falta ejecutar un workflow manual NUEVO sobre el HEAD actualizado para validar producción real.
