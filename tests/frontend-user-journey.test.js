@@ -28,4 +28,6 @@ test('journey visible cubre lugar libre, confirmaciones y acciones temporales',(
   assert.match(frontSource,/canNoShow/);
   assert.match(frontSource,/Las dos versiones no coinciden/);
   assert.match(frontSource,/GUARDAR CORRECCIÓN/);
+  assert.match(frontSource,/VENTANA DE 15 DÍAS/);
+  assert.match(frontSource,/ENVIAR REPORTE DEL PARTIDO RECIENTE/);
 });
