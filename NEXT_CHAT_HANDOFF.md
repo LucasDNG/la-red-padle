@@ -354,13 +354,21 @@ Quedó confirmado:
 - startup no productivo no intenta migraciones.
 
 
-### Graceful shutdown/runtime handlers en validación
-Se agrega cierre controlado de runtime:
-- SIGTERM/SIGINT dejan de aceptar conexiones y cierran PostgreSQL;
-- timers de mantenimiento/outbox se cancelan;
-- cierre idempotente;
-- timeout de 10 s fuerza cierre de conexiones HTTP restantes;
-- unhandled rejection/uncaught exception registran error sanitizado y salen con código 1;
-- fallo al cerrar PostgreSQL también queda sanitizado y fuerza salida no-cero.
+### Graceful shutdown/runtime handlers — VERDE
+CI confirmado sobre `1a8a55c5ffe652b930a56fecbe18ba9610ced10c`:
+- 55/55 tests puros;
+- 45/45 integración PostgreSQL;
+- `verify:db`, frontend y Vercel verdes.
 
-Confirmar CI antes de cerrar.
+SIGTERM/SIGINT cierran HTTP + PostgreSQL y cancelan timers; fallos fatales de proceso se sanitizan y terminan con código no-cero.
+
+
+### Smoke de headers/cache en validación
+El smoke productivo ahora exige:
+- headers de seguridad en API y frontend;
+- HSTS;
+- ausencia de `X-Powered-By`;
+- CSP anti-frame;
+- probe auth 404 no destructivo con `Cache-Control: no-store` + `Pragma: no-cache`.
+
+Así los controles ya no quedan solo en tests unitarios: se validan contra Render/Vercel reales cuando corre el smoke.
