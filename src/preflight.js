@@ -52,6 +52,14 @@ export async function databasePreflight(pool,{requireTls=true}={}){
   `)).rows[0].n);
   if(migrationColumn!==1||migrationConstraint!==1)throw new Error('Patch de abandono incompleto: ejecutá el startup productivo o npm run migrate:prod');
 
+  const scheduleLocationColumns=Number((await client.query(`
+    SELECT count(*) n FROM information_schema.columns
+    WHERE table_schema='public'
+      AND ((table_name='wheel_assignments' AND column_name='location_text')
+        OR (table_name='wheel_schedule_proposals' AND column_name='location_text'))
+  `)).rows[0].n);
+  if(scheduleLocationColumns!==2)throw new Error('Patch de lugares libres incompleto: ejecutá el startup productivo o npm run migrate:prod');
+
   const adminCount=Number((await client.query(`
     SELECT count(*) n
     FROM users
@@ -60,7 +68,6 @@ export async function databasePreflight(pool,{requireTls=true}={}){
   if(adminCount<1)throw new Error('No hay ningún Admin verificado');
 
   const venueCount=Number((await client.query(`SELECT count(*) n FROM venues WHERE active=true`)).rows[0].n);
-  if(venueCount<1)throw new Error('No hay ninguna cancha/lugar activo');
 
   for(let i=3;i<VERIFY_STATEMENTS.length;i++){
     const result=await client.query(VERIFY_STATEMENTS[i]);
@@ -84,7 +91,7 @@ export async function databasePreflight(pool,{requireTls=true}={}){
     databaseTlsVersion:requireTls?(ssl.version||null):null,
     databaseTlsCipher:requireTls?(ssl.cipher||null):null,
     admins:adminCount,
-    activeVenues:venueCount,
+    activeCommercialVenues:venueCount,
     verifyControls:Math.max(0,VERIFY_STATEMENTS.length-3),
     failedOutbox,
     oldestFailedOutboxAt:failed.oldest||null,

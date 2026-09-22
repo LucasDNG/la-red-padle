@@ -102,7 +102,6 @@ test('global clock pause shifts every live deadline by the paused duration and i
   const admin=await seedUser({role:'admin'});
   const a=await seedTeam(1),b=await seedTeam(2);
   const assignment=await openAssignment(a.pair,b.pair);
-  const venue=(await testPool.query("INSERT INTO venues(name,active) VALUES('Clock Club',true) RETURNING *")).rows[0];
   await testPool.query(`
     UPDATE wheel_assignments
     SET deadline_at=now()+interval '10 days',
@@ -111,9 +110,9 @@ test('global clock pause shifts every live deadline by the paused duration and i
     WHERE id=$1
   `,[assignment.id]);
   const proposal=(await testPool.query(`
-    INSERT INTO wheel_schedule_proposals(assignment_id,proposed_by_pair_id,scheduled_at,venue_id,response_deadline_at)
-    VALUES($1,$2,now()+interval '2 days',$3,now()+interval '1 day') RETURNING *
-  `,[assignment.id,a.pair.id,venue.id])).rows[0];
+    INSERT INTO wheel_schedule_proposals(assignment_id,proposed_by_pair_id,scheduled_at,location_text,response_deadline_at)
+    VALUES($1,$2,now()+interval '2 days','Lugar libre',now()+interval '1 day') RETURNING *
+  `,[assignment.id,a.pair.id])).rows[0];
   const noShow=(await testPool.query(`
     INSERT INTO wheel_no_shows(assignment_id,reported_by_pair_id,reported_pair_id,response_deadline_at)
     VALUES($1,$2,$3,now()+interval '1 day') RETURNING *
@@ -390,13 +389,12 @@ test('production admin login fails closed without TOTP secret and succeeds with 
 test('database preflight passes healthy state and fails closed for paused clock or missing abandonment patch',async()=>{
   const admin=await seedUser({role:'admin'});
   assert.ok(admin.id);
-  await testPool.query("INSERT INTO venues(name,active) VALUES('Preflight Club',true)");
-
   const healthy=await databasePreflight(testPool,{requireTls:false});
   assert.equal(healthy.ok,true);
   assert.equal(healthy.engine,'wheel-v2');
   assert.equal(healthy.clockPaused,false);
   assert.equal(healthy.migrationReady,true);
+  assert.equal(healthy.activeCommercialVenues,0);
   assert.ok(healthy.verifyControls>0);
 
   await testPool.query("UPDATE app_settings SET value='true'::jsonb WHERE key='league_clock_paused'");

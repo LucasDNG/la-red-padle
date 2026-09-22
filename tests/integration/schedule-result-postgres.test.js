@@ -67,15 +67,10 @@ function scoreForWinner(a,winnerId,variant=0){
 function resultBody(a,winnerId,playedAt=new Date(),variant=0){
   return {winnerPairId:Number(winnerId),resultType:'normal',playedAt:playedAt.toISOString(),score:scoreForWinner(a,winnerId,variant)};
 }
-async function venue(){
-  return (await testPool.query("INSERT INTO venues(name,address,active) VALUES('Club Test','San Pedro',true) RETURNING *")).rows[0];
-}
-
 test('official schedule changes only after rival acceptance and proposals expire in 48 hours',async()=>{
   const {top,lower,assignment}=await seedAssignedMatch();
-  const v=await venue();
   const firstDate=new Date(Date.now()+2*86400000);
-  const p1=await proposeSchedule(top.members[0].id,assignment.id,{scheduledAt:firstDate.toISOString(),venueId:v.id});
+  const p1=await proposeSchedule(top.members[0].id,assignment.id,{scheduledAt:firstDate.toISOString(),locationText:'Club escrito por jugador'});
   const hours=(new Date(p1.response_deadline_at)-new Date(p1.created_at))/3600000;
   assert.ok(Math.abs(hours-48)<0.01);
   let dbAssignment=(await testPool.query('SELECT * FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0];
@@ -85,16 +80,20 @@ test('official schedule changes only after rival acceptance and proposals expire
   await acceptSchedule(lower.members[0].id,assignment.id,p1.id);
   dbAssignment=(await testPool.query('SELECT * FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0];
   assert.equal(new Date(dbAssignment.scheduled_at).getTime(),firstDate.getTime());
-  assert.equal(Number(dbAssignment.venue_id),Number(v.id));
-  assert.equal((await publicUpcoming()).some(x=>Number(x.id)===Number(assignment.id)),true);
+  assert.equal(dbAssignment.location_text,'Club escrito por jugador');
+  assert.equal(dbAssignment.venue_id,null);
+  const publicRow=(await publicUpcoming()).find(x=>Number(x.id)===Number(assignment.id));
+  assert.ok(publicRow);
+  assert.equal(publicRow.location_text,'Club escrito por jugador');
 
   const secondDate=new Date(Date.now()+3*86400000);
-  const p2=await proposeSchedule(top.members[1].id,assignment.id,{scheduledAt:secondDate.toISOString(),venueId:v.id});
+  const p2=await proposeSchedule(top.members[1].id,assignment.id,{scheduledAt:secondDate.toISOString(),locationText:'Otra cancha libre'});
   dbAssignment=(await testPool.query('SELECT * FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0];
   assert.equal(new Date(dbAssignment.scheduled_at).getTime(),firstDate.getTime());
   await acceptSchedule(lower.members[1].id,assignment.id,p2.id);
   dbAssignment=(await testPool.query('SELECT * FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0];
   assert.equal(new Date(dbAssignment.scheduled_at).getTime(),secondDate.getTime());
+  assert.equal(dbAssignment.location_text,'Otra cancha libre');
 });
 
 test('first result can be revised before response, keeps one 15-day deadline, and opponent confirmation applies ladder once',async()=>{
@@ -195,4 +194,14 @@ test('result cannot be loaded after the 30-day sporting deadline',async()=>{
     /Venció el plazo/
   );
   assert.equal(Number((await testPool.query('SELECT count(*) n FROM wheel_result_versions WHERE assignment_id=$1',[assignment.id])).rows[0].n),0);
+});
+
+
+test('schedule location is free text and does not require a registered venue',async()=>{
+  const {top,assignment}=await seedAssignedMatch();
+  const when=new Date(Date.now()+86400000);
+  const p=await proposeSchedule(top.members[0].id,assignment.id,{scheduledAt:when.toISOString(),locationText:'  Cancha de Juan   al fondo  '});
+  assert.equal(p.location_text,'Cancha de Juan al fondo');
+  assert.equal(p.venue_id,null);
+  await assert.rejects(()=>proposeSchedule(top.members[0].id,assignment.id,{scheduledAt:when.toISOString(),locationText:' '}),/lugar válido/);
 });

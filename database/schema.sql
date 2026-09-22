@@ -198,13 +198,15 @@ CREATE TABLE wheel_assignments(
   extraordinary_used boolean NOT NULL DEFAULT false,
   extraordinary_deadline_at timestamptz,
   scheduled_at timestamptz,
+  location_text varchar(160),
   venue_id bigint REFERENCES venues(id),
   schedule_confirmed_at timestamptz,
   confirmation_deadline_at timestamptz,
   closed_at timestamptz,
   close_reason varchar(80),
   created_at timestamptz NOT NULL DEFAULT now(),
-  CHECK(pair_a_id<>pair_b_id)
+  CHECK(pair_a_id<>pair_b_id),
+  CHECK(schedule_confirmed_at IS NULL OR (location_text IS NOT NULL AND length(trim(location_text)) BETWEEN 2 AND 160))
 );
 CREATE TABLE wheel_assignment_participants(
   assignment_id bigint NOT NULL REFERENCES wheel_assignments(id) ON DELETE CASCADE,
@@ -219,7 +221,8 @@ CREATE TABLE wheel_schedule_proposals(
   assignment_id bigint NOT NULL REFERENCES wheel_assignments(id) ON DELETE CASCADE,
   proposed_by_pair_id bigint NOT NULL REFERENCES pairs(id),
   scheduled_at timestamptz NOT NULL,
-  venue_id bigint NOT NULL REFERENCES venues(id),
+  location_text varchar(160) NOT NULL CHECK(length(trim(location_text)) BETWEEN 2 AND 160),
+  venue_id bigint REFERENCES venues(id),
   status varchar(12) NOT NULL DEFAULT 'pending' CHECK(status IN('pending','accepted','replaced','expired','cancelled')),
   response_deadline_at timestamptz NOT NULL DEFAULT (now()+interval '48 hours'),
   created_at timestamptz NOT NULL DEFAULT now(),

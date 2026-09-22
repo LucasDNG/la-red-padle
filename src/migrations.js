@@ -4,7 +4,8 @@ import {fileURLToPath} from 'node:url';
 
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 export const PRODUCTION_MIGRATIONS=[
-  path.resolve(__dirname,'../database/PATCH_MATCH_ABANDONMENT_2026-09-21.sql')
+  path.resolve(__dirname,'../database/PATCH_MATCH_ABANDONMENT_2026-09-21.sql'),
+  path.resolve(__dirname,'../database/PATCH_FREE_TEXT_LOCATIONS_2026-09-22.sql')
 ];
 
 export async function applyProductionMigrations(client){
