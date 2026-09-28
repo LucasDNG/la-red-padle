@@ -19,49 +19,61 @@ Este archivo contiene **solo decisiones que siguen vigentes**. Las decisiones re
 11. La fase de formación termina cuando las 7 categorías del circuito alcanzan el mínimo acordado de parejas activas; el alcance exacto por circuito está pendiente de confirmación.
 12. Después de la formación, la población activa puede modificar el requisito deportivo 3/2/1, pero la población por sí sola nunca mueve una pareja.
 13. Todos los ascensos/descensos entre categorías son adyacentes.
-14. Una pareja que desciende entra normalmente #2 en la categoría inferior; si no existe #1 material, entra #1.
-15. En 7ª no existe zona/período de descenso.
+14. Una pareja que **asciende** entra en la mitad de la tabla activa de la categoría superior y desplaza hacia abajo; la fórmula exacta de mitad está pendiente.
+15. Una pareja nueva también entra en la mitad de la tabla activa de su categoría.
+16. Una pareja que desciende entra normalmente #2 en la categoría inferior; si no existe #1 material, entra #1.
+17. En 7ª no existe zona/período de descenso.
 
 ## Récord histórico de Primera
 
-16. El único récord deportivo histórico especial es la cantidad de defensas exitosas del puesto #1 de Primera.
-17. Masculino y Femenino tienen récords separados.
-18. Una defensa exitosa exige que la pareja ya sea #1 de Primera, dispute una defensa y conserve el #1.
-19. La sección pública histórica se dedica únicamente a este récord.
-20. No se muestra un historial estadístico acumulado de partidos/victorias/derrotas por pareja.
-21. El jugador puede ver hasta los últimos 5 movimientos reales de ranking/categoría, con fecha y explicación simple.
+18. El único récord deportivo histórico especial es la cantidad de defensas exitosas del puesto #1 de Primera.
+19. Masculino y Femenino tienen récords separados.
+20. Una defensa exitosa exige que la pareja ya sea #1 de Primera, dispute una defensa y conserve el #1.
+21. Si varias parejas empatan el máximo histórico, el récord se muestra como compartido.
+22. La sección pública histórica se dedica únicamente a este récord.
+23. No se muestra un historial estadístico acumulado de partidos/victorias/derrotas por pareja.
+24. El jugador puede ver hasta los últimos 5 movimientos reales de ranking/categoría, con fecha y explicación simple.
 
 ## Inactividad
 
-22. Una pareja puede avisar que quiere pasar a inactiva.
-23. Si ya tiene un partido asignado, primero debe resolverse la situación de ese compromiso.
-24. No está obligada físicamente a jugar: si decide no disputar el compromiso, primero se aplica la consecuencia deportiva correspondiente y después pasa a inactiva.
-25. La nueva regla indica intercambio de posición con el rival en ese cierre; la semántica exacta para evitar que un atacante se beneficie incumpliendo queda abierta en `WHEEL_V3_SPEC.md`.
-26. Una vez inactiva no recibe assignments.
-27. Una inactiva no participa del balance ataque/defensa ni del cálculo de población activa.
-28. La inactividad por sí sola no genera castigos periódicos, pérdida mensual de puestos ni descenso de categoría.
-29. La antigua regla de perder puestos por meses de inactividad queda eliminada.
-30. Puede conservarse técnicamente `paused` como inactividad temporal y `inactive` como disolución/archivo si eso simplifica la migración; en la interfaz del jugador se usa “inactiva”.
-31. La posición exacta al reactivar y el tratamiento de un período de descenso previo siguen abiertos en la spec.
+25. Alcanza con que un integrante solicite la inactividad en nombre de la pareja.
+26. Si ya existe un partido asignado, primero debe resolverse la situación del compromiso.
+27. Si la pareja decide no jugar ese compromiso, se aplica la consecuencia deportiva antes de quedar inactiva.
+28. Si la incumplidora estaba por encima del rival, intercambian posiciones; si estaba por debajo, no hay intercambio. Incumplir nunca puede hacer subir a la incumplidora.
+29. Una inactiva no recibe assignments ni participa del balance ataque/defensa ni del cálculo de población activa.
+30. Durante los primeros 3 meses completos conserva su posición de retorno.
+31. Desde el 4º mes completo pierde 1 posición de retorno por cada mes completo adicional, sin bajar de categoría por inactividad.
+32. Si se inactivó siendo #1 de cualquier categoría, dentro de los primeros 3 meses vuelve como máximo #2; luego ese #2 base pierde una posición por cada mes completo adicional.
+33. Al reactivar se inserta en la posición calculada y desplaza hacia abajo desde ese punto.
+34. Si dos inactivas tienen el mismo puesto de retorno, la que reactiva más tarde se inserta igualmente allí y desplaza a la que había vuelto antes.
+35. Si ya estaba en período de descenso, el estado y contador se congelan durante la inactividad y se retoman al volver.
+36. La inactividad por sí sola nunca produce descenso de categoría.
+37. Tras 3 incumplimientos atribuibles consecutivos, la pareja pasa automáticamente a inactiva y queda 30 días sin nuevas asignaciones.
+38. La forma de reactivación al cumplir esos 30 días y el evento que reinicia la racha de incumplimientos siguen abiertos en `WHEEL_V3_SPEC.md`.
 
 ## No-show, incumplimientos y resultados
 
-32. `No pude jugar` permite reconocer un incumplimiento sin esperar a que venzan los 30 días.
-33. Una victoria administrativa no cuenta como victoria real para ascenso ni para salir de período de descenso.
-34. Solo un partido real reinicia la antigüedad de “hace cuánto no juega”.
-35. Un no-show reconocido expresamente por la pareja reportada se resuelve inmediatamente; no espera las 48 horas.
-36. Un no-show unilateral no reconocido o contradicho pasa a Administración después de la ventana de reconsideración acordada.
-37. Una disputa real de resultado requiere intervención administrativa.
-38. Lesión/abandono conserva un tratamiento deportivo especial sin inventar games; su efecto exacto sobre zonas Wheel v3 está pendiente de confirmación.
+39. Cualquiera de los dos integrantes puede marcar `No pude jugar` en nombre de toda la pareja.
+40. La UI y auditoría deben mostrar quién realizó esa acción.
+41. Una victoria administrativa no cuenta como victoria real para ascenso ni para salir de período de descenso.
+42. Solo un partido real reinicia la antigüedad de “hace cuánto no juega”.
+43. Un no-show reconocido expresamente por la pareja reportada se resuelve inmediatamente; no espera las 48 horas.
+44. Un no-show unilateral no reconocido o contradicho pasa a Administración después de la ventana de reconsideración.
+45. Una disputa real de resultado requiere intervención administrativa.
+46. Lesión/abandono después de iniciado el partido se considera partido real: la victoria cuenta para ascenso/salir de descenso, la derrota cuenta para descenso y puede sumar defensa exitosa del #1 de Primera.
 
 ## Parejas y categorías individuales
 
-39. Formar pareja requiere invitación + aceptación; Admin no aprueba parejas.
-40. Un usuario no puede pertenecer a dos parejas competitivas vigentes.
-41. La categoría individual no cambia solo por jugar temporalmente con un compañero más fuerte; cambia por movimiento deportivo real.
-42. La categoría inicial de dos jugadores sin categoría previa sigue pendiente de confirmación final en Wheel v3.
-43. Disolución nunca borra obligaciones abiertas.
-44. La re-formación futura de una misma dupla tiene su tratamiento competitivo pendiente de confirmación.
+47. Formar pareja requiere invitación + aceptación; Admin no aprueba parejas.
+48. Un usuario no puede pertenecer a dos parejas competitivas vigentes.
+49. Si los integrantes tienen categorías individuales distintas, la pareja compite en la del jugador de mayor nivel (número más bajo).
+50. Ejemplo: 2ª + 5ª => la pareja juega en 2ª.
+51. Dos jugadores sin categoría previa pueden elegir libremente 1ª–7ª.
+52. Formar pareja con alguien más fuerte no cambia por sí solo la categoría individual del jugador de nivel inferior.
+53. Un ascenso deportivo real de la pareja mejora la categoría individual de ambos al nivel alcanzado.
+54. Al disolverse, cada jugador conserva/recupera su categoría individual propia, incluyendo mejoras obtenidas por ascensos reales.
+55. Si la misma dupla se disuelve y luego vuelve a formarse, se trata competitivamente como pareja nueva.
+56. Disolución nunca borra obligaciones abiertas.
 
 ## Identidad, seguridad y administración
 
