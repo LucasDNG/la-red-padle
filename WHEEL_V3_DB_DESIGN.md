@@ -32,6 +32,7 @@ Campos:
 - `pair_id`: PK/FK;
 - `role`: `attack` / `defense` / NULL;
 - `role_streak`: cantidad consecutiva del rol actual;
+- `defense_required_until_real`: obligación persistente de defensa después de incumplimiento propio hasta completar una defensa real, salvo imposibilidad estructural;
 - `promotion_wins`: victorias reales corrientes en zona de ascenso;
 - `awaiting_zone_first_match`: borde 0 PJ al activarse una zona;
 - `inactive_since`: inicio autoritativo de inactividad;
@@ -60,7 +61,8 @@ Campos:
 - `failure_streak`: incumplimientos atribuibles consecutivos de esa dupla;
 - `penalty_until`: fin autoritativo de la sanción de 30 días, cuando exista;
 - `pending_relegation_category_id`: categoría donde nació un período de descenso no resuelto;
-- `pending_relegation_losses`: derrotas reales acumuladas en ese período;
+- `pending_relegation_losses`: derrotas acumuladas que cuentan para el período;
+- `relegation_route_step`: progreso de dificultad de la ruta de ataque durante el período; avanza solo con derrotas reales jugadas y se reinicia al resolver el período;
 - `pending_relegation_started_at`;
 - timestamps.
 
