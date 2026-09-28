@@ -10,7 +10,7 @@ if(!connectionString)throw new Error('TEST_DATABASE_URL es obligatorio para los 
 process.env.DATABASE_URL=connectionString;
 const {Pool}=pg;
 const pool=new Pool({connectionString});
-const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity,reportWheelV3NoShow,cancelWheelV3NoShow,contestWheelV3NoShow,acceptWheelV3NoShow,escalateExpiredWheelV3NoShows}=await import('../../src/wheelV3Engine.js');
+const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity,reportWheelV3NoShow,cancelWheelV3NoShow,contestWheelV3NoShow,acceptWheelV3NoShow,escalateExpiredWheelV3NoShows,submitWheelV3ResultVersion,confirmWheelV3Result,autoValidateDueWheelV3Results,expireDueWheelV3Assignments}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
@@ -1153,4 +1153,173 @@ test('cancelled no-show can be reported again after a later reschedule on the sa
 
   const reports=(await pool.query('SELECT status FROM wheel_no_shows WHERE assignment_id=$1 ORDER BY id',[assignment.id])).rows;
   assert.deepEqual(reports.map(r=>r.status),['resolved','pending']);
+});
+
+
+test('first submitted result starts one fixed 7-day review and later edits do not reset it',async()=>{
+  const c=await category(2);
+  const a=await seedPairWithMembers(1,2,{tag:80});
+  const b=await seedPairWithMembers(2,2,{tag:81});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id) VALUES($1,$2,$3,$4,$4,$3) RETURNING id",
+    [a.league_id,c.id,a.id,b.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[assignment.id,a.id,b.id]);
+
+  const client=await pool.connect();
+  let first;
+  try{
+    await client.query('BEGIN');
+    first=await submitWheelV3ResultVersion(client,{
+      assignmentId:assignment.id,
+      pairId:a.id,
+      winnerPairId:a.id,
+      resultType:'normal',
+      playedAt:'2026-09-28T18:00:00Z',
+      score:{sets:[{pairA:6,pairB:3},{pairA:6,pairB:4}]},
+    });
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+  assert.equal(first.status,'result_pending');
+
+  const before=(await pool.query('SELECT first_result_at,confirmation_deadline_at FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0];
+  const client2=await pool.connect();
+  try{
+    await client2.query('BEGIN');
+    await submitWheelV3ResultVersion(client2,{
+      assignmentId:assignment.id,
+      pairId:a.id,
+      winnerPairId:a.id,
+      resultType:'normal',
+      playedAt:'2026-09-28T18:00:00Z',
+      score:{sets:[{pairA:6,pairB:2},{pairA:6,pairB:4}]},
+    });
+    await client2.query('COMMIT');
+  }catch(e){await client2.query('ROLLBACK');throw e;}finally{client2.release();}
+  const after=(await pool.query('SELECT first_result_at,confirmation_deadline_at FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0];
+  assert.equal(new Date(after.first_result_at).getTime(),new Date(before.first_result_at).getTime());
+  assert.equal(new Date(after.confirmation_deadline_at).getTime(),new Date(before.confirmation_deadline_at).getTime());
+});
+
+test('matching versions from both pairs confirm immediately',async()=>{
+  const c=await category(3);
+  const defender=await seedPairWithMembers(1,3,{tag:82});
+  const attacker=await seedPairWithMembers(2,3,{tag:83});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id) VALUES($1,$2,$3,$4,$4,$3) RETURNING id",
+    [defender.league_id,c.id,defender.id,attacker.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[assignment.id,defender.id,attacker.id]);
+  const payload={
+    assignmentId:assignment.id,
+    winnerPairId:attacker.id,
+    resultType:'normal',
+    playedAt:'2026-09-28T18:30:00Z',
+    score:{sets:[{pairA:3,pairB:6},{pairA:4,pairB:6}]},
+  };
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const one=await submitWheelV3ResultVersion(client,{...payload,pairId:defender.id});
+    assert.equal(one.status,'result_pending');
+    const two=await submitWheelV3ResultVersion(client,{...payload,pairId:attacker.id});
+    assert.equal(two.status,'confirmed');
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  assert.equal(Number((await pool.query('SELECT count(*) n FROM matches WHERE assignment_id=$1',[assignment.id])).rows[0].n),1);
+  assert.equal((await pool.query('SELECT status FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0].status,'confirmed');
+});
+
+test('conflicting pair versions move assignment to disputed and never auto-validate',async()=>{
+  const c=await category(4);
+  const a=await seedPairWithMembers(1,4,{tag:84});
+  const b=await seedPairWithMembers(2,4,{tag:85});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id) VALUES($1,$2,$3,$4,$4,$3) RETURNING id",
+    [a.league_id,c.id,a.id,b.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[assignment.id,a.id,b.id]);
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await submitWheelV3ResultVersion(client,{
+      assignmentId:assignment.id,pairId:a.id,winnerPairId:a.id,resultType:'normal',
+      playedAt:'2026-09-28T19:00:00Z',score:{sets:[{pairA:6,pairB:3},{pairA:6,pairB:3}]},
+    });
+    const conflict=await submitWheelV3ResultVersion(client,{
+      assignmentId:assignment.id,pairId:b.id,winnerPairId:b.id,resultType:'normal',
+      playedAt:'2026-09-28T19:00:00Z',score:{sets:[{pairA:3,pairB:6},{pairA:3,pairB:6}]},
+    });
+    assert.equal(conflict.status,'disputed');
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  await pool.query("UPDATE wheel_assignments SET confirmation_deadline_at=CURRENT_TIMESTAMP-interval '1 second' WHERE id=$1",[assignment.id]);
+  const client2=await pool.connect();
+  let auto;
+  try{
+    await client2.query('BEGIN');
+    auto=await autoValidateDueWheelV3Results(client2);
+    await client2.query('COMMIT');
+  }catch(e){await client2.query('ROLLBACK');throw e;}finally{client2.release();}
+  assert.equal(auto.length,0);
+  assert.equal(Number((await pool.query('SELECT count(*) n FROM matches WHERE assignment_id=$1',[assignment.id])).rows[0].n),0);
+});
+
+test('silence after seven days auto-validates the loaded result',async()=>{
+  const c=await category(5);
+  const defender=await seedPairWithMembers(1,5,{tag:86});
+  const attacker=await seedPairWithMembers(2,5,{tag:87});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id) VALUES($1,$2,$3,$4,$4,$3) RETURNING id",
+    [defender.league_id,c.id,defender.id,attacker.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[assignment.id,defender.id,attacker.id]);
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await submitWheelV3ResultVersion(client,{
+      assignmentId:assignment.id,pairId:attacker.id,winnerPairId:defender.id,resultType:'normal',
+      playedAt:'2026-09-28T19:30:00Z',score:{sets:[{pairA:6,pairB:4},{pairA:6,pairB:4}]},
+    });
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+  await pool.query("UPDATE wheel_assignments SET confirmation_deadline_at=CURRENT_TIMESTAMP-interval '1 second' WHERE id=$1",[assignment.id]);
+
+  const client2=await pool.connect();
+  let auto;
+  try{
+    await client2.query('BEGIN');
+    auto=await autoValidateDueWheelV3Results(client2);
+    await client2.query('COMMIT');
+  }catch(e){await client2.query('ROLLBACK');throw e;}finally{client2.release();}
+  assert.equal(auto.length,1);
+  assert.equal((await pool.query('SELECT status FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0].status,'confirmed');
+});
+
+test('30-day assignment with no result or declaration becomes simultaneous failure',async()=>{
+  const c=await category(7);
+  const a=await seedPairWithMembers(1,7,{tag:88});
+  const b=await seedPairWithMembers(2,7,{tag:89});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,assigned_at,deadline_at) VALUES($1,$2,$3,$4,$4,$3,CURRENT_TIMESTAMP-interval '31 days',CURRENT_TIMESTAMP-interval '1 day') RETURNING id",
+    [a.league_id,c.id,a.id,b.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[assignment.id,a.id,b.id]);
+
+  const client=await pool.connect();
+  let expired;
+  try{
+    await client.query('BEGIN');
+    expired=await expireDueWheelV3Assignments(client);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+  assert.equal(expired.length,1);
+  assert.equal((await pool.query('SELECT close_reason FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0].close_reason,'deadline_both_failure');
+  const streaks=(await pool.query('SELECT failure_streak FROM pair_duo_state WHERE league_id=$1 ORDER BY id',[a.league_id])).rows;
+  assert.ok(streaks.every(r=>Number(r.failure_streak)===1));
 });
