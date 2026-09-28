@@ -44,6 +44,7 @@ Cada circuito tiene su propia fase inicial de formación.
   - los #1 de 2ª a 7ª con al menos un partido real previo entran inmediatamente en zona de ascenso en 0/3;
   - los últimos de 1ª a 6ª con al menos un partido real previo entran inmediatamente en período de descenso en 0/3;
   - una pareja sin ningún partido real previo debe disputar primero un partido antes de activar su zona correspondiente;
+  - ese primer partido **no suma** victoria ni derrota de zona: al cerrarlo entra recién en 0/3;
   - la fase de formación **no vuelve a activarse jamás**, aunque después una categoría caiga por debajo de 5 activas.
 
 ## 4. Equilibrio poblacional entre categorías
@@ -267,6 +268,7 @@ Después de la fase de formación:
 - Fórmula aprobada con `N` parejas activas existentes: posición de ingreso = `floor(N / 2) + 1`.
   - N=10 => entra #6.
   - N=9 => entra #5.
+  - excepción N=1 => entra #2, para no desplazar al único #1 sin haber jugado.
 - Por ese ingreso no entra automáticamente en período de descenso.
 
 ## 14. Período de descenso
@@ -439,8 +441,11 @@ Administración debe conservar una auditoría técnica más completa de decision
 ## 21. Preguntas abiertas finales antes de código
 Quedaron solo estos bordes después de la última tanda:
 
-1. **Primera activación sin partidos previos:** al terminar la fase de formación, una pareja que está #1 o última pero todavía tiene 0 partidos debe jugar primero. Falta definir si **ese primer partido ya puede contar** como la primera victoria/derrota de la zona, o si solo habilita la zona y recién el siguiente resultado empieza a contar desde 0.
-2. **Mitad de tabla con categorías diminutas:** la fórmula `floor(N/2)+1` da #1 cuando solo existe una activa (N=1). ¿Queremos esa consecuencia durante la fase de formación, o en ese caso especial la nueva debe entrar #2 para no desplazar al único #1 sin jugar?
+No quedan preguntas funcionales abiertas para Wheel v3.
+
+Cierres finales:
+- Si al terminar la fase de formación una pareja ocupa #1 de 2ª–7ª o el último puesto de 1ª–6ª pero tiene 0 partidos reales, debe jugar primero un partido. **Ese primer partido no cuenta** para ascenso ni descenso: al cerrarlo, recién entra en la zona correspondiente en 0/3.
+- Regla de entrada a mitad de tabla: posición = `floor(N/2)+1`, excepto cuando existe **una sola pareja activa (N=1)**; en ese caso especial la nueva/ascendida entra #2 para no desplazar al único #1 sin haber jugado.
 
 ## 22. Plan de implementación después de cerrar preguntas
 1. Convertir este diseño en reglas definitivas dentro de `PROJECT_RULES.md` y `DECISIONS.md`.
