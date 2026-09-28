@@ -188,3 +188,17 @@ La primera ejecución real de `preflight:core` alcanzó Neon pero `pg_stat_ssl` 
 
 ### Service Worker /liga — CORREGIDO
 Se corrigió un fallo real de producción: ante error transitorio de red, el Service Worker podía devolver `undefined` para una navegación como `/liga`, causando `Failed to convert value to 'Response'`. Ahora solo intercepta GET same-origin no-API, usa shell `/` como fallback de navegación y siempre devuelve una `Response`. Regresión automática agregada. Estado verificado: 71/71 puros + 46/46 PostgreSQL + frontend build + Vercel success.
+
+
+### Preparación DB Wheel v3 — 2026-09-28
+- Se agregó `WHEEL_V3_DB_DESIGN.md`.
+- Se agregó `database/PATCH_WHEEL_V3_STATE_2026-09-28.sql` y fue incorporado a `src/migrations.js`.
+- `database/schema.sql` ya contiene el estado preparatorio Wheel v3 para instalaciones limpias.
+- Nuevas estructuras: `league_wheel_state`, `pair_wheel_state`, `pair_duo_state`, `first_place_reigns`.
+- `wheel_assignments` suma `attacker_pair_id`, `defender_pair_id`, `cancelled_at` y `first_result_at`.
+- Triggers aditivos mantienen creado el estado v3 para parejas/duplas nuevas mientras el runtime sigue en `wheel-v2`.
+- La migración no traduce ELO/rachas legacy a contadores v3 porque no son semánticamente equivalentes; posiciones/categorías/partidos se conservan.
+- Se ampliaron tests puros de meses completos, cancelación tardía y deadlines absolutos.
+- Se agregó `tests/integration/wheel-v3-state-postgres.test.js` para schema, idempotencia, constraints, reloj DB, reinados y sincronización de nuevas parejas.
+- **El engine sigue en `wheel-v2`; no se implementó todavía el runtime Wheel v3.**
+- Validación local desde este entorno no pudo ejecutarse por bloqueo DNS hacia GitHub; confirmar GitHub Actions del HEAD antes de dar este bloque por verde.
