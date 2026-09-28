@@ -80,3 +80,16 @@ test('sanction auto-reactivation uses an exact 30-day DB deadline',async()=>{
   const row=(await pool.query('SELECT EXTRACT(EPOCH FROM (auto_reactivate_at-inactive_since)) seconds FROM pair_wheel_state WHERE pair_id=$1',[p.id])).rows[0];
   assert.equal(Number(row.seconds),30*24*60*60);
 });
+
+
+test('new wheel-v2 pairs keep Wheel v3 preparation state synchronized automatically',async()=>{
+  const l=await maleLeague();const c=await category(2);
+  const u1=(await pool.query("INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('C','C','30000003','3','x','male') RETURNING id")).rows[0];
+  const u2=(await pool.query("INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('D','D','30000004','4','x','male') RETURNING id")).rows[0];
+  const p=(await pool.query('INSERT INTO pairs(league_id,category_id,position) VALUES($1,$2,1) RETURNING id',[l.id,c.id])).rows[0];
+  assert.equal(Number((await pool.query('SELECT count(*) n FROM pair_wheel_state WHERE pair_id=$1',[p.id])).rows[0].n),1);
+  await pool.query('INSERT INTO pair_members(pair_id,user_id) VALUES($1,$2),($1,$3)',[p.id,u1.id,u2.id]);
+  const duo=(await pool.query('SELECT * FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[l.id,u1.id,u2.id])).rows[0];
+  assert.ok(duo);
+  assert.equal(Number(duo.failure_streak),0);
+});
