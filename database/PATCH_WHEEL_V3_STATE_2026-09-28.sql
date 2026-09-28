@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS pair_wheel_state(
   pair_id bigint PRIMARY KEY REFERENCES pairs(id) ON DELETE CASCADE,
   role varchar(8) CHECK(role IN('attack','defense')),
   role_streak int NOT NULL DEFAULT 0 CHECK(role_streak>=0),
+  defense_required_until_real boolean NOT NULL DEFAULT false,
   promotion_wins int NOT NULL DEFAULT 0 CHECK(promotion_wins>=0),
   awaiting_zone_first_match boolean NOT NULL DEFAULT false,
   inactive_since timestamptz,
@@ -62,12 +63,13 @@ CREATE TABLE IF NOT EXISTS pair_duo_state(
   penalty_until timestamptz,
   pending_relegation_category_id bigint,
   pending_relegation_losses int NOT NULL DEFAULT 0 CHECK(pending_relegation_losses>=0),
+  relegation_route_step int NOT NULL DEFAULT 0 CHECK(relegation_route_step>=0),
   pending_relegation_started_at timestamptz,
   created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CHECK(member_low_id<member_high_id),
   CHECK(
-    (pending_relegation_category_id IS NULL AND pending_relegation_losses=0 AND pending_relegation_started_at IS NULL)
+    (pending_relegation_category_id IS NULL AND pending_relegation_losses=0 AND relegation_route_step=0 AND pending_relegation_started_at IS NULL)
     OR
     (pending_relegation_category_id IS NOT NULL AND pending_relegation_started_at IS NOT NULL)
   ),
