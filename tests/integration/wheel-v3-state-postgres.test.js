@@ -2154,8 +2154,7 @@ test('competitive runtime selector keeps wheel-v2 by default and exposes wheel-v
   assert.equal(await competitiveEngine(),'wheel-v3');
 
   const ranking=await runtime.ranking();
-  assert.ok(Array.isArray(ranking.categories));
-  assert.ok(ranking.server_now);
+  assert.ok(Array.isArray(ranking));
 
   await assert.rejects(
     runtime.voteExtension(1,1),
