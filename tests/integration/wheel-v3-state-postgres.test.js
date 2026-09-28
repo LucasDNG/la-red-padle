@@ -10,7 +10,7 @@ if(!connectionString)throw new Error('TEST_DATABASE_URL es obligatorio para los 
 process.env.DATABASE_URL=connectionString;
 const {Pool}=pg;
 const pool=new Pool({connectionString});
-const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity,reportWheelV3NoShow,cancelWheelV3NoShow,contestWheelV3NoShow,acceptWheelV3NoShow,escalateExpiredWheelV3NoShows,submitWheelV3ResultVersion,confirmWheelV3Result,autoValidateDueWheelV3Results,expireDueWheelV3Assignments,expireWheelV3ScheduleProposals,formWheelV3Pair,archiveWheelV3Pair,resolveWheelV3FormationCategory}=await import('../../src/wheelV3Engine.js');
+const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity,reportWheelV3NoShow,cancelWheelV3NoShow,contestWheelV3NoShow,acceptWheelV3NoShow,escalateExpiredWheelV3NoShows,submitWheelV3ResultVersion,confirmWheelV3Result,autoValidateDueWheelV3Results,expireDueWheelV3Assignments,expireWheelV3ScheduleProposals,formWheelV3Pair,archiveWheelV3Pair,resolveWheelV3FormationCategory,proposeWheelV3Schedule,acceptWheelV3Schedule,cancelWheelV3ScheduleProposal}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
@@ -1779,4 +1779,88 @@ test('blocked top pair remains the structural top and does not make #2 a fake le
   assert.equal(topPlanned.free,false);
   assert.equal(second.role,'attack');
   assert.ok(plan.assignments.every(a=>a.attackerId!==Number(top.id)&&a.defenderId!==Number(top.id)));
+});
+
+
+test('result version cannot be edited after the fixed 7-day review deadline',async()=>{
+  const c=await category(2);
+  const a=await seedPairWithMembers(1,2,{tag:121});
+  const b=await seedPairWithMembers(2,2,{tag:122});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,assigned_at,deadline_at,status,first_result_at,confirmation_deadline_at) VALUES($1,$2,$3,$4,$4,$3,CURRENT_TIMESTAMP-interval '10 days',CURRENT_TIMESTAMP+interval '20 days','result_pending',CURRENT_TIMESTAMP-interval '8 days',CURRENT_TIMESTAMP-interval '1 day') RETURNING id",
+    [a.league_id,c.id,a.id,b.id],
+  )).rows[0];
+  await pool.query(
+    "INSERT INTO wheel_result_versions(assignment_id,pair_id,winner_pair_id,result_type,played_at,score) VALUES($1,$2,$2,'normal',CURRENT_TIMESTAMP-interval '9 days',$3::jsonb)",
+    [assignment.id,a.id,JSON.stringify({sets:[{kind:'set',pairA:6,pairB:2},{kind:'set',pairA:6,pairB:2}]})],
+  );
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await assert.rejects(submitWheelV3ResultVersion(client,{
+      assignmentId:assignment.id,pairId:a.id,winnerPairId:a.id,resultType:'normal',
+      playedAt:(await client.query("SELECT CURRENT_TIMESTAMP-interval '9 days' t")).rows[0].t,
+      score:{sets:[{pairA:6,pairB:1},{pairA:6,pairB:1}]},
+    }));
+    await client.query('ROLLBACK');
+  }finally{client.release();}
+});
+
+test('schedule proposals use DB time, expire in 48 hours and never extend the assignment deadline',async()=>{
+  const c=await category(3);
+  const a=await seedPair(1,3);
+  const b=await seedPair(2,3);
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,assigned_at,deadline_at) VALUES($1,$2,$3,$4,$4,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP+interval '30 days') RETURNING *",
+    [a.league_id,c.id,a.id,b.id],
+  )).rows[0];
+  const when=(await pool.query("SELECT CURRENT_TIMESTAMP+interval '5 days' t")).rows[0].t;
+  const client=await pool.connect();
+  let proposal;
+  try{
+    await client.query('BEGIN');
+    proposal=await proposeWheelV3Schedule(client,{assignmentId:assignment.id,proposedByPairId:a.id,scheduledAt:when,locationText:' Club Central '});
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+  const seconds=Number((await pool.query('SELECT EXTRACT(EPOCH FROM (response_deadline_at-created_at)) seconds FROM wheel_schedule_proposals WHERE id=$1',[proposal.id])).rows[0].seconds);
+  assert.equal(seconds,48*60*60);
+
+  const client2=await pool.connect();
+  let accepted;
+  try{
+    await client2.query('BEGIN');
+    accepted=await acceptWheelV3Schedule(client2,{assignmentId:assignment.id,proposalId:proposal.id,acceptingPairId:b.id});
+    await client2.query('COMMIT');
+  }catch(e){await client2.query('ROLLBACK');throw e;}finally{client2.release();}
+  assert.equal(accepted.location_text,'Club Central');
+  const deadline=(await pool.query('SELECT deadline_at FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0].deadline_at;
+  assert.equal(new Date(deadline).getTime(),new Date(assignment.deadline_at).getTime());
+});
+
+test('new schedule proposal replaces previous pending proposal without touching confirmed 30-day limit',async()=>{
+  const c=await category(4);
+  const a=await seedPair(1,4);
+  const b=await seedPair(2,4);
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,assigned_at,deadline_at) VALUES($1,$2,$3,$4,$4,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP+interval '30 days') RETURNING *",
+    [a.league_id,c.id,a.id,b.id],
+  )).rows[0];
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await proposeWheelV3Schedule(client,{
+      assignmentId:assignment.id,proposedByPairId:a.id,
+      scheduledAt:(await client.query("SELECT CURRENT_TIMESTAMP+interval '3 days' t")).rows[0].t,
+      locationText:'Cancha A',
+    });
+    const second=await proposeWheelV3Schedule(client,{
+      assignmentId:assignment.id,proposedByPairId:b.id,
+      scheduledAt:(await client.query("SELECT CURRENT_TIMESTAMP+interval '4 days' t")).rows[0].t,
+      locationText:'Cancha B',
+    });
+    assert.ok(second.id);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+  const statuses=(await pool.query('SELECT status FROM wheel_schedule_proposals WHERE assignment_id=$1 ORDER BY id',[assignment.id])).rows.map(r=>r.status);
+  assert.deepEqual(statuses,['replaced','pending']);
 });
