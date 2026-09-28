@@ -87,18 +87,18 @@ HAVING count(*)=2
 ON CONFLICT(league_id,member_low_id,member_high_id) DO NOTHING;
 
 
-CREATE OR REPLACE FUNCTION ensure_pair_wheel_v3_state() RETURNS trigger LANGUAGE plpgsql AS $
+CREATE OR REPLACE FUNCTION ensure_pair_wheel_v3_state() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   INSERT INTO pair_wheel_state(pair_id) VALUES(NEW.id)
   ON CONFLICT(pair_id) DO NOTHING;
   RETURN NEW;
-END $;
+END $$;
 DROP TRIGGER IF EXISTS trg_pair_wheel_v3_state ON pairs;
 CREATE TRIGGER trg_pair_wheel_v3_state
 AFTER INSERT ON pairs
 FOR EACH ROW EXECUTE FUNCTION ensure_pair_wheel_v3_state();
 
-CREATE OR REPLACE FUNCTION ensure_pair_duo_v3_state() RETURNS trigger LANGUAGE plpgsql AS $
+CREATE OR REPLACE FUNCTION ensure_pair_duo_v3_state() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE
   v_league_id bigint;
   v_low bigint;
@@ -117,7 +117,7 @@ BEGIN
     ON CONFLICT(league_id,member_low_id,member_high_id) DO NOTHING;
   END IF;
   RETURN NEW;
-END $;
+END $$;
 DROP TRIGGER IF EXISTS trg_pair_duo_v3_state ON pair_members;
 CREATE TRIGGER trg_pair_duo_v3_state
 AFTER INSERT ON pair_members
