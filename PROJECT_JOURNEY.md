@@ -157,3 +157,14 @@ La antigua sección de récord numérico no desaparece visualmente: se reutiliza
 También se simplifica la inactividad. Una pareja resuelve primero el compromiso automático que ya tenga abierto y luego sale de la rueda. Desde ese momento no se la castiga periódicamente por no jugar, no pierde puestos por meses transcurridos y no baja de categoría por permanecer inactiva.
 
 La intención de producto queda resumida en una regla: **el motor puede ser complejo; la experiencia no**. Si LA RED sabe quién debe jugar, asigna el partido y le dice a la pareja qué hacer a continuación.
+
+
+## Ajuste final de inactividad y entrada media — 2026-09-28
+
+La conversación posterior refinó la simplificación anterior de inactividad. Se mantiene que una pareja inactiva no recibe partidos ni desciende de categoría por el mero paso del tiempo, pero sí se recupera una regla de **posición de retorno**: durante 3 meses conserva el puesto y desde el 4º pierde un puesto por cada mes completo, siempre dentro de la misma categoría. Si se inactivó siendo #1, su mejor retorno es #2.
+
+También se cerró que nuevas parejas y ascendidas no ingresan al fondo: entran en la mitad de la tabla activa y desplazan hacia abajo. La fórmula exacta de “mitad” queda por definir.
+
+Para cortar abusos de incumplimiento, 3 incumplimientos atribuibles consecutivos provocan 30 días sin nuevas asignaciones y paso automático a inactiva. Queda pendiente decidir si la reactivación al cumplir los 30 días es automática y qué evento reinicia la racha.
+
+La misma dupla que se disuelve y luego vuelve a formarse se trata competitivamente como pareja nueva. Las categorías individuales de sus integrantes sobreviven a la disolución; un ascenso real mejora el nivel individual de ambos.
