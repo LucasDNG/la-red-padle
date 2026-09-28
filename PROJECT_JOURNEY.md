@@ -177,3 +177,10 @@ Se cerraron los principales bordes que quedaban: Masculino/Femenino forman y equ
 El récord de Primera quedó definitivamente desacoplado de cualquier acumulación general: cada etapa de una dupla en el #1 es un **reinado independiente**. Perder la punta cierra ese contador. Solo si ese reinado supera o empata el máximo histórico queda en el cuadro de récord; si vuelve a ser #1 en el futuro comienza nuevamente desde cero.
 
 Antes de código quedan únicamente dos bordes pequeños documentados en `WHEEL_V3_SPEC.md`: qué hacer con el primer partido de una pareja 0 PJ cuando se activan las zonas, y el caso de una categoría con una sola activa al aplicar la fórmula de mitad.
+
+
+## Reglamento Wheel v3 funcionalmente cerrado — 2026-09-28
+
+Se cerraron los dos últimos bordes del diseño antes de implementación. Si una pareja queda #1/última al terminar la fase de formación pero todavía tiene 0 partidos reales, debe disputar primero un partido; ese resultado solo habilita la zona y recién después entra en 0/3. Además, la fórmula de ingreso a mitad de tabla mantiene `floor(N/2)+1`, con una excepción para categorías con una sola activa: la ingresante entra #2 y no desplaza al único #1.
+
+Con esto Wheel v3 queda funcionalmente definido. La etapa siguiente no es escribir código de inmediato: primero corresponde modelar y simular el reglamento completo, buscar ciclos imposibles, bloqueos, abuso de sanciones y deriva poblacional, y convertir esos hallazgos en tests antes de reemplazar Wheel v2.
