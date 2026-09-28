@@ -117,7 +117,7 @@
 - resolución no se reabre por los mismos hechos previos.
 
 ## Continuidad
-- 31 dic → 1 ene no resetea ranking/ELO/rachas/deuda/récords;
+- 31 dic → 1 ene no resetea ranking/rachas/deuda/récords;
 - todos los plazos usan Buenos Aires.
 
 ## Simulación
@@ -230,7 +230,7 @@ Antes de release deben correrse miles de rondas con 101+ parejas y verificarse:
 - B acepta;
 - queda una sola pareja;
 - ambos quedan en una sola `active_pair_membership`;
-- ELO inicial 0;
+- la pareja nueva no recibe una puntuación numérica paralela;
 - posición válida al final del bloque activo;
 - invitaciones incompatibles quedan invalidadas;
 - sin rival no corre plazo.
@@ -265,7 +265,7 @@ Estos escenarios deben recorrerse manualmente y luego convertirse/confirmarse co
 - la simulación conserva las 84 parejas y mide población, ascensos, descensos, categorías vacías y RMSE de estabilidad;
 - R5 debe permanecer como regresión negativa: a 20 años no puede comportarse mejor que la válvula vigente;
 - test automático: gap 5 debe balancear ascensos/descensos y superar a gap 4/6 como compromiso a 20 años bajo las semillas de auditoría;
-- siguiente bloque de integración PostgreSQL: frontera exacta 4/5, descenso exactamente una vez, entrada base #2/deuda, renumeración, ELO e idempotencia/concurrencia.
+- siguiente bloque de integración PostgreSQL: frontera exacta 4/5, descenso exactamente una vez, entrada base #2/deuda, renumeración e idempotencia/concurrencia.
 
 
 ## Integración PostgreSQL automática
@@ -273,7 +273,7 @@ Estos escenarios deben recorrerse manualmente y luego convertirse/confirmarse co
 - gap 5 + segunda derrota de la última => desciende;
 - descenso entra base #2;
 - deuda empuja la entrada y conserva deuda no materializable;
-- ELO se recalcula después del movimiento;
+- la posición estructural queda consistente después del movimiento;
 - ascenso entra al fondo activo;
 - dos retries simultáneos del mismo resultado crean exactamente un match/evento y una sola actualización de rachas;
 - promoción y descenso concurrentes hacia una misma categoría conservan posiciones únicas y contiguas;
@@ -315,7 +315,7 @@ Estos escenarios deben recorrerse manualmente y luego convertirse/confirmarse co
 - doble voto dentro de ventana activa exactamente 15 días desde el deadline original;
 - vencimiento de extensión penaliza posición/deuda a ambas sin sumar `monthly_miss_streak` ni derrota;
 - no-show sin objeción penaliza solo a la reportada y puede disparar auto-pausa al segundo strike atribuible;
-- pausa voluntaria conserva strike previo y recalcula ELO de la categoría;
+- pausa voluntaria conserva strike previo y recalcula el orden estructural de la categoría;
 - `pause_after_current` mantiene la pareja activa hasta cerrar el resultado y recién entonces pausa;
 - disolución vencida con assignment sin jugar aplica forfeit deportivo antes de archivar;
 - disolución con versión de resultado cargada espera que el resultado se resuelva antes de archivar.
