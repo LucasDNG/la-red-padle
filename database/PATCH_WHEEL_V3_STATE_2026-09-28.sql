@@ -34,10 +34,7 @@ ALTER TABLE pair_wheel_state
   ADD COLUMN IF NOT EXISTS defense_required_until_real boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS awaiting_zone_kind varchar(10) CHECK(awaiting_zone_kind IN('promotion','relegation'));
 
-ALTER TABLE pair_duo_state
-  ADD COLUMN IF NOT EXISTS relegation_route_step int NOT NULL DEFAULT 0;
-
-DO $
+DO $$
 BEGIN
   IF NOT EXISTS(
     SELECT 1 FROM pg_constraint
@@ -49,41 +46,17 @@ BEGIN
         awaiting_zone_first_match=(awaiting_zone_kind IS NOT NULL)
       );
   END IF;
-END $;
+END $$;
 
-
-DO $
-BEGIN
-  IF NOT EXISTS(
-    SELECT 1 FROM pg_constraint
-    WHERE conname='pair_duo_relegation_empty_consistency'
-      AND conrelid='pair_duo_state'::regclass
-  ) THEN
-    ALTER TABLE pair_duo_state
-      ADD CONSTRAINT pair_duo_relegation_empty_consistency CHECK(
-        pending_relegation_category_id IS NOT NULL OR relegation_route_step=0
-      );
-  END IF;
-END $;
-
-INSERT INTO pair_wheel_state(
-  pair_id,
-  inactive_since,
-  return_position_base,
-  inactive_reason
-)
+INSERT INTO pair_wheel_state(pair_id,inactive_since,return_position_base,inactive_reason)
 SELECT
   p.id,
   CASE
-    WHEN p.competition_state='paused' THEN COALESCE(
-      (
-        SELECT max(COALESCE(pr.resolved_at,pr.created_at))
-        FROM pair_pause_requests pr
-        WHERE pr.pair_id=p.id
-          AND pr.status IN('confirmed','applied')
-      ),
-      CURRENT_TIMESTAMP
-    )
+    WHEN p.competition_state='paused' THEN COALESCE((
+      SELECT max(COALESCE(pr.resolved_at,pr.created_at))
+      FROM pair_pause_requests pr
+      WHERE pr.pair_id=p.id AND pr.status IN('confirmed','applied')
+    ),CURRENT_TIMESTAMP)
     ELSE NULL
   END,
   CASE WHEN p.competition_state='paused' THEN p.position ELSE NULL END,
@@ -114,17 +87,30 @@ CREATE TABLE IF NOT EXISTS pair_duo_state(
   FOREIGN KEY(pending_relegation_category_id,league_id) REFERENCES categories(id,league_id)
 );
 
+ALTER TABLE pair_duo_state
+  ADD COLUMN IF NOT EXISTS relegation_route_step int NOT NULL DEFAULT 0;
+
+DO $$
+BEGIN
+  IF NOT EXISTS(
+    SELECT 1 FROM pg_constraint
+    WHERE conname='pair_duo_relegation_empty_consistency'
+      AND conrelid='pair_duo_state'::regclass
+  ) THEN
+    ALTER TABLE pair_duo_state
+      ADD CONSTRAINT pair_duo_relegation_empty_consistency CHECK(
+        pending_relegation_category_id IS NOT NULL OR relegation_route_step=0
+      );
+  END IF;
+END $$;
+
 INSERT INTO pair_duo_state(league_id,member_low_id,member_high_id)
-SELECT
-  p.league_id,
-  min(pm.user_id),
-  max(pm.user_id)
+SELECT p.league_id,min(pm.user_id),max(pm.user_id)
 FROM pairs p
 JOIN pair_members pm ON pm.pair_id=p.id
 GROUP BY p.id,p.league_id
 HAVING count(*)=2
 ON CONFLICT(league_id,member_low_id,member_high_id) DO NOTHING;
-
 
 CREATE OR REPLACE FUNCTION ensure_pair_wheel_v3_state() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
@@ -178,8 +164,7 @@ BEGIN
     ALTER TABLE wheel_assignments
       ADD CONSTRAINT wheel_assignments_v3_roles_consistency CHECK(
         (attacker_pair_id IS NULL AND defender_pair_id IS NULL)
-        OR
-        (
+        OR (
           attacker_pair_id IS NOT NULL
           AND defender_pair_id IS NOT NULL
           AND attacker_pair_id<>defender_pair_id
