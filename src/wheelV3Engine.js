@@ -1895,6 +1895,12 @@ export async function expireDueWheelV3Assignments(client){
     WHERE status='open'
       AND first_result_at IS NULL
       AND deadline_at<=CURRENT_TIMESTAMP
+      AND NOT EXISTS(
+        SELECT 1
+        FROM wheel_no_shows ns
+        WHERE ns.assignment_id=wheel_assignments.id
+          AND ns.status IN('pending','contested','admin_review')
+      )
     ORDER BY deadline_at,id
     FOR UPDATE SKIP LOCKED
   `)).rows;
@@ -1906,4 +1912,56 @@ export async function expireDueWheelV3Assignments(client){
     }));
   }
   return expired;
+}
+
+
+export async function expireWheelV3ScheduleProposals(client){
+  return (await q(client,`
+    UPDATE wheel_schedule_proposals
+    SET status='expired',responded_at=CURRENT_TIMESTAMP
+    WHERE status='pending'
+      AND response_deadline_at<=CURRENT_TIMESTAMP
+    RETURNING *
+  `)).rows;
+}
+
+export async function runWheelV3Maintenance(client){
+  const leagues=(await q(client,`
+    SELECT id
+    FROM leagues
+    WHERE active=true
+    ORDER BY id
+    FOR UPDATE
+  `)).rows;
+
+  const formation=[];
+  for(const league of leagues){
+    formation.push({leagueId:Number(league.id),...await completeWheelV3FormationIfReady(client,league.id)});
+  }
+
+  const scheduleExpired=await expireWheelV3ScheduleProposals(client);
+  const reactivated=await reactivateDueWheelV3Penalties(client);
+  const noShowsEscalated=await escalateExpiredWheelV3NoShows(client);
+  const resultsAutoValidated=await autoValidateDueWheelV3Results(client);
+  const assignmentsExpired=await expireDueWheelV3Assignments(client);
+
+  const categories=(await q(client,`
+    SELECT id
+    FROM categories
+    ORDER BY league_id,number
+  `)).rows;
+  const refresh=[];
+  for(const category of categories){
+    refresh.push({categoryId:Number(category.id),...await refreshWheelV3Category(client,category.id)});
+  }
+
+  return {
+    formation,
+    scheduleExpired:scheduleExpired.length,
+    reactivated:reactivated.length,
+    noShowsEscalated:noShowsEscalated.length,
+    resultsAutoValidated:resultsAutoValidated.length,
+    assignmentsExpired:assignmentsExpired.length,
+    refresh,
+  };
 }
