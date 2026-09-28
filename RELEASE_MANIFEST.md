@@ -18,7 +18,7 @@ Los ZIPs históricos `v1`…`v11` no son fuente de verdad y no deben reaplicarse
 
 ## Bloques cerrados
 - motor deportivo `wheel-v2`;
-- escalera/ELO/ascenso/descenso y válvula poblacional;
+- escalera/ascenso/descenso y válvula poblacional;
 - pareja/rueda/programación/resultados;
 - no-show/extensión/pausa/disolución/disciplina;
 - lesión/abandono;
