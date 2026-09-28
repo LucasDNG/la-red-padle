@@ -121,11 +121,11 @@ export async function myLeagueV3(userId){
     `,[userId])).rows[0];
     const pair=await currentPairForUser(client,userId);
     const serverNow=(await q(client,`SELECT CURRENT_TIMESTAMP server_now`)).rows[0].server_now;
-    if(!pair)return {user,pair:null,assignment:null,recentEvents:[],recentMovements:[],server_now:serverNow};
+    if(!pair)return {engine:'wheel-v3',user,pair:null,assignment:null,recentEvents:[],recentMovements:[],server_now:serverNow};
     const summary=await pairSummary(client,pair.id,{phones:true});
     const assignment=await decorateAssignment(client,await assignmentForPair(client,pair.id),pair.id);
     const recentMovements=await wheelV3RecentMovements(client,pair.id);
-    return {user,pair:summary,assignment,recentEvents:recentMovements,recentMovements,server_now:serverNow};
+    return {engine:'wheel-v3',user,pair:summary,assignment,recentEvents:recentMovements,recentMovements,server_now:serverNow};
   }finally{client.release();}
 }
 
