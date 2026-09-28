@@ -2,6 +2,9 @@
 
 Este archivo contiene únicamente decisiones que siguen vigentes. Las decisiones reemplazadas viven en `PROJECT_JOURNEY.md`, no acá.
 
+
+> **Transición Wheel v3 — 2026-09-28:** las decisiones nuevas del motor están consolidadas en `WHEEL_V3_SPEC.md` y prevalecen sobre ítems anteriores incompatibles (especialmente selección de rival, aceptación/asignación, no-show, pausa/inactividad y válvula poblacional). Aún no se reescriben esos ítems aquí porque quedan preguntas finales explícitas en la spec y el código sigue en `wheel-v2`. Antes de implementar, cerrar esas preguntas y luego consolidar este archivo eliminando las reglas reemplazadas.
+
 1. El ranking es una escalera estructural: las estadísticas no gobiernan la posición.
 2. Si una pareja ubicada abajo vence a una ubicada arriba, intercambian posiciones; el resto no se reordena.
 3. ELO acompaña la posición pero no decide el ranking.
