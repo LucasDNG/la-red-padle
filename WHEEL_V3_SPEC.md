@@ -458,6 +458,17 @@ Administración debe conservar una auditoría técnica más completa de decision
   - se aplicó una penalización;
   - terminó la fase de formación.
 
+
+## 20 bis. Tiempo autoritativo
+- Ningún plazo competitivo puede depender del reloj del navegador, de Windows, del teléfono ni de la zona horaria configurada por el jugador.
+- La **fuente autoritativa de tiempo es el servidor/base de datos**, almacenando y comparando timestamps en UTC.
+- Para vencimientos y decisiones reales (30 días de assignment, 7 días de revisión, 48 horas de no-show, 30 días de sanción, meses de inactividad, etc.) el backend debe decidir usando hora de servidor/DB, preferentemente PostgreSQL `CURRENT_TIMESTAMP/NOW()` dentro de la misma transacción.
+- El frontend solo muestra fechas, relojes o cuentas regresivas. Aunque el usuario cambie manualmente la hora de su equipo, eso no puede adelantar, atrasar ni evitar un vencimiento.
+- La API debe devolver deadlines absolutos y una referencia de hora de servidor (`server_now` o equivalente) para que la UI pueda mostrar el tiempo restante sin confiar en el reloj local.
+- Para cuentas regresivas visibles, el frontend puede calcular el desfase respecto del servidor y avanzar con un reloj monotónico local; al refrescar o ejecutar una acción vuelve a sincronizar contra el backend.
+- Las fechas visibles pueden mostrarse en la zona horaria de Argentina, pero la persistencia y la lógica se mantienen en UTC.
+- No se necesita consultar un servicio externo de “hora de internet” para cada operación: Render/Neon mantienen sus servidores sincronizados; la autoridad de LA RED debe ser su propio backend/DB.
+
 ## 21. Cierre de bordes de auditoría
 No quedan preguntas funcionales abiertas de esta tanda.
 
