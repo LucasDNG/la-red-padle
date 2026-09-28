@@ -9,19 +9,20 @@ Primera acción en un chat nuevo: obtener el HEAD real de `main` y comprobar Git
 Después leer, como mínimo:
 
 1. `WHEEL_V3_SPEC.md`
-2. `CHECKPOINT_2026-09-20.md`
-3. `PROJECT_RULES.md`
-4. `DECISIONS.md`
-5. `SIMULATION_AUDIT_2026-09-20.md`
-6. `AUDIT_2026-09-20.md`
-7. `TEST_SCENARIOS.md`
-8. `ARCHITECTURE.md`
-9. `PROJECT_JOURNEY.md`
-10. `RELEASE_MANIFEST.md`
-11. `RELEASE_CHECKLIST.md`
-12. `FINALIZATION_PLAN.md`
-13. `PRODUCTION_ENVIRONMENT_SETUP.md`
-14. `PRODUCTION_RECOVERY.md`
+2. `WHEEL_V3_AUDIT_2026-09-28.md`
+4. `CHECKPOINT_2026-09-20.md`
+4. `PROJECT_RULES.md`
+5. `DECISIONS.md`
+6. `SIMULATION_AUDIT_2026-09-20.md`
+7. `AUDIT_2026-09-20.md`
+8. `TEST_SCENARIOS.md`
+9. `ARCHITECTURE.md`
+10. `PROJECT_JOURNEY.md`
+11. `RELEASE_MANIFEST.md`
+12. `RELEASE_CHECKLIST.md`
+13. `FINALIZATION_PLAN.md`
+14. `PRODUCTION_ENVIRONMENT_SETUP.md`
+15. `PRODUCTION_RECOVERY.md`
 
 ## Diseño competitivo nuevo — PRIORIDAD ANTES DE TOCAR CÓDIGO
 
@@ -52,6 +53,16 @@ Después leer, como mínimo:
 - La spec nueva sustituye, cuando haya conflicto, la selección de rival anterior, la válvula poblacional anterior, la pausa/inactividad anterior y partes de no-show/asignación.
 - Hay preguntas abiertas finales al final de `WHEEL_V3_SPEC.md`. Resolverlas con el propietario antes de migración/código.
 - Después: consolidar `PROJECT_RULES.md` + `DECISIONS.md`, escribir tests/simulación y recién entonces implementar.
+
+### Auditoría Wheel v3 — 2026-09-28
+- `WHEEL_V3_AUDIT_2026-09-28.md` contiene simulación poblacional preliminar, prueba sintética de ataque/defensa, invariantes y matriz de tests.
+- No apareció deriva poblacional obvia ni deadlock básico en los modelos simplificados.
+- Antes de tests/código quedan 4 decisiones anti-abuso/consistencia:
+  1. disolver/re-formar durante período de descenso;
+  2. categoría individual después de un descenso real;
+  3. protección de un resultado ya cargado frente a cancelación posterior por ranking;
+  4. una cancelación automática no debería limpiar la racha de incumplimientos.
+- No implementar Wheel v3 hasta cerrar esas cuatro y volcarlas a la spec.
 
 ### Código todavía contradictorio que NO representa la regla vigente
 - `frontend/src/App.jsx` todavía muestra la puntuación numérica legacy y estadísticas acumuladas en varias superficies.
