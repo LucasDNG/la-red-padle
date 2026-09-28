@@ -2150,7 +2150,7 @@ test('competitive runtime selector keeps wheel-v2 by default and exposes wheel-v
   const runtime=await import('../../src/wheelRuntime.js');
   assert.equal(await competitiveEngine(),'wheel-v2');
 
-  await pool.query("UPDATE app_settings SET value='"wheel-v3"'::jsonb WHERE key='engine'");
+  await pool.query("UPDATE app_settings SET value=to_jsonb($1::text) WHERE key='engine'",['wheel-v3']);
   assert.equal(await competitiveEngine(),'wheel-v3');
 
   const ranking=await runtime.ranking();
@@ -2161,7 +2161,7 @@ test('competitive runtime selector keeps wheel-v2 by default and exposes wheel-v
     error=>error?.statusCode===410,
   );
 
-  await pool.query("UPDATE app_settings SET value='"wheel-v2"'::jsonb WHERE key='engine'");
+  await pool.query("UPDATE app_settings SET value=to_jsonb($1::text) WHERE key='engine'",['wheel-v2']);
   assert.equal(await competitiveEngine(),'wheel-v2');
 });
 
