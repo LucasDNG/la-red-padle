@@ -27,8 +27,20 @@ export async function wheelV3CategoryPlanningRows(client,categoryId,{lock=false}
       p.id,
       p.position,
       p.competition_state='active' AS active,
-      NOT EXISTS(
-        SELECT 1 FROM wheel_assignment_participants wap WHERE wap.pair_id=p.id
+      (
+        NOT EXISTS(SELECT 1 FROM wheel_assignment_participants wap WHERE wap.pair_id=p.id)
+        AND p.discipline_state='clear'
+        AND NOT EXISTS(
+          SELECT 1
+          FROM pair_members pm
+          JOIN users u ON u.id=pm.user_id
+          WHERE pm.pair_id=p.id AND u.discipline_state<>'clear'
+        )
+        AND NOT EXISTS(
+          SELECT 1
+          FROM pair_dissolution_requests d
+          WHERE d.pair_id=p.id AND d.status IN('pending','confirmed','awaiting_result')
+        )
       ) AS free,
       pws.role,
       pws.role_streak,
@@ -50,18 +62,6 @@ export async function wheelV3CategoryPlanningRows(client,categoryId,{lock=false}
      AND pds.member_high_id=members.member_high_id
     WHERE p.category_id=$1
       AND p.competition_state='active'
-      AND p.discipline_state='clear'
-      AND NOT EXISTS(
-        SELECT 1
-        FROM pair_members pm
-        JOIN users u ON u.id=pm.user_id
-        WHERE pm.pair_id=p.id AND u.discipline_state<>'clear'
-      )
-      AND NOT EXISTS(
-        SELECT 1
-        FROM pair_dissolution_requests d
-        WHERE d.pair_id=p.id AND d.status IN('pending','confirmed','awaiting_result')
-      )
     ORDER BY p.position,p.id
     ${lock?'FOR UPDATE OF p,pws':''}
   `,[categoryId])).rows;
