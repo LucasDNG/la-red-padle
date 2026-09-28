@@ -33,6 +33,7 @@ Campos:
 - `role`: `attack` / `defense` / NULL;
 - `role_streak`: cantidad consecutiva del rol actual;
 - `defense_required_until_real`: obligación persistente de defensa después de incumplimiento propio hasta completar una defensa real, salvo imposibilidad estructural;
+- `real_waiting_since`: inicio de la antigüedad de espera Wheel v3; solo un partido real o una reactivación la reinicia;
 - `promotion_wins`: victorias reales corrientes en zona de ascenso;
 - `awaiting_zone_first_match`: indica que falta el partido real habilitante posterior a formación;
 - `awaiting_zone_kind`: conserva si ese habilitante corresponde a `promotion` o `relegation`, evitando reinterpretarlo si la posición cambia antes del partido;
@@ -42,7 +43,7 @@ Campos:
 - `auto_reactivate_at`: solo para sanción automática de 30 días;
 - timestamps de creación/actualización.
 
-`pairs.waiting_since` se conserva como la antigüedad operativa de rueda. No se duplica.
+`pairs.waiting_since` queda como dato legacy de wheel-v2. Wheel v3 usa `pair_wheel_state.real_waiting_since` porque los cierres administrativos de v2 no tienen la misma semántica.
 
 La posición de retorno se calcula desde `inactive_since` + `return_position_base`. “Mes completo” se interpreta como aniversario calendario del instante de inactividad, no como bloques fijos de 30 días.
 
