@@ -60,7 +60,14 @@ Después leer, como mínimo:
 - La simulación longitudinal ya fue rehecha con ingreso **anteúltimo** y no mostró deriva peligrosa ni categorías vacías en los escenarios modelados.
 - Se agregaron `scripts/simulate-wheel-v3.js`, `tests/wheel-v3-simulation.test.js`, `scripts/wheel-v3-rule-model.js` y `tests/wheel-v3-rules.test.js`.
 - Los cuatro bordes nuevos quedaron cerrados: N=1 => #2; descenso pendiente vuelve a su categoría original; strikes pertenecen a la dupla exacta; partido jugado antes de cancelación puede cargarse después.
-- Próximo paso: diseñar estado/migración DB y ampliar tests puros/PostgreSQL antes de implementar el runtime Wheel v3.
+- Próximo paso: diseñar estado/migración DB (incluyendo tiempo autoritativo de servidor) y ampliar tests puros/PostgreSQL antes de implementar el runtime Wheel v3.
+
+### Tiempo autoritativo — NUEVA DECISIÓN
+- Ningún plazo oficial puede depender del reloj de la PC/teléfono/navegador.
+- Backend/Neon son la autoridad temporal; guardar/comparar UTC y usar preferentemente PostgreSQL `CURRENT_TIMESTAMP/NOW()` para vencimientos transaccionales.
+- La API debe devolver deadlines absolutos + `server_now` (o equivalente); el frontend solo presenta countdowns.
+- Cambiar la hora local jamás altera 7 días, 30 días, 48 h, meses de inactividad ni sanciones.
+- Mostrar al usuario en horario de Argentina cuando corresponda, sin cambiar la lógica UTC.
 
 ### Código todavía contradictorio que NO representa la regla vigente
 - `frontend/src/App.jsx` todavía muestra la puntuación numérica legacy y estadísticas acumuladas en varias superficies.
