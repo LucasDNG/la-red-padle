@@ -33,4 +33,8 @@ test('journey visible cubre lugar libre, confirmaciones y acciones temporales',(
   assert.match(frontSource,/Canchas adheridas a LA RED/);
   assert.match(frontSource,/Sede adherida \/ visible públicamente/);
   assert.match(frontSource,/GUARDAR CAMBIOS/);
+  assert.match(frontSource,/Quitar foto del frente del DNI/);
+  assert.match(frontSource,/Quitar foto del dorso del DNI/);
+  assert.match(frontSource,/dniFront:null/);
+  assert.match(frontSource,/dniBack:null/);
 });
