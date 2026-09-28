@@ -40,3 +40,26 @@ test('journey visible cubre lugar libre, confirmaciones y acciones temporales',(
   assert.match(frontSource,/dniFront:null/);
   assert.match(frontSource,/dniBack:null/);
 });
+
+
+test('Wheel v3 frontend oculta ranking numerico paralelo y expone acciones nuevas',()=>{
+  assert.doesNotMatch(frontSource,/\bELO\b/i);
+  assert.doesNotMatch(frontSource,/\.elo\b/);
+  assert.match(frontSource,/d\.engine==='wheel-v3'/);
+  assert.match(frontSource,/NO PUDE JUGAR/);
+  assert.match(frontSource,/\/cannot-play/);
+  assert.match(frontSource,/\/no-show\/cancel/);
+  assert.match(frontSource,/\/no-show\/accept/);
+  assert.match(frontSource,/RECONOCER NO-SHOW/);
+  assert.match(frontSource,/CANCELAR NO-SHOW/);
+  assert.match(frontSource,/PASAR A INACTIVA/);
+  assert.match(frontSource,/CANCELAR PROPUESTA/);
+  assert.match(frontSource,/status\?\.engine==='wheel-v3'/);
+  assert.match(frontSource,/no_show_dismiss/);
+  assert.match(frontSource,/no_show_fail/);
+});
+
+test('extension extraordinaria queda condicionada fuera de Wheel v3',()=>{
+  assert.match(frontSource,/!isV3&&extensionOpen/);
+  assert.match(frontSource,/!isV3&&a\.extraordinary_used/);
+});
