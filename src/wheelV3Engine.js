@@ -1584,6 +1584,9 @@ export async function reportWheelV3NoShow(client,{assignmentId,reportedByPairId}
     SELECT *
     FROM wheel_no_shows
     WHERE assignment_id=$1
+      AND status IN('pending','contested','admin_review','accepted')
+    ORDER BY id DESC
+    LIMIT 1
     FOR UPDATE
   `,[assignmentId])).rows[0];
   if(existing)return existing;
