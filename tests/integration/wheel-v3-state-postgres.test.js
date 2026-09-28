@@ -12,6 +12,7 @@ const {Pool}=pg;
 const pool=new Pool({connectionString});
 const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity,reportWheelV3NoShow,cancelWheelV3NoShow,contestWheelV3NoShow,acceptWheelV3NoShow,escalateExpiredWheelV3NoShows,submitWheelV3ResultVersion,confirmWheelV3Result,autoValidateDueWheelV3Results,expireDueWheelV3Assignments,expireWheelV3ScheduleProposals,formWheelV3Pair,archiveWheelV3Pair,resolveWheelV3FormationCategory,proposeWheelV3Schedule,acceptWheelV3Schedule,cancelWheelV3ScheduleProposal,wheelV3RecentMovements,resolveWheelV3ResultDispute,dismissWheelV3NoShowByAdmin,resolveWheelV3NoShowByAdmin}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
+const {wheelV3CutoverReadiness}=await import('../../src/wheelV3Cutover.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
 const patch=fs.readFileSync(path.resolve(__dirname,'../../database/PATCH_WHEEL_V3_STATE_2026-09-28.sql'),'utf8');
@@ -2234,4 +2235,49 @@ test('self failure and new no-show are rejected after first result load',async()
     reportWheelV3NoShow(pool,{assignmentId:a.id,reportedByPairId:defender.id}),
     /no disponible para no-show/,
   );
+});
+
+
+test('cutover gate is green only with drained wheel-v2 sporting state',async()=>{
+  let state=await wheelV3CutoverReadiness(pool);
+  assert.equal(state.engine,'wheel-v2');
+  assert.equal(state.ready,true);
+  assert.deepEqual(state.blockers,[]);
+
+  const c=await category(3);
+  const a=await seedPairWithMembers(1,3,{tag:240});
+  const b=await seedPairWithMembers(2,3,{tag:241});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id) VALUES($1,$2,$3,$4) RETURNING id",
+    [a.league_id,c.id,a.id,b.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[assignment.id,a.id,b.id]);
+
+  state=await wheelV3CutoverReadiness(pool);
+  assert.equal(state.ready,false);
+  assert.ok(state.blockers.includes('live_assignments'));
+  assert.ok(state.blockers.includes('live_legacy_assignments'));
+
+  await pool.query("UPDATE wheel_assignments SET status='cancelled',closed_at=CURRENT_TIMESTAMP,close_reason='cutover-test' WHERE id=$1",[assignment.id]);
+  await pool.query('DELETE FROM wheel_assignment_participants WHERE assignment_id=$1',[assignment.id]);
+
+  state=await wheelV3CutoverReadiness(pool);
+  assert.equal(state.ready,true);
+});
+
+test('cutover gate refuses pending pair transitions and global clock pause',async()=>{
+  const pair=await seedPairWithMembers(1,6,{tag:242});
+  await pool.query(
+    "INSERT INTO pair_pause_requests(pair_id,requested_by_user_id,status) VALUES($1,$2,'pending')",
+    [pair.id,pair.members[0].id],
+  );
+  let state=await wheelV3CutoverReadiness(pool);
+  assert.equal(state.ready,false);
+  assert.ok(state.blockers.includes('pending_pair_transitions'));
+
+  await pool.query("UPDATE pair_pause_requests SET status='cancelled',resolved_at=CURRENT_TIMESTAMP WHERE pair_id=$1",[pair.id]);
+  await pool.query("UPDATE app_settings SET value='true'::jsonb WHERE key='league_clock_paused'");
+  state=await wheelV3CutoverReadiness(pool);
+  assert.equal(state.ready,false);
+  assert.ok(state.blockers.includes('league_clock_paused'));
 });
