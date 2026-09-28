@@ -93,3 +93,110 @@ test('new wheel-v2 pairs keep Wheel v3 preparation state synchronized automatica
   assert.ok(duo);
   assert.equal(Number(duo.failure_streak),0);
 });
+
+
+test('pre-v3 wheel-v2 schema migrates forward without changing engine or sporting data',async()=>{
+  await pool.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public');
+  await pool.query(`
+    CREATE TABLE app_settings(
+      key text PRIMARY KEY,
+      value jsonb NOT NULL,
+      updated_at timestamptz NOT NULL DEFAULT now()
+    );
+    INSERT INTO app_settings(key,value) VALUES('engine','"wheel-v2"'::jsonb);
+
+    CREATE TABLE users(
+      id bigserial PRIMARY KEY,
+      first_name text NOT NULL,
+      last_name text NOT NULL,
+      dni text NOT NULL UNIQUE,
+      phone text NOT NULL,
+      password_hash text NOT NULL,
+      gender text NOT NULL
+    );
+
+    CREATE TABLE leagues(
+      id bigserial PRIMARY KEY,
+      slug text NOT NULL UNIQUE,
+      name text NOT NULL,
+      gender text NOT NULL,
+      active boolean NOT NULL DEFAULT true
+    );
+    INSERT INTO leagues(slug,name,gender) VALUES('masculino','Masculino','male');
+
+    CREATE TABLE categories(
+      id bigserial PRIMARY KEY,
+      league_id bigint NOT NULL REFERENCES leagues(id) ON DELETE CASCADE,
+      number int NOT NULL,
+      name text NOT NULL,
+      UNIQUE(league_id,number),
+      UNIQUE(id,league_id)
+    );
+    INSERT INTO categories(league_id,number,name)
+    SELECT id,3,'3ª' FROM leagues WHERE slug='masculino';
+
+    CREATE TABLE pairs(
+      id bigserial PRIMARY KEY,
+      league_id bigint NOT NULL REFERENCES leagues(id),
+      category_id bigint NOT NULL REFERENCES categories(id),
+      position int NOT NULL,
+      competition_state text NOT NULL DEFAULT 'active',
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE pair_members(
+      pair_id bigint NOT NULL REFERENCES pairs(id) ON DELETE CASCADE,
+      user_id bigint NOT NULL REFERENCES users(id),
+      PRIMARY KEY(pair_id,user_id)
+    );
+
+    CREATE TABLE pair_pause_requests(
+      id bigserial PRIMARY KEY,
+      pair_id bigint NOT NULL REFERENCES pairs(id),
+      requested_by_user_id bigint NOT NULL REFERENCES users(id),
+      status text NOT NULL DEFAULT 'pending',
+      effective_after_current boolean NOT NULL DEFAULT false,
+      created_at timestamptz NOT NULL DEFAULT now(),
+      resolved_at timestamptz
+    );
+
+    CREATE TABLE wheel_assignments(
+      id bigserial PRIMARY KEY,
+      league_id bigint NOT NULL REFERENCES leagues(id),
+      category_id bigint NOT NULL REFERENCES categories(id),
+      pair_a_id bigint NOT NULL REFERENCES pairs(id),
+      pair_b_id bigint NOT NULL REFERENCES pairs(id),
+      status text NOT NULL DEFAULT 'open',
+      assigned_at timestamptz NOT NULL DEFAULT now(),
+      deadline_at timestamptz NOT NULL DEFAULT (now()+interval '30 days'),
+      confirmation_deadline_at timestamptz
+    );
+  `);
+
+  const u1=(await pool.query("INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('Legacy','Uno','40000001','1','x','male') RETURNING id")).rows[0];
+  const u2=(await pool.query("INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('Legacy','Dos','40000002','2','x','male') RETURNING id")).rows[0];
+  const lc=(await pool.query("SELECT l.id league_id,c.id category_id FROM leagues l JOIN categories c ON c.league_id=l.id WHERE l.slug='masculino'")).rows[0];
+  const p=(await pool.query("INSERT INTO pairs(league_id,category_id,position,competition_state) VALUES($1,$2,4,'paused') RETURNING id",[lc.league_id,lc.category_id])).rows[0];
+  await pool.query('INSERT INTO pair_members(pair_id,user_id) VALUES($1,$2),($1,$3)',[p.id,u1.id,u2.id]);
+  await pool.query("INSERT INTO pair_pause_requests(pair_id,requested_by_user_id,status,resolved_at) VALUES($1,$2,'confirmed',CURRENT_TIMESTAMP-interval '10 days')",[p.id,u1.id]);
+
+  await pool.query(patch);
+  await pool.query(patch);
+
+  const engine=(await pool.query("SELECT value#>>'{}' value FROM app_settings WHERE key='engine'")).rows[0].value;
+  assert.equal(engine,'wheel-v2');
+
+  const migrated=(await pool.query('SELECT * FROM pair_wheel_state WHERE pair_id=$1',[p.id])).rows[0];
+  assert.equal(Number(migrated.return_position_base),4);
+  assert.equal(migrated.inactive_reason,'voluntary');
+  assert.ok(migrated.inactive_since);
+
+  const duo=(await pool.query('SELECT * FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[lc.league_id,u1.id,u2.id])).rows[0];
+  assert.ok(duo);
+  assert.equal(Number(duo.failure_streak),0);
+
+  const sporting=(await pool.query('SELECT category_id,position,competition_state FROM pairs WHERE id=$1',[p.id])).rows[0];
+  assert.equal(Number(sporting.category_id),Number(lc.category_id));
+  assert.equal(Number(sporting.position),4);
+  assert.equal(sporting.competition_state,'paused');
+});
