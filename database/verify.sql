@@ -32,3 +32,35 @@ WHERE (result_type='injury_abandonment' AND (
         OR abandoned_pair_id=winner_pair_id
       ))
    OR (result_type<>'injury_abandonment' AND abandoned_pair_id IS NOT NULL);
+
+
+SELECT l.id
+FROM leagues l
+LEFT JOIN league_wheel_state s ON s.league_id=l.id
+WHERE s.league_id IS NULL;
+
+SELECT pws.pair_id
+FROM pair_wheel_state pws
+LEFT JOIN pairs p ON p.id=pws.pair_id
+WHERE p.id IS NULL;
+
+SELECT id
+FROM pair_duo_state
+WHERE member_low_id>=member_high_id
+   OR (pending_relegation_category_id IS NULL AND (pending_relegation_losses<>0 OR pending_relegation_started_at IS NOT NULL))
+   OR (pending_relegation_category_id IS NOT NULL AND pending_relegation_started_at IS NULL);
+
+SELECT id
+FROM wheel_assignments
+WHERE (attacker_pair_id IS NULL)<>(defender_pair_id IS NULL)
+   OR (attacker_pair_id IS NOT NULL AND (
+        attacker_pair_id=defender_pair_id
+        OR attacker_pair_id NOT IN(pair_a_id,pair_b_id)
+        OR defender_pair_id NOT IN(pair_a_id,pair_b_id)
+      ));
+
+SELECT league_id,count(*)
+FROM first_place_reigns
+WHERE ended_at IS NULL
+GROUP BY league_id
+HAVING count(*)>1;
