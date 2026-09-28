@@ -10,7 +10,7 @@ if(!connectionString)throw new Error('TEST_DATABASE_URL es obligatorio para los 
 process.env.DATABASE_URL=connectionString;
 const {Pool}=pg;
 const pool=new Pool({connectionString});
-const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity,reportWheelV3NoShow,cancelWheelV3NoShow,contestWheelV3NoShow,acceptWheelV3NoShow,escalateExpiredWheelV3NoShows,submitWheelV3ResultVersion,confirmWheelV3Result,autoValidateDueWheelV3Results,expireDueWheelV3Assignments,expireWheelV3ScheduleProposals}=await import('../../src/wheelV3Engine.js');
+const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity,reportWheelV3NoShow,cancelWheelV3NoShow,contestWheelV3NoShow,acceptWheelV3NoShow,escalateExpiredWheelV3NoShows,submitWheelV3ResultVersion,confirmWheelV3Result,autoValidateDueWheelV3Results,expireDueWheelV3Assignments,expireWheelV3ScheduleProposals,formWheelV3Pair,archiveWheelV3Pair,resolveWheelV3FormationCategory}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
@@ -1482,4 +1482,196 @@ test('PostgreSQL planner honors relegation route step over normal defender wait 
   const match=plan.assignments.find(x=>x.attackerId===Number(attacker.id));
   assert.ok(match);
   assert.equal(match.defenderId,Number(p2.id));
+});
+
+
+test('brand-new Wheel v3 pair enters penultimate and preserves the only leader',async()=>{
+  const male=await maleLeague();
+  const c=await category(3);
+  const existing=await seedPair(1,3);
+  const base=65000000;
+  const u1=(await pool.query(
+    "INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender,current_category_number) VALUES('New','A',$1,$1,'x','male',3) RETURNING id",
+    [String(base)],
+  )).rows[0];
+  const u2=(await pool.query(
+    "INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender,current_category_number) VALUES('New','B',$1,$1,'x','male',3) RETURNING id",
+    [String(base+1)],
+  )).rows[0];
+
+  const client=await pool.connect();
+  let formed;
+  try{
+    await client.query('BEGIN');
+    formed=await formWheelV3Pair(client,{userIds:[u1.id,u2.id]});
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  assert.equal(formed.categoryNumber,3);
+  assert.equal(formed.entryPosition,2);
+  const order=(await pool.query("SELECT id,position FROM pairs WHERE category_id=$1 AND competition_state='active' ORDER BY position",[c.id])).rows;
+  assert.equal(Number(order[0].id),Number(existing.id));
+  assert.equal(Number(order[1].id),Number(formed.pairId));
+  assert.deepEqual(order.map(r=>Number(r.position)),[1,2]);
+  assert.equal(Number((await pool.query('SELECT count(*) n FROM active_pair_memberships WHERE pair_id=$1',[formed.pairId])).rows[0].n),2);
+  assert.equal(Number((await pool.query('SELECT count(*) n FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[male.id,Math.min(Number(u1.id),Number(u2.id)),Math.max(Number(u1.id),Number(u2.id))])).rows[0].n),1);
+});
+
+test('archived exact duo reforms as a fresh pair at penultimate when no descent is pending',async()=>{
+  const c=await category(4);
+  await seedPair(1,4);
+  await seedPair(2,4);
+  await seedPair(3,4);
+  const pair=await seedPairWithMembers(4,4,{memberCategories:[3,5],tag:110});
+  const originalId=Number(pair.id);
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await archiveWheelV3Pair(client,pair.id);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const client2=await pool.connect();
+  let formed;
+  try{
+    await client2.query('BEGIN');
+    formed=await formWheelV3Pair(client2,{userIds:pair.members.map(x=>x.id)});
+    await client2.query('COMMIT');
+  }catch(e){await client2.query('ROLLBACK');throw e;}finally{client2.release();}
+
+  assert.equal(formed.pairId,originalId);
+  assert.equal(formed.categoryNumber,3);
+  const c3=await category(3);
+  const moved=(await pool.query('SELECT category_id,competition_state FROM pairs WHERE id=$1',[pair.id])).rows[0];
+  assert.equal(Number(moved.category_id),Number(c3.id));
+  assert.equal(moved.competition_state,'active');
+});
+
+test('exact duo pending relegation survives dissolution and forces reform into original pending category',async()=>{
+  const male=await maleLeague();
+  const pair=await seedPairWithMembers(4,4,{memberCategories:[2,5],tag:111});
+  const c4=await category(4);
+  const low=Math.min(Number(pair.members[0].id),Number(pair.members[1].id));
+  const high=Math.max(Number(pair.members[0].id),Number(pair.members[1].id));
+  await pool.query(
+    'UPDATE pair_duo_state SET pending_relegation_category_id=$1,pending_relegation_losses=2,relegation_route_step=2,pending_relegation_started_at=CURRENT_TIMESTAMP,failure_streak=2 WHERE league_id=$2 AND member_low_id=$3 AND member_high_id=$4',
+    [c4.id,male.id,low,high],
+  );
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await archiveWheelV3Pair(client,pair.id);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  await pool.query('UPDATE users SET current_category_number=2 WHERE id=$1',[pair.members[0].id]);
+  await pool.query('UPDATE users SET current_category_number=3 WHERE id=$1',[pair.members[1].id]);
+
+  const client2=await pool.connect();
+  let formed;
+  try{
+    await client2.query('BEGIN');
+    formed=await formWheelV3Pair(client2,{userIds:pair.members.map(x=>x.id)});
+    await client2.query('COMMIT');
+  }catch(e){await client2.query('ROLLBACK');throw e;}finally{client2.release();}
+
+  assert.equal(formed.pendingRelegation,true);
+  assert.equal(formed.categoryNumber,4);
+  const duo=(await pool.query('SELECT pending_relegation_category_id,pending_relegation_losses,relegation_route_step,failure_streak FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[male.id,low,high])).rows[0];
+  assert.equal(Number(duo.pending_relegation_category_id),Number(c4.id));
+  assert.equal(Number(duo.pending_relegation_losses),2);
+  assert.equal(Number(duo.relegation_route_step),2);
+  assert.equal(Number(duo.failure_streak),2);
+});
+
+test('exact duo cannot evade an active 30-day failure sanction by dissolving and reforming',async()=>{
+  const male=await maleLeague();
+  const pair=await seedPairWithMembers(3,5,{tag:112});
+  const low=Math.min(Number(pair.members[0].id),Number(pair.members[1].id));
+  const high=Math.max(Number(pair.members[0].id),Number(pair.members[1].id));
+  const penalty=(await pool.query("SELECT CURRENT_TIMESTAMP+interval '12 days' t")).rows[0].t;
+  await pool.query(
+    'UPDATE pair_duo_state SET failure_streak=3,penalty_until=$1 WHERE league_id=$2 AND member_low_id=$3 AND member_high_id=$4',
+    [penalty,male.id,low,high],
+  );
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await archiveWheelV3Pair(client,pair.id);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const client2=await pool.connect();
+  let formed;
+  try{
+    await client2.query('BEGIN');
+    formed=await formWheelV3Pair(client2,{userIds:pair.members.map(x=>x.id)});
+    await client2.query('COMMIT');
+  }catch(e){await client2.query('ROLLBACK');throw e;}finally{client2.release();}
+
+  assert.equal(formed.underPenalty,true);
+  const row=(await pool.query('SELECT p.competition_state,pws.inactive_reason,pws.auto_reactivate_at FROM pairs p JOIN pair_wheel_state pws ON pws.pair_id=p.id WHERE p.id=$1',[pair.id])).rows[0];
+  assert.equal(row.competition_state,'paused');
+  assert.equal(row.inactive_reason,'three_failures');
+  assert.equal(new Date(row.auto_reactivate_at).getTime(),new Date(penalty).getTime());
+  const activeMemberships=Number((await pool.query('SELECT count(*) n FROM active_pair_memberships WHERE pair_id=$1',[pair.id])).rows[0].n);
+  assert.equal(activeMemberships,2);
+});
+
+test('reforming after sanction expiry is active and clears stale penalty marker without clearing failure streak',async()=>{
+  const male=await maleLeague();
+  const pair=await seedPairWithMembers(2,6,{tag:113});
+  const low=Math.min(Number(pair.members[0].id),Number(pair.members[1].id));
+  const high=Math.max(Number(pair.members[0].id),Number(pair.members[1].id));
+  await pool.query(
+    "UPDATE pair_duo_state SET failure_streak=3,penalty_until=CURRENT_TIMESTAMP-interval '1 second' WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3",
+    [male.id,low,high],
+  );
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await archiveWheelV3Pair(client,pair.id);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const client2=await pool.connect();
+  let formed;
+  try{
+    await client2.query('BEGIN');
+    formed=await formWheelV3Pair(client2,{userIds:pair.members.map(x=>x.id)});
+    await client2.query('COMMIT');
+  }catch(e){await client2.query('ROLLBACK');throw e;}finally{client2.release();}
+
+  assert.equal(formed.underPenalty,false);
+  assert.equal((await pool.query('SELECT competition_state FROM pairs WHERE id=$1',[pair.id])).rows[0].competition_state,'active');
+  const duo=(await pool.query('SELECT failure_streak,penalty_until FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[male.id,low,high])).rows[0];
+  assert.equal(Number(duo.failure_streak),3);
+  assert.equal(duo.penalty_until,null);
+});
+
+test('archiving the First-place pair closes its reign and opens a fresh reign for the new leader',async()=>{
+  const c=await category(1);
+  const leader=await seedPairWithMembers(1,1,{tag:114});
+  const next=await seedPairWithMembers(2,1,{tag:115});
+  await pool.query('INSERT INTO first_place_reigns(league_id,pair_id,defenses) VALUES($1,$2,4)',[leader.league_id,leader.id]);
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await archiveWheelV3Pair(client,leader.id);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const reigns=(await pool.query('SELECT pair_id,defenses,ended_at FROM first_place_reigns WHERE league_id=$1 ORDER BY id',[leader.league_id])).rows;
+  assert.equal(reigns.length,2);
+  assert.equal(Number(reigns[0].pair_id),Number(leader.id));
+  assert.equal(Number(reigns[0].defenses),4);
+  assert.ok(reigns[0].ended_at);
+  assert.equal(Number(reigns[1].pair_id),Number(next.id));
+  assert.equal(Number(reigns[1].defenses),0);
+  assert.equal(reigns[1].ended_at,null);
 });
