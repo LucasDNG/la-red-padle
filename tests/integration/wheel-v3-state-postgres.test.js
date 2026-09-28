@@ -10,7 +10,7 @@ if(!connectionString)throw new Error('TEST_DATABASE_URL es obligatorio para los 
 process.env.DATABASE_URL=connectionString;
 const {Pool}=pg;
 const pool=new Pool({connectionString});
-const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility}=await import('../../src/wheelV3Engine.js');
+const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
@@ -23,6 +23,19 @@ after(async()=>{await pool.end();await appPool.end();});
 async function maleLeague(){return (await pool.query("SELECT id FROM leagues WHERE slug='masculino'")).rows[0];}
 async function category(number,slug='masculino'){return (await pool.query('SELECT c.* FROM categories c JOIN leagues l ON l.id=c.league_id WHERE l.slug=$1 AND c.number=$2',[slug,number])).rows[0];}
 async function seedPair(position=1,categoryNumber=3){const l=await maleLeague();const c=await category(categoryNumber);return (await pool.query('INSERT INTO pairs(league_id,category_id,position) VALUES($1,$2,$3) RETURNING *',[l.id,c.id,position])).rows[0];}
+async function seedPairWithMembers(position=1,categoryNumber=3,{memberCategories=[categoryNumber,categoryNumber],tag=0}={}){
+  const p=await seedPair(position,categoryNumber);
+  const base=60000000+categoryNumber*1000+position*10+tag*2;
+  const users=[];
+  for(let i=0;i<2;i++){
+    users.push((await pool.query(
+      'INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender,current_category_number) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id,current_category_number',
+      ['V3','P'+(i+1),String(base+i),String(base+i),'x','male',memberCategories[i]],
+    )).rows[0]);
+  }
+  await pool.query('INSERT INTO pair_members(pair_id,user_id) VALUES($1,$2),($1,$3)',[p.id,users[0].id,users[1].id]);
+  return {...p,members:users};
+}
 
 test('clean schema stays on wheel-v2 while exposing Wheel v3 preparation state',async()=>{
   const engine=(await pool.query("SELECT value#>>'{}' value FROM app_settings WHERE key='engine'")).rows[0].value;
