@@ -1804,8 +1804,8 @@ hr{margin:22px 0;border:0;border-top:1px solid var(--line)}
   background:#b92f3e;
   box-shadow:0 5px 14px rgba(185,47,62,.22);
 }
-.file-clear>span,
-.file-clear>span::after{
+.file-clear::before,
+.file-clear::after{
   content:"";
   position:absolute;
   top:50%;
@@ -1814,10 +1814,13 @@ hr{margin:22px 0;border:0;border-top:1px solid var(--line)}
   height:3px;
   border-radius:2px;
   background:#fff;
+  transform-origin:center;
+}
+.file-clear::before{
   transform:translate(-50%,-50%) rotate(45deg);
 }
-.file-clear>span::after{
-  transform:translate(-50%,-50%) rotate(90deg);
+.file-clear::after{
+  transform:translate(-50%,-50%) rotate(-45deg);
 }
 .file-clear:hover{
   background:#d23a4a;
