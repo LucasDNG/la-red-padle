@@ -926,6 +926,7 @@ export async function applyWheelV3ConfirmedRealResult(client,{
     WHERE id=$1
   `,[assignment.id]);
   await q(client,`DELETE FROM wheel_assignment_participants WHERE assignment_id=$1`,[assignment.id]);
+  await wheelV3ResolveNoShowOnAssignmentClose(client,assignment.id);
   await applyPendingWheelV3Pauses(client,pairIds);
 
   const refresh=[];
@@ -1187,6 +1188,7 @@ export async function applyWheelV3OneSidedFailure(client,{
     WHERE id=$1
   `,[assignment.id,resolutionSource]);
   await q(client,`DELETE FROM wheel_assignment_participants WHERE assignment_id=$1`,[assignment.id]);
+  await wheelV3ResolveNoShowOnAssignmentClose(client,assignment.id);
   await applyPendingWheelV3Pauses(client,pairIds);
 
   const refresh=[];
@@ -1417,6 +1419,7 @@ export async function applyWheelV3BothFailure(client,{
     WHERE id=$1
   `,[assignment.id,resolutionSource]);
   await q(client,`DELETE FROM wheel_assignment_participants WHERE assignment_id=$1`,[assignment.id]);
+  await wheelV3ResolveNoShowOnAssignmentClose(client,assignment.id);
   await applyPendingWheelV3Pauses(client,pairIds);
 
   const refresh=[];
@@ -1544,4 +1547,149 @@ async function applyPendingWheelV3Pauses(client,pairIds){
     paused.push(await wheelV3PausePairNow(client,pairId,{reason:'voluntary'}));
   }
   return paused;
+}
+
+
+async function wheelV3ResolveNoShowOnAssignmentClose(client,assignmentId){
+  await q(client,`
+    UPDATE wheel_no_shows
+    SET
+      status=CASE WHEN status='accepted' THEN 'accepted' ELSE 'resolved' END,
+      responded_at=COALESCE(responded_at,CURRENT_TIMESTAMP)
+    WHERE assignment_id=$1
+      AND status IN('pending','accepted','contested','admin_review')
+  `,[assignmentId]);
+}
+
+export async function reportWheelV3NoShow(client,{assignmentId,reportedByPairId}){
+  const assignment=(await q(client,`
+    SELECT *
+    FROM wheel_assignments
+    WHERE id=$1
+    FOR UPDATE
+  `,[assignmentId])).rows[0];
+  if(!assignment)throw new Error('Assignment inexistente');
+  if(!['open','result_pending'].includes(assignment.status))throw new Error('Assignment no disponible para no-show');
+  if(!assignment.scheduled_at)throw new Error('El assignment no tiene fecha/hora oficial');
+  const now=(await q(client,`SELECT CURRENT_TIMESTAMP now`)).rows[0].now;
+  if(new Date(now)<new Date(assignment.scheduled_at))throw new Error('El no-show solo puede reportarse después del horario oficial');
+
+  const reporter=Number(reportedByPairId);
+  const pairIds=[Number(assignment.pair_a_id),Number(assignment.pair_b_id)];
+  if(!pairIds.includes(reporter))throw new Error('Pareja reportante inválida');
+  const reported=pairIds.find(id=>id!==reporter);
+
+  const existing=(await q(client,`
+    SELECT *
+    FROM wheel_no_shows
+    WHERE assignment_id=$1
+    FOR UPDATE
+  `,[assignmentId])).rows[0];
+  if(existing)return existing;
+
+  return (await q(client,`
+    INSERT INTO wheel_no_shows(
+      assignment_id,reported_by_pair_id,reported_pair_id,
+      status,response_deadline_at
+    )
+    VALUES($1,$2,$3,'pending',CURRENT_TIMESTAMP+interval '48 hours')
+    RETURNING *
+  `,[assignmentId,reporter,reported])).rows[0];
+}
+
+export async function cancelWheelV3NoShow(client,{assignmentId,reportedByPairId}){
+  const row=(await q(client,`
+    SELECT *
+    FROM wheel_no_shows
+    WHERE assignment_id=$1
+    FOR UPDATE
+  `,[assignmentId])).rows[0];
+  if(!row)throw new Error('No existe reporte de no-show');
+  if(Number(row.reported_by_pair_id)!==Number(reportedByPairId))throw new Error('Solo quien reportó puede cancelar');
+  if(row.status!=='pending')throw new Error('El reporte ya no puede cancelarse');
+  const allowed=(await q(client,`SELECT CURRENT_TIMESTAMP<=$1::timestamptz ok`,[row.response_deadline_at])).rows[0].ok;
+  if(!allowed)throw new Error('Venció la ventana de 48 horas');
+  return (await q(client,`
+    UPDATE wheel_no_shows
+    SET status='resolved',responded_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+    RETURNING *
+  `,[row.id])).rows[0];
+}
+
+export async function contestWheelV3NoShow(client,{assignmentId,reportedPairId}){
+  const row=(await q(client,`
+    SELECT *
+    FROM wheel_no_shows
+    WHERE assignment_id=$1
+    FOR UPDATE
+  `,[assignmentId])).rows[0];
+  if(!row)throw new Error('No existe reporte de no-show');
+  if(Number(row.reported_pair_id)!==Number(reportedPairId))throw new Error('Pareja reportada inválida');
+  if(row.status!=='pending')throw new Error('El reporte ya fue resuelto');
+  const updated=(await q(client,`
+    UPDATE wheel_no_shows
+    SET status='contested',responded_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+    RETURNING *
+  `,[row.id])).rows[0];
+  await q(client,`
+    UPDATE wheel_assignments
+    SET status='disputed'
+    WHERE id=$1 AND status IN('open','result_pending')
+  `,[assignmentId]);
+  return updated;
+}
+
+export async function acceptWheelV3NoShow(client,{assignmentId,reportedPairId,reportedByUserId=null}){
+  const row=(await q(client,`
+    SELECT *
+    FROM wheel_no_shows
+    WHERE assignment_id=$1
+    FOR UPDATE
+  `,[assignmentId])).rows[0];
+  if(!row)throw new Error('No existe reporte de no-show');
+  if(Number(row.reported_pair_id)!==Number(reportedPairId))throw new Error('Pareja reportada inválida');
+  if(row.status!=='pending')throw new Error('El reporte ya fue resuelto');
+
+  await q(client,`
+    UPDATE wheel_no_shows
+    SET status='accepted',responded_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+  `,[row.id]);
+
+  return applyWheelV3OneSidedFailure(client,{
+    assignmentId,
+    failingPairId:reportedPairId,
+    reportedByUserId,
+    resolutionSource:'no_show_accepted',
+    countsAsFirstPlaceDefense:true,
+  });
+}
+
+export async function escalateExpiredWheelV3NoShows(client){
+  const rows=(await q(client,`
+    SELECT *
+    FROM wheel_no_shows
+    WHERE status='pending'
+      AND response_deadline_at<=CURRENT_TIMESTAMP
+    ORDER BY response_deadline_at,id
+    FOR UPDATE SKIP LOCKED
+  `)).rows;
+  const escalated=[];
+  for(const row of rows){
+    const updated=(await q(client,`
+      UPDATE wheel_no_shows
+      SET status='admin_review',responded_at=CURRENT_TIMESTAMP
+      WHERE id=$1
+      RETURNING *
+    `,[row.id])).rows[0];
+    await q(client,`
+      UPDATE wheel_assignments
+      SET status='disputed'
+      WHERE id=$1 AND status IN('open','result_pending')
+    `,[row.assignment_id]);
+    escalated.push(updated);
+  }
+  return escalated;
 }
