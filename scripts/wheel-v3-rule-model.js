@@ -171,3 +171,43 @@ export function rebalanceInitialRoles(pairs){
     return {...pair,role,roleStreak:pair.role===role?Math.max(1,Number(pair.roleStreak)||0):1};
   });
 }
+
+
+export const WHEEL_V3_TARGET_SHARE=1/7;
+
+export function entryPositionPenultimate(activeCount){
+  const n=Number(activeCount);
+  if(!Number.isInteger(n)||n<0)throw new Error('activeCount must be a non-negative integer');
+  if(n===0)return 1;
+  if(n===1)return 2;
+  return n;
+}
+
+export function populationMoveImprovesBalance(counts,srcIndex,dstIndex){
+  const values=counts.map(Number);
+  const total=values.reduce((s,n)=>s+n,0);
+  if(total<=0||values[srcIndex]<=0)return false;
+  const dev=(a,b)=>Math.abs(a/total-WHEEL_V3_TARGET_SHARE)+Math.abs(b/total-WHEEL_V3_TARGET_SHARE);
+  return dev(values[srcIndex]-1,values[dstIndex]+1)<=dev(values[srcIndex],values[dstIndex])+1e-12;
+}
+
+export function populationDirectionalThreshold(counts,srcIndex,dstIndex){
+  const values=counts.map(Number);
+  const total=values.reduce((s,n)=>s+n,0);
+  if(total<=0||values[srcIndex]<=0)return 3;
+  if(!populationMoveImprovesBalance(values,srcIndex,dstIndex))return 3;
+  const src=values[srcIndex]/total,dst=values[dstIndex]/total;
+  let need=3;
+  if(src>0.22)need=1;
+  else if(src>0.19)need=2;
+  if(dst<0.07)need=Math.min(need,1);
+  else if(dst<0.10)need=Math.min(need,2);
+  return need;
+}
+
+export function delayedResultMovement({winnerPosition,loserPosition}){
+  if(Number(winnerPosition)>Number(loserPosition)){
+    return {winnerPosition:Number(loserPosition),loserPosition:Number(winnerPosition),moved:true};
+  }
+  return {winnerPosition:Number(winnerPosition),loserPosition:Number(loserPosition),moved:false};
+}
