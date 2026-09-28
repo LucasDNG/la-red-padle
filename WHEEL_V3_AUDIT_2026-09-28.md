@@ -269,3 +269,79 @@ Nuevas y ascendidas ya no ingresan a mitad de tabla: ahora ingresan **anteúltim
 4. **Partido jugado pero no cargado antes de cancelación — CERRADO:** si se jugó mientras el assignment era válido, puede cargarse después. Si el ganador ya está arriba por movimientos intermedios, no se aplica swap y se informa el motivo.
 
 Con esto, los bordes funcionales detectados por esta auditoría quedan cerrados. El siguiente paso es rehacer las simulaciones con entrada anteúltima y después convertir invariantes en tests.
+
+
+## Simulación longitudinal rehecha con ingreso anteúltimo — 2026-09-28
+
+Se agregó un modelo ejecutable independiente del runtime productivo:
+
+- `scripts/simulate-wheel-v3.js`
+- comando: `npm run simulate:wheel-v3`
+- regresiones: `tests/wheel-v3-simulation.test.js`
+
+El simulador incorpora:
+- escalera real por categoría;
+- roles ataque/defensa;
+- prioridad por espera;
+- ventanas 3/6/9...;
+- límite blando de roles repetidos;
+- ascenso con ingreso anteúltimo;
+- descenso con ingreso #2;
+- período de descenso;
+- umbral poblacional direccional 3/2/1;
+- skill gaps entre categorías.
+
+### Escenario equilibrado
+
+Configuración:
+- 12 parejas por categoría;
+- 20 años;
+- 120 corridas por skill gap;
+- skill gaps 0 / 0,7 / 1,0.
+
+| Skill gap | 1ª | 2ª | 3ª | 4ª | 5ª | 6ª | 7ª | P | R | Vacías | RMSE | 1ª−7ª |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 0,0 | 12,31 | 12,27 | 12,28 | 12,02 | 11,51 | 12,01 | 11,61 | 139,1 | 135,7 | 0,0% | 2,29 | +0,70 |
+| 0,7 | 12,01 | 11,91 | 12,37 | 11,64 | 12,28 | 11,82 | 11,97 | 134,2 | 133,8 | 0,0% | 2,36 | +0,03 |
+| 1,0 | 11,75 | 12,37 | 12,43 | 12,07 | 11,79 | 11,88 | 11,71 | 140,2 | 138,4 | 0,0% | 2,29 | +0,04 |
+
+### Lectura
+
+Con ingreso anteúltimo **no reaparece la deriva estructural** que motivó las simulaciones históricas. En los tres escenarios:
+- el total se conserva;
+- ninguna corrida terminó con categoría vacía;
+- ascensos y descensos quedan cercanos;
+- Primera−7ª queda prácticamente neutral en los skill gaps 0,7 y 1,0;
+- no hubo ciclos completos sin partidos en el modelo.
+
+### Stress test desde poblaciones muy desparejas
+
+Se probaron 80 corridas a 20 años con skill gap 0,7.
+
+| Inicio 1ª→7ª | Final medio 1ª→7ª | RMSE inicial | RMSE final | 1ª−7ª final |
+|---|---|---:|---:|---:|
+| [20,16,14,12,10,7,5] | [15,03;14,90;14,04;11,75;10,30;9,34;8,65] | 4,81 | 2,99 | +6,38 |
+| [5,7,10,12,14,16,20] | [9,39;10,04;10,16;12,03;13,21;14,54;14,64] | 4,81 | 2,82 | −5,25 |
+| [24,10,10,10,10,10,10] | [14,28;13,72;13,10;11,82;10,79;10,31;9,97] | 4,90 | 2,66 | +4,30 |
+
+La corrección poblacional es **estable pero deliberadamente lenta**: mejora fuertemente el desequilibrio sin mover parejas administrativamente ni forzar saltos de categoría. En pruebas de 50 años, los dos gradientes extremos siguieron acercándose al centro.
+
+### Regresiones agregadas antes del motor
+
+`tests/wheel-v3-simulation.test.js` protege:
+1. ingreso anteúltimo y excepción N=1;
+2. un resultado tardío nunca baja al ganador;
+3. umbral poblacional direccional;
+4. estabilidad longitudinal desde población equilibrada;
+5. convergencia significativa desde poblaciones muy desparejas.
+
+Estas pruebas son de **modelo**, no reemplazan los tests PostgreSQL que harán falta al implementar el motor real.
+
+## Veredicto de esta etapa
+
+El cambio de ingreso a **anteúltimo** no muestra, en el modelo longitudinal, una deriva poblacional peligrosa ni un bloqueo estructural.
+
+No se recomienda tocar todavía `wheel-v2` directamente. El siguiente bloque debe ser:
+1. convertir el resto de invariantes funcionales en tests puros;
+2. diseñar la migración de estado/DB;
+3. recién después implementar Wheel v3.
