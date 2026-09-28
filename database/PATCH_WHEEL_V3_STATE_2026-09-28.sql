@@ -41,6 +41,21 @@ DO $
 BEGIN
   IF NOT EXISTS(
     SELECT 1 FROM pg_constraint
+    WHERE conname='pair_wheel_zone_enabling_consistency'
+      AND conrelid='pair_wheel_state'::regclass
+  ) THEN
+    ALTER TABLE pair_wheel_state
+      ADD CONSTRAINT pair_wheel_zone_enabling_consistency CHECK(
+        awaiting_zone_first_match=(awaiting_zone_kind IS NOT NULL)
+      );
+  END IF;
+END $;
+
+
+DO $
+BEGIN
+  IF NOT EXISTS(
+    SELECT 1 FROM pg_constraint
     WHERE conname='pair_duo_relegation_empty_consistency'
       AND conrelid='pair_duo_state'::regclass
   ) THEN
