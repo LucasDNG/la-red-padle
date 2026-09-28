@@ -260,3 +260,12 @@ Nuevas y ascendidas ya no ingresan a mitad de tabla: ahora ingresan **anteúltim
 2. Descenso pendiente si la misma dupla reaparece en otra categoría.
 3. Evasión de 3 incumplimientos mediante cambio de compañero.
 4. Partido jugado válidamente pero no cargado antes de una cancelación por ranking.
+
+## Resolución de bordes nuevos — 2026-09-28
+
+1. **Anteúltima con N=1 — CERRADO:** si solo existe una activa, la nueva/ascendida entra #2. Con N=0 entra #1.
+2. **Descenso pendiente tras parejas intermedias — CERRADO:** el pendiente queda atado a la dupla exacta y a la categoría donde nació. Si vuelven a juntarse antes de resolverlo, regresan allí. Una vez resuelto, futuras formaciones siguen categorías individuales vigentes.
+3. **Incumplimientos y cambio de compañero — CERRADO:** la racha pertenece a la dupla exacta; no castiga al compañero nuevo, pero reaparece si la dupla original se re-forma. Debe avisarse al re-formarse.
+4. **Partido jugado pero no cargado antes de cancelación — CERRADO:** si se jugó mientras el assignment era válido, puede cargarse después. Si el ganador ya está arriba por movimientos intermedios, no se aplica swap y se informa el motivo.
+
+Con esto, los bordes funcionales detectados por esta auditoría quedan cerrados. El siguiente paso es rehacer las simulaciones con entrada anteúltima y después convertir invariantes en tests.
