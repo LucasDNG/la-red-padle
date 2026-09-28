@@ -178,3 +178,17 @@ La aplicación no confía en el reloj del cliente para ninguna regla competitiva
 La API debe exponer deadlines absolutos y una referencia de tiempo de servidor (`server_now` o equivalente). El frontend puede calcular un offset para mostrar cuentas regresivas, pero cualquier acción sensible vuelve a ser validada por el backend. Cambiar la hora local del navegador, PC o teléfono no puede afectar 7 días, 30 días, 48 horas, meses de inactividad ni sanciones.
 
 No se agrega una dependencia de un proveedor externo de hora por request: el servidor/DB es la autoridad del dominio y su infraestructura ya sincroniza reloj mediante mecanismos del proveedor.
+
+
+## Estado preparatorio Wheel v3
+
+Antes del cutover, la base incorpora de forma aditiva estado específico de Wheel v3 sin cambiar `app_settings.engine`:
+- `league_wheel_state`: cierre irreversible de formación por circuito;
+- `pair_wheel_state`: rol, racha de rol, ascenso e inactividad/retorno;
+- `pair_duo_state`: incumplimientos y descenso pendiente ligados a la dupla exacta;
+- `first_place_reigns`: reinados del #1 de Primera;
+- metadatos de ataque/defensa y cancelación/primera carga en `wheel_assignments`.
+
+La migración `PATCH_WHEEL_V3_STATE_2026-09-28.sql` es preparatoria e idempotente. Mantiene `wheel-v2` operativo y usa triggers para que parejas nuevas creadas durante esta etapa también reciban su estado v3. La limpieza de ELO y demás columnas legacy queda para después del cutover estable.
+
+El diseño detallado vive en `WHEEL_V3_DB_DESIGN.md`.
