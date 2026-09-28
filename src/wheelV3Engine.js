@@ -1786,6 +1786,9 @@ async function wheelV3ValidateFirstResultWindow(client,assignment,playedAt){
   if(played<new Date(assignment.assigned_at))throw new Error('El partido no puede ser anterior al assignment');
   if(played>new Date(assignment.deadline_at))throw new Error('El partido fue jugado fuera del plazo de 30 días');
   if(!assignment.first_result_at&&new Date(now)>new Date(assignment.deadline_at))throw new Error('Venció el plazo de 30 días para cargar el primer resultado');
+  if(assignment.first_result_at&&assignment.confirmation_deadline_at&&new Date(now)>new Date(assignment.confirmation_deadline_at)){
+    throw new Error('Venció la ventana de revisión del resultado');
+  }
   if(assignment.cancelled_at){
     const eligibility=resultAllowedAfterCancellation({playedAt,cancelledAt:assignment.cancelled_at});
     if(!eligibility)throw new Error('El partido fue jugado después de la cancelación');
@@ -2264,4 +2267,111 @@ export async function archiveWheelV3Pair(client,pairId){
   }
   const refresh=await refreshWheelV3Category(client,pair.category_id);
   return {pairId:Number(pairId),categoryId:Number(pair.category_id),refresh};
+}
+
+
+export async function proposeWheelV3Schedule(client,{
+  assignmentId,
+  proposedByPairId,
+  scheduledAt,
+  locationText,
+  venueId=null,
+}){
+  const assignment=(await q(client,`
+    SELECT *
+    FROM wheel_assignments
+    WHERE id=$1
+    FOR UPDATE
+  `,[assignmentId])).rows[0];
+  if(!assignment||!['open','result_pending'].includes(assignment.status))throw new Error('Assignment no disponible');
+  const proposer=Number(proposedByPairId);
+  if(![Number(assignment.pair_a_id),Number(assignment.pair_b_id)].includes(proposer))throw new Error('Pareja proponente inválida');
+
+  const location=String(locationText||'').trim().replace(/\s+/g,' ');
+  if(location.length<2||location.length>160)throw new Error('Lugar inválido');
+
+  const when=new Date(scheduledAt);
+  if(Number.isNaN(when.getTime()))throw new Error('Fecha inválida');
+  const now=(await q(client,`SELECT CURRENT_TIMESTAMP now`)).rows[0].now;
+  if(when<=new Date(now))throw new Error('La fecha debe ser futura');
+  if(when>new Date(assignment.deadline_at))throw new Error('La fecha supera el plazo de 30 días');
+
+  await q(client,`
+    UPDATE wheel_schedule_proposals
+    SET status='replaced',responded_at=CURRENT_TIMESTAMP
+    WHERE assignment_id=$1 AND status='pending'
+  `,[assignmentId]);
+
+  return (await q(client,`
+    INSERT INTO wheel_schedule_proposals(
+      assignment_id,proposed_by_pair_id,scheduled_at,location_text,venue_id,
+      response_deadline_at
+    )
+    VALUES($1,$2,$3,$4,$5,CURRENT_TIMESTAMP+interval '48 hours')
+    RETURNING *
+  `,[assignmentId,proposer,when,location,venueId])).rows[0];
+}
+
+export async function acceptWheelV3Schedule(client,{
+  assignmentId,
+  proposalId,
+  acceptingPairId,
+}){
+  const assignment=(await q(client,`
+    SELECT *
+    FROM wheel_assignments
+    WHERE id=$1
+    FOR UPDATE
+  `,[assignmentId])).rows[0];
+  if(!assignment||!['open','result_pending'].includes(assignment.status))throw new Error('Assignment no disponible');
+
+  const proposal=(await q(client,`
+    SELECT *
+    FROM wheel_schedule_proposals
+    WHERE id=$1
+      AND assignment_id=$2
+      AND status='pending'
+    FOR UPDATE
+  `,[proposalId,assignmentId])).rows[0];
+  if(!proposal)throw new Error('Propuesta inexistente o resuelta');
+  if(Number(proposal.proposed_by_pair_id)===Number(acceptingPairId))throw new Error('La otra pareja debe aceptar');
+  if(![Number(assignment.pair_a_id),Number(assignment.pair_b_id)].includes(Number(acceptingPairId)))throw new Error('Pareja aceptante inválida');
+
+  const valid=(await q(client,`SELECT CURRENT_TIMESTAMP<=$1::timestamptz ok`,[proposal.response_deadline_at])).rows[0].ok;
+  if(!valid)throw new Error('La propuesta venció');
+
+  await q(client,`
+    UPDATE wheel_schedule_proposals
+    SET status='accepted',responded_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+  `,[proposal.id]);
+
+  return (await q(client,`
+    UPDATE wheel_assignments
+    SET
+      scheduled_at=$2,
+      location_text=$3,
+      venue_id=$4,
+      schedule_confirmed_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+    RETURNING *
+  `,[assignmentId,proposal.scheduled_at,proposal.location_text,proposal.venue_id])).rows[0];
+}
+
+export async function cancelWheelV3ScheduleProposal(client,{
+  assignmentId,
+  proposalId,
+  proposedByPairId,
+}){
+  const row=(await q(client,`
+    UPDATE wheel_schedule_proposals
+    SET status='cancelled',responded_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+      AND assignment_id=$2
+      AND proposed_by_pair_id=$3
+      AND status='pending'
+    RETURNING *
+  `,[proposalId,assignmentId,proposedByPairId])).rows[0];
+  if(!row)throw new Error('Propuesta no disponible para cancelar');
+  return row;
 }
