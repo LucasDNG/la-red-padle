@@ -23,10 +23,14 @@ No se busca un emparejamiento aleatorio de toda la categoría.
 - El ranking sigue siendo una escalera.
 - Si una pareja ubicada más abajo vence en un partido real a una pareja ubicada más arriba, intercambian las **posiciones actuales al momento de aplicar el resultado**.
 - Si gana la pareja que ya estaba arriba, no hay intercambio.
-- Si durante la vigencia de un assignment se invierte la relación competitiva y el atacante deja de estar debajo del defensor, el assignment se cancela automáticamente.
-- Si una de las parejas cambia de categoría, el assignment se cancela automáticamente.
+- Mientras todavía **no exista ninguna versión de resultado cargada**, si se invierte la relación competitiva y el atacante deja de estar debajo del defensor, el assignment se cancela automáticamente.
+- Mientras todavía no exista ninguna versión de resultado cargada, si una de las parejas cambia de categoría, el assignment se cancela automáticamente.
 - Si la relación cambia pero el atacante sigue debajo del defensor, el assignment continúa.
-- Un partido cancelado no genera movimiento ni resultado oficial. Si los jugadores desean jugarlo igualmente, pueden hacerlo de forma amistosa, pero no se carga en LA RED.
+- Desde que existe una primera versión de resultado cargada, los movimientos posteriores del ranking ya no cancelan ese partido: el resultado sigue su flujo de confirmación/disputa.
+- Al aplicar un resultado ya cargado, **el ganador nunca puede bajar por culpa de movimientos ocurridos después del partido**:
+  - si el ganador está actualmente debajo del perdedor, intercambian posiciones;
+  - si el ganador ya está actualmente arriba del perdedor, no se lo vuelve a bajar y no hay intercambio adicional.
+- Un partido cancelado antes de tener resultado cargado no genera movimiento ni resultado oficial. Si los jugadores desean jugarlo igualmente, pueden hacerlo de forma amistosa, pero no se carga en LA RED.
 - La cancelación conserva el rol ataque/defensa de cada pareja y su antigüedad de espera; la reasignación debe ejecutarse de inmediato con prioridad alta.
 
 ## 3. Fase de formación
@@ -215,7 +219,8 @@ Si vencen los 30 días sin resultado ni declaración:
 - Esta regla es general para todas las categorías, no solo 7ª.
 - Una pareja que acumula **3 incumplimientos atribuibles consecutivos** recibe una penalización de **30 días sin nuevas asignaciones** y pasa a estado inactivo durante esa penalización.
 - Al cumplirse exactamente los 30 días, la pareja se **reactiva automáticamente**.
-- Cualquier assignment que se cierre sin incumplimiento atribuible a esa pareja reinicia su racha de incumplimientos consecutivos a 0.
+- La racha se reinicia a 0 cuando existe un cierre real sin incumplimiento propio: partido resuelto correctamente o cierre donde el incumplimiento fue atribuible únicamente al rival.
+- Una cancelación automática del sistema por ranking/categoría **no reinicia** la racha.
 - En 7ª esta regla resuelve especialmente el caso de la última pareja, que no puede descender ni perder más posición.
 
 ## 11. Penalización simultánea y deuda de posición
@@ -264,12 +269,10 @@ Después de la fase de formación:
   - su mejor retorno posible pasa a #2;
   - pierde la racha actual de ascenso;
   - el récord histórico de Primera no se borra.
-- Una pareja que **asciende** no entra al fondo: ingresa en la **mitad de la tabla activa** de la nueva categoría y desplaza hacia abajo a las parejas desde ese punto.
-- Fórmula aprobada con `N` parejas activas existentes: posición de ingreso = `floor(N / 2) + 1`.
-  - N=10 => entra #6.
-  - N=9 => entra #5.
-  - excepción N=1 => entra #2, para no desplazar al único #1 sin haber jugado.
-- Por ese ingreso no entra automáticamente en período de descenso.
+- Una pareja que **asciende** entra **anteúltima** de la tabla activa de la nueva categoría y desplaza hacia abajo desde ese punto.
+- No entra automáticamente en período de descenso solo por ese ingreso.
+- Para entrar en período de descenso debe llegar efectivamente al último puesto por un movimiento deportivo posterior; por ejemplo, si el último le gana y le intercambia la posición.
+- El caso con 0 o 1 pareja activa previa queda marcado como borde final de inserción porque “anteúltima” no se comporta igual con tablas tan pequeñas.
 
 ## 14. Período de descenso
 Después de la fase de formación:
@@ -311,13 +314,20 @@ Mientras una pareja sigue en período de descenso:
   - el próximo rol es ataque.
 
 ### Parejas nuevas y categoría individual
-- Una pareja completamente nueva también ingresa en la **mitad de la tabla activa** de su categoría y desplaza hacia abajo desde ese punto, usando la misma fórmula `floor(N / 2) + 1`.
+- Una pareja completamente nueva también ingresa **anteúltima** de su categoría y desplaza hacia abajo desde ese punto.
+- Igual que una ascendida, no entra automáticamente en período de descenso por ser nueva; solo entra si posteriormente llega al último puesto por un movimiento deportivo.
 - Dos jugadores sin categoría individual previa pueden elegir libremente una categoría inicial entre 1ª y 7ª.
 - Si los jugadores ya tienen categorías individuales distintas, la pareja compite en la categoría del jugador de nivel más alto (número de categoría más bajo).
 - Ejemplo: jugador de 2ª + jugador de 5ª => la pareja compite en 2ª.
-- Al disolverse, cada jugador recupera/conserva su categoría individual previa, salvo mejoras obtenidas por ascensos deportivos reales de la pareja.
+- Al disolverse, cada jugador conserva su categoría individual real.
 - Un ascenso deportivo real mejora la categoría individual de ambos integrantes al nivel alcanzado.
-- Una misma dupla que se disuelve y luego vuelve a formarse se trata **competitivamente como una pareja nueva**, aunque pueda reutilizarse una identidad técnica interna si eso conviene a la implementación.
+- Un descenso deportivo real también actualiza categorías individuales para impedir que se borre separándose:
+  - cada integrante cuya categoría individual era mejor que la nueva categoría descendida empeora hasta esa nueva categoría;
+  - quien ya tenía una categoría individual inferior no empeora adicionalmente.
+  - ejemplo: 2ª + 5ª descienden a 3ª => las categorías individuales quedan 3ª y 5ª.
+- Una misma dupla que se disuelve y luego vuelve a formarse se trata **competitivamente como una pareja nueva** para estadísticas/ingreso, aunque pueda reutilizarse una identidad técnica interna.
+- **Excepción anti-abuso:** si esa combinación exacta de dos personas tenía un período de descenso abierto, ese estado y sus derrotas pendientes sobreviven a la disolución.
+- Ese período pendiente sigue vinculado a la combinación de esas dos personas aunque, entre medio, cualquiera de ellas forme y disuelva otras parejas. Volver a juntarse no borra el descenso pendiente.
 
 ## 16. Inactividad
 La inactividad es voluntaria y sale de la rueda; también puede ser aplicada automáticamente como sanción de 30 días por 3 incumplimientos consecutivos.
@@ -365,7 +375,7 @@ Cada categoría muestra:
 - Tras 3 incumplimientos atribuibles consecutivos, la pareja pasa a inactiva y queda 30 días sin nuevas asignaciones.
 - Esta inactividad sancionatoria sigue sin producir descenso por el simple paso del tiempo.
 - Al día 30 se reactiva automáticamente.
-- Cualquier assignment cerrado sin incumplimiento atribuible a esa pareja reinicia la racha de incumplimientos consecutivos a 0.
+- La racha se reinicia a 0 únicamente con un cierre real sin incumplimiento propio; una cancelación automática del sistema no la limpia.
 
 ## 17. Historial visible mínimo
 No existe una ficha pública de historial estadístico acumulado de pareja.
@@ -438,15 +448,13 @@ Administración debe conservar una auditoría técnica más completa de decision
   - se aplicó una penalización;
   - terminó la fase de formación.
 
-## 21. Cierre funcional antes de código
-Quedaron solo estos bordes después de la última tanda:
+## 21. Bordes finales reabiertos por la auditoría
+La auditoría cerró los cuatro hallazgos principales, pero las nuevas decisiones dejan cuatro bordes concretos antes de los tests:
 
-No quedan preguntas funcionales abiertas para Wheel v3.
-
-Cierres finales:
-- Si al terminar la fase de formación una pareja ocupa #1 de 2ª–7ª o el último puesto de 1ª–6ª pero tiene 0 partidos reales, debe jugar primero un partido. **Ese primer partido no cuenta** para ascenso ni descenso: al cerrarlo, recién entra en la zona correspondiente en 0/3.
-- Regla de entrada a mitad de tabla: posición = `floor(N/2)+1`, excepto cuando existe **una sola pareja activa (N=1)**; en ese caso especial la nueva/ascendida entra #2 para no desplazar al único #1 sin haber jugado.
-
+1. **Anteúltima con tabla mínima:** si hay 0 activas, la primera pareja necesariamente entra #1. Si hay exactamente 1 activa y entra una nueva/ascendida, la tabla final tiene 2 posiciones y “anteúltima” sería #1, desplazando al #1 sin jugar. Confirmar si en N=1 se conserva la excepción anterior y entra #2.
+2. **Descenso pendiente + cambio de categoría intermedio:** si una dupla tenía, por ejemplo, 2/3 de descenso en 4ª, se disuelve, uno cambia legítimamente de categoría con otra pareja y después los dos vuelven a juntarse en una categoría distinta, falta definir si el 2/3 pendiente se retoma en esa nueva categoría o solo cuando vuelven a competir en la categoría donde nació.
+3. **Incumplimientos y cambio de pareja:** con 2 incumplimientos una dupla podría disolverse y formar parejas distintas antes del tercero. Falta decidir si la racha de incumplimientos es solo de la dupla exacta o si debe existir alguna consecuencia individual para impedir evasión por cambio de compañero.
+4. **Partido jugado pero todavía no cargado:** si el partido realmente se jugó cuando el assignment era válido, pero antes de que alguien cargue el resultado el ranking se invierte y el sistema lo cancela, falta decidir si ambos pueden acreditar que se jugó antes de la cancelación y conservar el resultado, o si la falta de carga previa hace definitiva la cancelación.
 ## 22. Plan de implementación después de cerrar preguntas
 1. Convertir este diseño en reglas definitivas dentro de `PROJECT_RULES.md` y `DECISIONS.md`.
 2. Diseñar estado/migración DB mínima.
