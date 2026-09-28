@@ -278,3 +278,23 @@ test('first_result_at is independent from played_at and can protect an already-l
   )).rows[0];
   assert.ok(row.first_result_at);
 });
+
+
+test('preparation patch upgrades an already-prepared older v3 schema',async()=>{
+  await pool.query('ALTER TABLE pair_wheel_state DROP COLUMN defense_required_until_real');
+  await pool.query('ALTER TABLE pair_wheel_state DROP COLUMN awaiting_zone_kind');
+  await pool.query('ALTER TABLE pair_duo_state DROP COLUMN relegation_route_step CASCADE');
+  await pool.query(patch);
+  const pairCols=(await pool.query("SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='pair_wheel_state' AND column_name IN('defense_required_until_real','awaiting_zone_kind') ORDER BY column_name")).rows.map(r=>r.column_name);
+  const duoCols=(await pool.query("SELECT column_name FROM information_schema.columns WHERE table_schema='public' AND table_name='pair_duo_state' AND column_name='relegation_route_step'")).rows.map(r=>r.column_name);
+  assert.deepEqual(pairCols,['awaiting_zone_kind','defense_required_until_real']);
+  assert.deepEqual(duoCols,['relegation_route_step']);
+});
+
+test('formation enabling match remembers which zone it belongs to',async()=>{
+  const p=await seedPair(1,3);
+  await pool.query("UPDATE pair_wheel_state SET awaiting_zone_first_match=true,awaiting_zone_kind='promotion' WHERE pair_id=$1",[p.id]);
+  const state=(await pool.query('SELECT awaiting_zone_first_match,awaiting_zone_kind FROM pair_wheel_state WHERE pair_id=$1',[p.id])).rows[0];
+  assert.equal(state.awaiting_zone_first_match,true);
+  assert.equal(state.awaiting_zone_kind,'promotion');
+});
