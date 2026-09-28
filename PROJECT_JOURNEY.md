@@ -192,3 +192,11 @@ La primera auditoría de Wheel v3 detectó vías de evasión por disolución/re-
 También se fijó que, una vez cargada una primera versión de resultado, cambios posteriores del ranking no cancelan el partido y nunca pueden hacer bajar al ganador al aplicar el resultado. Una cancelación automática del sistema tampoco limpia la racha de incumplimientos.
 
 A partir de esta revisión cambió la regla de ingreso: nuevas y ascendidas ya no entran a mitad de tabla sino **anteúltimas**, para que deban pelear desde abajo. Ese cambio obliga a rehacer la simulación longitudinal antes de implementar.
+
+## Cierre anti-evasión final — 2026-09-28
+
+Se cerraron los bordes que dejó la auditoría. Una dupla en descenso que se disuelve queda ligada a la categoría donde abrió ese período y, si vuelve a juntarse antes de resolverlo, regresa allí aunque haya formado otras parejas en el medio. La racha de incumplimientos también pertenece a la dupla exacta: no castiga a compañeros nuevos pero reaparece si los dos originales se re-forman.
+
+También se permitió cargar un partido que efectivamente se había jugado mientras el assignment era válido aunque el ranking lo cancelara antes de cargar el resultado. Al aplicar ese resultado nunca se baja al ganador; si ya quedó arriba por un movimiento previo, el ranking no cambia y LA RED explica el motivo por app/WhatsApp.
+
+Con N=1 se conserva la excepción de ingreso #2. Con estos cierres, la próxima etapa vuelve a ser simulación longitudinal completa usando la nueva entrada anteúltima.
