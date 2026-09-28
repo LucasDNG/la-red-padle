@@ -10,7 +10,7 @@ if(!connectionString)throw new Error('TEST_DATABASE_URL es obligatorio para los 
 process.env.DATABASE_URL=connectionString;
 const {Pool}=pg;
 const pool=new Pool({connectionString});
-const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure}=await import('../../src/wheelV3Engine.js');
+const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
@@ -784,4 +784,63 @@ test('accepted no-show can count as a First-place defense without resetting real
   assert.equal(Number(reign.defenses),1);
   const wait=(await pool.query('SELECT real_waiting_since FROM pair_wheel_state WHERE pair_id=$1',[leader.id])).rows[0].real_waiting_since;
   assert.equal(new Date(wait).toISOString(),'2026-09-01T00:00:00.000Z');
+});
+
+
+test('temporary inactivity compacts active ranking and reactivation reinserts at stored return position',async()=>{
+  const c=await category(6);
+  const p1=await seedPair(1,6);
+  const p2=await seedPairWithMembers(2,6,{tag:30});
+  const p3=await seedPair(3,6);
+  const duo=(await pool.query('SELECT id FROM pair_duo_state WHERE league_id=$1 ORDER BY id DESC LIMIT 1',[p2.league_id])).rows[0];
+  await pool.query("UPDATE pairs SET competition_state='paused' WHERE id=$1",[p2.id]);
+  await pool.query("UPDATE pair_wheel_state SET inactive_since=CURRENT_TIMESTAMP-interval '20 days',return_position_base=2,inactive_reason='three_failures',auto_reactivate_at=CURRENT_TIMESTAMP-interval '1 second' WHERE pair_id=$1",[p2.id]);
+  await pool.query("UPDATE pair_duo_state SET penalty_until=CURRENT_TIMESTAMP-interval '1 second' WHERE id=$1",[duo.id]);
+  await pool.query('UPDATE pairs SET position=2 WHERE id=$1',[p3.id]);
+  await pool.query('UPDATE pairs SET position=3 WHERE id=$1',[p2.id]);
+
+  const client=await pool.connect();
+  let result;
+  try{
+    await client.query('BEGIN');
+    result=await reactivateWheelV3Pair(client,p2.id);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  assert.equal(result.position,2);
+  const order=(await pool.query('SELECT id,position,competition_state FROM pairs WHERE category_id=$1 ORDER BY position',[c.id])).rows;
+  assert.deepEqual(order.map(r=>Number(r.id)),[Number(p1.id),Number(p2.id),Number(p3.id)]);
+  assert.equal(order[1].competition_state,'active');
+  const state=(await pool.query('SELECT inactive_since,return_position_base,inactive_reason,auto_reactivate_at,role,real_waiting_since FROM pair_wheel_state WHERE pair_id=$1',[p2.id])).rows[0];
+  assert.equal(state.inactive_since,null);
+  assert.equal(state.return_position_base,null);
+  assert.equal(state.inactive_reason,null);
+  assert.equal(state.auto_reactivate_at,null);
+  assert.equal(state.role,null);
+  assert.ok(state.real_waiting_since);
+});
+
+test('due 30-day sanctions auto-reactivate by PostgreSQL time and future ones stay paused',async()=>{
+  const c=await category(7);
+  const due=await seedPairWithMembers(1,7,{tag:31});
+  const future=await seedPairWithMembers(2,7,{tag:32});
+  for(const [pair,offset] of [[due,'-1 second'],[future,'+1 day']]){
+    await pool.query("UPDATE pairs SET competition_state='paused' WHERE id=$1",[pair.id]);
+    await pool.query(`UPDATE pair_wheel_state SET inactive_since=CURRENT_TIMESTAMP-interval '30 days',return_position_base=position,inactive_reason='three_failures',auto_reactivate_at=CURRENT_TIMESTAMP${offset.startsWith('+')?'+':'-'}interval '${offset.replace(/[+-]/,'')}' FROM pairs WHERE pair_wheel_state.pair_id=$1 AND pairs.id=$1`,[pair.id]);
+  }
+
+  const client=await pool.connect();
+  let rows;
+  try{
+    await client.query('BEGIN');
+    rows=await reactivateDueWheelV3Penalties(client);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  assert.equal(rows.length,1);
+  assert.equal(rows[0].pairId,Number(due.id));
+  const states=(await pool.query('SELECT id,competition_state FROM pairs WHERE id IN($1,$2) ORDER BY id',[due.id,future.id])).rows;
+  const byId=Object.fromEntries(states.map(r=>[Number(r.id),r.competition_state]));
+  assert.equal(byId[Number(due.id)],'active');
+  assert.equal(byId[Number(future.id)],'paused');
 });
