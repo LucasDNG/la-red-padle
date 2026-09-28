@@ -41,7 +41,7 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Una pareja nueva también entra en la mitad de la tabla activa de su categoría con la misma fórmula `floor(N/2)+1` y desplaza hacia abajo.
 - Descenso entra base #2 en la categoría inferior; si no existe #1 material, entra #1.
 - Los movimientos entre categorías son siempre adyacentes.
-- Al terminar la formación, los #1 y los últimos de 1ª–6ª que ya tienen al menos un partido real previo entran inmediatamente en 0/3 de ascenso/descenso. Si tienen 0 partidos, primero deben disputar uno; falta definir si ese primer resultado ya cuenta o solo habilita la zona.
+- Al terminar la formación, los #1 de 2ª–7ª y los últimos de 1ª–6ª que ya tienen al menos un partido real previo entran inmediatamente en 0/3 de ascenso/descenso. Si tienen 0 partidos, primero deben disputar uno; falta definir si ese primer resultado ya cuenta o solo habilita la zona.
 
 ## 5. Categoría individual y categoría de pareja
 - La pareja compite en la categoría individual más fuerte de sus dos jugadores (número más bajo); dos jugadores sin categoría previa pueden elegir libremente 1ª–7ª.
