@@ -343,13 +343,14 @@ export function firstPlaceReignAfterResult({
   wasNumberOne,
   remainsNumberOne,
   isRealMatch,
+  countsAsDefense=isRealMatch,
   currentDefenses=0,
 }){
   const c=Number(category),defenses=Number(currentDefenses);
   if(c!==1)return {open:false,defenses:0,ended:false,defended:false};
   if(!wasNumberOne&&remainsNumberOne)return {open:true,defenses:0,ended:false,defended:false};
   if(wasNumberOne&&!remainsNumberOne)return {open:false,defenses,ended:true,defended:false};
-  if(wasNumberOne&&remainsNumberOne&&isRealMatch)return {open:true,defenses:defenses+1,ended:false,defended:true};
+  if(wasNumberOne&&remainsNumberOne&&countsAsDefense)return {open:true,defenses:defenses+1,ended:false,defended:true};
   return {open:Boolean(remainsNumberOne),defenses,ended:false,defended:false};
 }
 
