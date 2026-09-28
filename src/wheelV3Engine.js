@@ -201,6 +201,18 @@ export async function createWheelV3AssignmentsForCategory(client,categoryId){
       VALUES($1,$2),($1,$3)
     `,[assignment.id,attacker.id,defender.id]);
 
+    const categoryNumber=Number((await q(client,`SELECT number FROM categories WHERE id=$1`,[category.id])).rows[0]?.number);
+    if(categoryNumber===1&&Number(defender.position)===1){
+      const reign=await wheelV3OpenReign(client,category.league_id,defender.id);
+      const linked=(await q(client,`
+        UPDATE wheel_assignments
+        SET first_place_reign_id=$2
+        WHERE id=$1
+        RETURNING *
+      `,[assignment.id,reign.id])).rows[0];
+      Object.assign(assignment,linked);
+    }
+
     created.push(assignment);
   }
   return {plan,created};
@@ -590,8 +602,19 @@ async function wheelV3OpenReign(client,leagueId,pairId){
   `,[leagueId,pairId])).rows[0];
 }
 
-async function wheelV3UpdateFirstPlaceReignAfterRealResult(client,{leagueId,categoryNumber,leaderBefore,leaderAfter,assignment}){
-  if(Number(categoryNumber)!==1||!leaderAfter)return null;
+async function wheelV3UpdateFirstPlaceReignAfterRealResult(client,{leagueId,categoryNumber,leaderBefore,leaderAfter,assignment,winnerPairId}){
+  if(Number(categoryNumber)!==1)return null;
+  if(assignment.first_place_reign_id
+    && Number(assignment.defender_pair_id)===Number(winnerPairId)){
+    return (await q(client,`
+      UPDATE first_place_reigns
+      SET defenses=defenses+1,updated_at=CURRENT_TIMESTAMP
+      WHERE id=$1
+        AND pair_id=$2
+      RETURNING *
+    `,[assignment.first_place_reign_id,winnerPairId])).rows[0]||null;
+  }
+  if(!leaderAfter)return null;
   const open=await wheelV3OpenReign(client,leagueId,leaderAfter);
   if(Number(leaderBefore)!==Number(leaderAfter))return open;
   if(Number(assignment.defender_pair_id)!==Number(leaderAfter))return open;
@@ -934,6 +957,7 @@ export async function applyWheelV3ConfirmedRealResult(client,{
       leaderBefore,
       leaderAfter,
       assignment,
+      winnerPairId:winner,
     });
   }
 
