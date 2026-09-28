@@ -11,6 +11,24 @@ async function route(v2fn,v3fn,args){
 export const myLeague=(...args)=>route(v2.myLeague,v3.myLeagueV3,args);
 export const proposeSchedule=(...args)=>route(v2.proposeSchedule,v3.proposeScheduleV3,args);
 export const acceptSchedule=(...args)=>route(v2.acceptSchedule,v3.acceptScheduleV3,args);
+
+export async function cancelScheduleProposal(...args){
+  const engine=await competitiveEngine();
+  if(engine!=='wheel-v3')throw problem('Acción disponible con Wheel v3',409);
+  const [userId,assignmentId,proposalId]=args;
+  const {pool}=await import('./db.js');
+  const {currentPairForUser}=await import('./pairs.js');
+  const {cancelWheelV3ScheduleProposal}=await import('./wheelV3Engine.js');
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const pair=await currentPairForUser(client,userId,{lock:true});
+    if(!pair)throw problem('No tenés pareja vigente');
+    const result=await cancelWheelV3ScheduleProposal(client,{assignmentId,proposalId,proposedByPairId:pair.id});
+    await client.query('COMMIT');
+    return result;
+  }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
+}
 export const reportNoShow=(...args)=>route(v2.reportNoShow,v3.reportNoShowV3,args);
 export const contestNoShow=(...args)=>route(v2.contestNoShow,v3.contestNoShowV3,args);
 export const submitResult=(...args)=>route(v2.submitResult,v3.submitResultV3,args);
