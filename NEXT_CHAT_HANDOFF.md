@@ -281,3 +281,19 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - Auditoría detallada de cobertura: `WHEEL_V3_IMPLEMENTATION_AUDIT_2026-09-28.md`.
 - **No activar todavía:** producción sigue en `wheel-v2`.
 - Próximo bloque: fachada/API y routing por engine, después frontend/background/health, ejecución real de suites y cutover.
+
+
+### Routing y frontend dual v2/v3 — 2026-09-28
+- Se agregaron selectores centrales de runtime: `competitionRuntime.js`, `wheelRuntime.js`, `pairsRuntime.js` y `adminRuntime.js`.
+- `app.js` y el mantenimiento de background ya despachan por `app_settings.engine`; el valor vigente sigue siendo `wheel-v2`.
+- Se agregaron fachadas aisladas `wheelV3Api.js`, `pairsV3Api.js` y `adminV3Api.js`.
+- Health, preflight y smoke aceptan `wheel-v3` sin activarlo.
+- El mantenimiento v3 respeta la pausa global y la reanudación calcula duración con `CURRENT_TIMESTAMP` de PostgreSQL, no `Date.now()`.
+- Se cerró el edge de disolución `awaiting_result`: al cerrar el assignment se archiva automáticamente la pareja si corresponde.
+- El frontend quedó dual: v2 conserva sus controles legacy mientras v3 muestra inactividad directa, cancelar propuesta, `No pude jugar`, cancelar/aceptar/objetar no-show y resolución Admin v3.
+- El frontend ya no muestra ni consulta el ranking numérico paralelo anterior; Ranking usa posición + rol + estadísticas deportivas.
+- El récord de Primera muestra defensas por reinado y soporta holders compartidos.
+- En v3 la habilitación visual de acciones temporales usa `server_now` + reloj monotónico del navegador; cambiar el reloj del dispositivo no altera la referencia.
+- Resultado ya cargado bloquea nuevas asignaciones; además `No pude jugar` y un no-show nuevo quedan prohibidos después de la primera carga de resultado.
+- El backend público v3 conserva formas compatibles para ranking, próximos, resultados y perfil de pareja.
+- Aún falta ejecutar suites/build reales en un entorno con repo+PostgreSQL, corregir cualquier fallo, completar auditoría frontend/contratos y recién después considerar el switch de `engine`.
