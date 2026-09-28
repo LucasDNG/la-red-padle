@@ -249,4 +249,10 @@ ALTER TABLE matches
   ADD CONSTRAINT matches_result_type_check
   CHECK(result_type IN('normal','injury_abandonment','dissolution_forfeit','administrative_forfeit'));
 
+
+ALTER TABLE wheel_no_shows DROP CONSTRAINT IF EXISTS wheel_no_shows_status_check;
+ALTER TABLE wheel_no_shows
+  ADD CONSTRAINT wheel_no_shows_status_check
+  CHECK(status IN('pending','accepted','contested','admin_review','resolved'));
+
 COMMIT;
