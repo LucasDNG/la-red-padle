@@ -130,101 +130,136 @@ export async function myLeagueV3(userId){
 }
 
 export async function rankingV3(){
-  const client=await pool.connect();
-  try{
-    const categories=(await q(client,`
-      SELECT c.id,c.number,c.name,l.id league_id,l.slug league_slug,l.name league_name
-      FROM categories c
-      JOIN leagues l ON l.id=c.league_id
-      WHERE l.active=true
-      ORDER BY l.slug,c.number
-    `)).rows;
-    for(const category of categories){
-      category.pairs=(await q(client,`
-        SELECT p.id,p.position,p.competition_state,pws.role,pws.real_waiting_since
-        FROM pairs p
-        JOIN pair_wheel_state pws ON pws.pair_id=p.id
-        WHERE p.category_id=$1 AND p.competition_state='active'
-        ORDER BY p.position,p.id
-      `,[category.id])).rows;
-      for(const pair of category.pairs)pair.members=await pairMembers(client,pair.id);
-    }
-    return categories;
-  }finally{client.release();}
+  return (await pool.query(`
+    SELECT
+      l.slug,
+      c.number,
+      p.id pair_id,
+      p.position,
+      p.competition_state,
+      pws.role,
+      string_agg(u.first_name||' '||u.last_name,' / ' ORDER BY u.id) players,
+      (SELECT count(*) FROM matches m WHERE (m.pair_a_id=p.id OR m.pair_b_id=p.id) AND m.result_type IN('normal','injury_abandonment'))::int played,
+      (SELECT count(*) FROM matches m WHERE m.winner_pair_id=p.id AND m.result_type IN('normal','injury_abandonment'))::int wins,
+      (SELECT COALESCE(sum(CASE WHEN m.pair_a_id=p.id THEN m.pair_a_games-m.pair_b_games ELSE m.pair_b_games-m.pair_a_games END),0)
+       FROM matches m
+       WHERE (m.pair_a_id=p.id OR m.pair_b_id=p.id) AND m.result_type IN('normal','injury_abandonment'))::int game_diff
+    FROM pairs p
+    JOIN leagues l ON l.id=p.league_id
+    JOIN categories c ON c.id=p.category_id
+    JOIN pair_wheel_state pws ON pws.pair_id=p.id
+    JOIN pair_members pm ON pm.pair_id=p.id
+    JOIN users u ON u.id=pm.user_id
+    WHERE p.competition_state<>'inactive'
+    GROUP BY p.id,l.slug,c.number,pws.role
+    ORDER BY l.slug,c.number,CASE WHEN p.competition_state='active' THEN 0 ELSE 1 END,p.position,p.id
+  `)).rows;
 }
 
 export async function recordsV3(){
-  const client=await pool.connect();
-  try{
-    const leagues=(await q(client,`SELECT id,slug,name FROM leagues WHERE active=true ORDER BY id`)).rows;
-    const out=[];
-    for(const league of leagues){
-      const max=Number((await q(client,`
-        SELECT COALESCE(max(defenses),0)::int max
-        FROM first_place_reigns
-        WHERE league_id=$1
-      `,[league.id])).rows[0].max);
-      const holders=max>0?(await q(client,`
-        SELECT fpr.id,fpr.pair_id,fpr.defenses,fpr.started_at,fpr.ended_at
-        FROM first_place_reigns fpr
-        WHERE fpr.league_id=$1 AND fpr.defenses=$2
-        ORDER BY fpr.started_at,fpr.id
-      `,[league.id,max])).rows:[];
-      for(const holder of holders)holder.members=await pairMembers(client,holder.pair_id);
-      out.push({...league,defenses:max,holders});
-    }
-    return out;
-  }finally{client.release();}
+  const leagues=(await pool.query(`SELECT id,slug FROM leagues WHERE active=true ORDER BY id`)).rows;
+  const out=[];
+  for(const league of leagues){
+    const max=Number((await pool.query(`
+      SELECT COALESCE(max(defenses),0)::int max
+      FROM first_place_reigns
+      WHERE league_id=$1
+    `,[league.id])).rows[0].max);
+    const holders=max>0?(await pool.query(`
+      SELECT
+        fpr.id,fpr.pair_id,fpr.defenses,fpr.started_at,fpr.ended_at,
+        (SELECT string_agg(u.first_name||' '||u.last_name,' / ' ORDER BY u.id)
+         FROM pair_members pm JOIN users u ON u.id=pm.user_id
+         WHERE pm.pair_id=fpr.pair_id) pair_name
+      FROM first_place_reigns fpr
+      WHERE fpr.league_id=$1 AND fpr.defenses=$2
+      ORDER BY fpr.started_at,fpr.id
+    `,[league.id,max])).rows:[];
+    out.push({
+      slug:league.slug,
+      defenses:max,
+      pair_name:holders[0]?.pair_name||null,
+      achieved_at:holders[0]?.started_at||null,
+      holders,
+    });
+  }
+  return out;
 }
 
 export async function publicUpcomingV3(){
-  const client=await pool.connect();
-  try{
-    const rows=(await q(client,`
-      SELECT wa.id,wa.league_id,wa.category_id,c.number category_number,l.slug league_slug,
-             wa.pair_a_id,wa.pair_b_id,wa.scheduled_at,wa.location_text,wa.status
-      FROM wheel_assignments wa
-      JOIN categories c ON c.id=wa.category_id
-      JOIN leagues l ON l.id=wa.league_id
-      WHERE wa.status IN('open','result_pending','disputed')
-        AND wa.scheduled_at IS NOT NULL
-      ORDER BY wa.scheduled_at,wa.id
-      LIMIT 100
-    `)).rows;
-    for(const row of rows){
-      row.pairA=await pairSummary(client,row.pair_a_id);
-      row.pairB=await pairSummary(client,row.pair_b_id);
-    }
-    return rows;
-  }finally{client.release();}
+  return (await pool.query(`
+    SELECT
+      wa.id,wa.scheduled_at,l.slug,c.number category_number,wa.location_text,
+      (SELECT string_agg(u.first_name||' '||u.last_name,' / ' ORDER BY u.id)
+       FROM pair_members pm JOIN users u ON u.id=pm.user_id
+       WHERE pm.pair_id=wa.pair_a_id) pair_a,
+      (SELECT string_agg(u.first_name||' '||u.last_name,' / ' ORDER BY u.id)
+       FROM pair_members pm JOIN users u ON u.id=pm.user_id
+       WHERE pm.pair_id=wa.pair_b_id) pair_b
+    FROM wheel_assignments wa
+    JOIN leagues l ON l.id=wa.league_id
+    JOIN categories c ON c.id=wa.category_id
+    WHERE wa.status IN('open','result_pending','disputed')
+      AND wa.schedule_confirmed_at IS NOT NULL
+      AND wa.scheduled_at IS NOT NULL
+    ORDER BY wa.scheduled_at,wa.id
+    LIMIT 100
+  `)).rows;
 }
 
 export async function recentResultsV3(){
-  const client=await pool.connect();
-  try{
-    const rows=(await q(client,`
-      SELECT m.*,l.slug league_slug
-      FROM matches m
-      JOIN leagues l ON l.id=m.league_id
-      ORDER BY m.confirmed_at DESC,m.id DESC
-      LIMIT 50
-    `)).rows;
-    for(const row of rows){
-      row.pairA=await pairSummary(client,row.pair_a_id);
-      row.pairB=await pairSummary(client,row.pair_b_id);
-    }
-    return rows;
-  }finally{client.release();}
+  return (await pool.query(`
+    SELECT
+      m.id,m.played_at,m.result_type,m.score,m.pair_a_id,m.pair_b_id,m.winner_pair_id,
+      l.slug,m.category_number,
+      (SELECT string_agg(u.first_name||' '||u.last_name,' / ' ORDER BY u.id)
+       FROM pair_members pm JOIN users u ON u.id=pm.user_id WHERE pm.pair_id=m.pair_a_id) pair_a,
+      (SELECT string_agg(u.first_name||' '||u.last_name,' / ' ORDER BY u.id)
+       FROM pair_members pm JOIN users u ON u.id=pm.user_id WHERE pm.pair_id=m.pair_b_id) pair_b
+    FROM matches m
+    JOIN leagues l ON l.id=m.league_id
+    ORDER BY m.played_at DESC,m.id DESC
+    LIMIT 50
+  `)).rows;
 }
 
 export async function pairProfileV3(pairId){
-  const client=await pool.connect();
-  try{
-    const pair=await pairSummary(client,pairId);
-    if(!pair)throw problem('Pareja inexistente',404);
-    const recentMovements=await wheelV3RecentMovements(client,pairId);
-    return {pair,recentMovements};
-  }finally{client.release();}
+  const pair=(await pool.query(`
+    SELECT
+      l.slug,c.number,p.id,p.position,p.competition_state,pws.role,
+      string_agg(u.first_name||' '||u.last_name,' / ' ORDER BY u.id) players,
+      (SELECT count(*) FROM matches m WHERE (m.pair_a_id=p.id OR m.pair_b_id=p.id) AND m.result_type IN('normal','injury_abandonment'))::int played,
+      (SELECT count(*) FROM matches m WHERE m.winner_pair_id=p.id AND m.result_type IN('normal','injury_abandonment'))::int wins
+    FROM pairs p
+    JOIN leagues l ON l.id=p.league_id
+    JOIN categories c ON c.id=p.category_id
+    JOIN pair_wheel_state pws ON pws.pair_id=p.id
+    JOIN pair_members pm ON pm.pair_id=p.id
+    JOIN users u ON u.id=pm.user_id
+    WHERE p.id=$1 AND p.competition_state<>'inactive'
+    GROUP BY p.id,l.slug,c.number,pws.role
+  `,[pairId])).rows[0];
+  if(!pair)throw problem('Pareja inexistente',404);
+  const matches=(await pool.query(`
+    SELECT id,pair_a_id,pair_b_id,winner_pair_id,result_type,score,played_at
+    FROM matches
+    WHERE pair_a_id=$1 OR pair_b_id=$1
+    ORDER BY played_at DESC,id DESC
+    LIMIT 20
+  `,[pairId])).rows;
+  const events=await wheelV3RecentMovements(pool,pairId);
+  const upcoming=(await pool.query(`
+    SELECT wa.id,wa.scheduled_at,wa.location_text,c.number category_number,l.slug
+    FROM wheel_assignment_participants wap
+    JOIN wheel_assignments wa ON wa.id=wap.assignment_id
+    JOIN categories c ON c.id=wa.category_id
+    JOIN leagues l ON l.id=wa.league_id
+    WHERE wap.pair_id=$1
+      AND wa.schedule_confirmed_at IS NOT NULL
+      AND wa.status IN('open','result_pending','disputed')
+    LIMIT 1
+  `,[pairId])).rows[0]||null;
+  return {pair,matches,events,upcoming};
 }
 
 export async function proposeScheduleV3(userId,assignmentId,body){
