@@ -33,9 +33,21 @@ export async function wheelV3CategoryPlanningRows(client,categoryId,{lock=false}
       pws.role,
       pws.role_streak,
       pws.defense_required_until_real,
-      COALESCE(pws.real_waiting_since,p.created_at) AS real_waiting_since
+      COALESCE(pws.real_waiting_since,p.created_at) AS real_waiting_since,
+      pds.pending_relegation_category_id,
+      COALESCE(pds.relegation_route_step,0) AS relegation_route_step
     FROM pairs p
     JOIN pair_wheel_state pws ON pws.pair_id=p.id
+    LEFT JOIN LATERAL (
+      SELECT min(pm.user_id) member_low_id,max(pm.user_id) member_high_id,count(*) member_count
+      FROM pair_members pm
+      WHERE pm.pair_id=p.id
+    ) members ON true
+    LEFT JOIN pair_duo_state pds
+      ON members.member_count=2
+     AND pds.league_id=p.league_id
+     AND pds.member_low_id=members.member_low_id
+     AND pds.member_high_id=members.member_high_id
     WHERE p.category_id=$1
       AND p.competition_state='active'
       AND p.discipline_state='clear'
@@ -62,6 +74,8 @@ export async function wheelV3CategoryPlanningRows(client,categoryId,{lock=false}
     roleStreak:Number(r.role_streak),
     defenseRequiredUntilReal:Boolean(r.defense_required_until_real),
     realWaitingSince:r.real_waiting_since,
+    relegationActive:Number(r.pending_relegation_category_id)===Number(categoryId),
+    relegationRouteStep:Number(r.relegation_route_step||0),
   }));
 }
 
