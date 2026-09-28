@@ -106,3 +106,12 @@ FROM pair_duo_state pds
 JOIN categories c ON c.id=pds.pending_relegation_category_id
 WHERE pds.pending_relegation_category_id IS NOT NULL
   AND c.league_id<>pds.league_id;
+
+SELECT pair_id
+FROM pair_wheel_state
+WHERE awaiting_zone_first_match<>(awaiting_zone_kind IS NOT NULL);
+
+SELECT id
+FROM pair_duo_state
+WHERE pending_relegation_category_id IS NULL
+  AND relegation_route_step<>0;
