@@ -2143,3 +2143,25 @@ test('administrative victory never advances promotion counter or resets real wai
   const categoryRow=(await pool.query('SELECT c.number FROM pairs p JOIN categories c ON c.id=p.category_id WHERE p.id=$1',[winner.id])).rows[0];
   assert.equal(Number(categoryRow.number),3);
 });
+
+
+test('competitive runtime selector keeps wheel-v2 by default and exposes wheel-v3 facade only after explicit engine switch',async()=>{
+  const {competitiveEngine}=await import('../../src/competitionRuntime.js');
+  const runtime=await import('../../src/wheelRuntime.js');
+  assert.equal(await competitiveEngine(),'wheel-v2');
+
+  await pool.query("UPDATE app_settings SET value='"wheel-v3"'::jsonb WHERE key='engine'");
+  assert.equal(await competitiveEngine(),'wheel-v3');
+
+  const ranking=await runtime.ranking();
+  assert.ok(Array.isArray(ranking.categories));
+  assert.ok(ranking.server_now);
+
+  await assert.rejects(
+    runtime.voteExtension(1,1),
+    error=>error?.statusCode===410,
+  );
+
+  await pool.query("UPDATE app_settings SET value='"wheel-v2"'::jsonb WHERE key='engine'");
+  assert.equal(await competitiveEngine(),'wheel-v2');
+});
