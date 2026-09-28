@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS pair_wheel_state(
   role varchar(8) CHECK(role IN('attack','defense')),
   role_streak int NOT NULL DEFAULT 0 CHECK(role_streak>=0),
   defense_required_until_real boolean NOT NULL DEFAULT false,
+  real_waiting_since timestamptz,
   promotion_wins int NOT NULL DEFAULT 0 CHECK(promotion_wins>=0),
   awaiting_zone_first_match boolean NOT NULL DEFAULT false,
   awaiting_zone_kind varchar(10) CHECK(awaiting_zone_kind IN('promotion','relegation')),
@@ -32,6 +33,7 @@ CREATE TABLE IF NOT EXISTS pair_wheel_state(
 
 ALTER TABLE pair_wheel_state
   ADD COLUMN IF NOT EXISTS defense_required_until_real boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS real_waiting_since timestamptz,
   ADD COLUMN IF NOT EXISTS awaiting_zone_kind varchar(10) CHECK(awaiting_zone_kind IN('promotion','relegation'));
 
 DO $$
@@ -63,6 +65,18 @@ SELECT
   CASE WHEN p.competition_state='paused' THEN 'voluntary' ELSE NULL END
 FROM pairs p
 ON CONFLICT(pair_id) DO NOTHING;
+
+UPDATE pair_wheel_state pws
+SET real_waiting_since=COALESCE((
+  SELECT max(m.played_at)
+  FROM matches m
+  WHERE (m.pair_a_id=pws.pair_id OR m.pair_b_id=pws.pair_id)
+    AND m.result_type IN('normal','injury_abandonment')
+),p.created_at)
+FROM pairs p
+WHERE p.id=pws.pair_id
+  AND p.competition_state='active'
+  AND pws.real_waiting_since IS NULL;
 
 CREATE TABLE IF NOT EXISTS pair_duo_state(
   id bigserial PRIMARY KEY,
@@ -147,6 +161,32 @@ DROP TRIGGER IF EXISTS trg_pair_duo_v3_state ON pair_members;
 CREATE TRIGGER trg_pair_duo_v3_state
 AFTER INSERT ON pair_members
 FOR EACH ROW EXECUTE FUNCTION ensure_pair_duo_v3_state();
+
+CREATE OR REPLACE FUNCTION sync_pair_v3_reactivation_wait() RETURNS trigger LANGUAGE plpgsql AS $
+BEGIN
+  IF OLD.competition_state='paused' AND NEW.competition_state='active' THEN
+    UPDATE pair_wheel_state SET real_waiting_since=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE pair_id=NEW.id;
+  END IF;
+  RETURN NEW;
+END $;
+DROP TRIGGER IF EXISTS trg_pair_v3_reactivation_wait ON pairs;
+CREATE TRIGGER trg_pair_v3_reactivation_wait
+AFTER UPDATE OF competition_state ON pairs
+FOR EACH ROW EXECUTE FUNCTION sync_pair_v3_reactivation_wait();
+
+CREATE OR REPLACE FUNCTION sync_pair_v3_real_match_wait() RETURNS trigger LANGUAGE plpgsql AS $
+BEGIN
+  IF NEW.result_type IN('normal','injury_abandonment') THEN
+    UPDATE pair_wheel_state
+    SET real_waiting_since=NEW.played_at,updated_at=CURRENT_TIMESTAMP
+    WHERE pair_id IN(NEW.pair_a_id,NEW.pair_b_id);
+  END IF;
+  RETURN NEW;
+END $;
+DROP TRIGGER IF EXISTS trg_pair_v3_real_match_wait ON matches;
+CREATE TRIGGER trg_pair_v3_real_match_wait
+AFTER INSERT ON matches
+FOR EACH ROW EXECUTE FUNCTION sync_pair_v3_real_match_wait();
 
 ALTER TABLE wheel_assignments
   ADD COLUMN IF NOT EXISTS attacker_pair_id bigint REFERENCES pairs(id),
