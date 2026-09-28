@@ -127,3 +127,13 @@ El reglamento funcional base de Wheel v3 está cerrado. La etapa siguiente es au
 79. Si al terminar la fase de formación una pareja está en zona de ascenso/descenso pero tiene 0 partidos reales, debe jugar primero un partido; ese primer resultado no cuenta para la zona y recién después entra en 0/3.
 80. La fórmula de ingreso de nuevas/ascendidas es `floor(N/2)+1`; excepción: con una sola pareja activa existente (N=1), la ingresante entra #2 y no desplaza al único #1.
 81. Con estas decisiones no quedan preguntas funcionales abiertas de Wheel v3; el siguiente paso es validar el diseño mediante simulaciones/tests antes de implementar.
+
+## Ajustes de auditoría — 2026-09-28
+82. Nuevas y ascendidas dejan de ingresar a mitad de tabla: ingresan **anteúltimas** y deben pelear desde abajo; no entran en período de descenso solo por ese ingreso.
+83. Si el último vence luego a la nueva/ascendida y la manda al último puesto, recién ahí puede comenzar su período de descenso.
+84. Un período de descenso pendiente pertenece a la combinación exacta de dos personas y sobrevive a la disolución y a cualquier cantidad de parejas intermedias; reunirse nuevamente no lo borra.
+85. Un descenso real actualiza las categorías individuales necesarias para impedir evasión: 2ª + 5ª que descienden a 3ª quedan individualmente 3ª y 5ª.
+86. Una vez cargada una primera versión de resultado, movimientos posteriores del ranking no cancelan el partido.
+87. Al aplicar ese resultado, el ganador nunca puede bajar por movimientos posteriores: solo se intercambia si el ganador está actualmente debajo del perdedor.
+88. Una cancelación automática por ranking/categoría no reinicia la racha de incumplimientos.
+89. Quedan cuatro bordes específicos en `WHEEL_V3_SPEC.md`: anteúltima con N=1, descenso pendiente si la dupla reaparece en otra categoría, evasión de incumplimientos cambiando de pareja y partido jugado pero no cargado antes de una cancelación.
