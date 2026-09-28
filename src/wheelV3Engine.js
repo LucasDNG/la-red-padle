@@ -1325,12 +1325,15 @@ export async function reactivateWheelV3Pair(client,pairId){
     `,[duo.id]);
   }
 
+  const leagueId=(await q(client,`SELECT league_id FROM categories WHERE id=$1`,[row.category_id])).rows[0].league_id;
+  const formation=await completeWheelV3FormationIfReady(client,leagueId);
   const refresh=await refreshWheelV3Category(client,row.category_id);
   return {
     pairId:Number(pairId),
     categoryId:Number(row.category_id),
     position:desired,
     fullMonths,
+    formation,
     refresh,
   };
 }
@@ -2004,13 +2007,14 @@ export async function runWheelV3Maintenance(client){
     FOR UPDATE
   `)).rows;
 
+  const scheduleExpired=await expireWheelV3ScheduleProposals(client);
+  const reactivated=await reactivateDueWheelV3Penalties(client);
+
   const formation=[];
   for(const league of leagues){
     formation.push({leagueId:Number(league.id),...await completeWheelV3FormationIfReady(client,league.id)});
   }
 
-  const scheduleExpired=await expireWheelV3ScheduleProposals(client);
-  const reactivated=await reactivateDueWheelV3Penalties(client);
   const noShowsEscalated=await escalateExpiredWheelV3NoShows(client);
   const resultsAutoValidated=await autoValidateDueWheelV3Results(client);
   const assignmentsExpired=await expireDueWheelV3Assignments(client);
@@ -2203,6 +2207,9 @@ export async function formWheelV3Pair(client,{userIds,requestedCategoryNumber=nu
     await wheelV3ConsumePositionDebt(client,shiftedByInsertion);
   }
 
+  const formation=underPenalty
+    ?null
+    :await completeWheelV3FormationIfReady(client,resolved.league.id);
   const refresh=await refreshWheelV3Category(client,resolved.category.id);
   return {
     pairId:Number(pair.id),
@@ -2212,6 +2219,7 @@ export async function formWheelV3Pair(client,{userIds,requestedCategoryNumber=nu
     pendingRelegation:Boolean(resolved.duo?.pending_relegation_category_id),
     underPenalty,
     penaltyUntil:underPenalty?penaltyUntil:null,
+    formation,
     refresh,
   };
 }
