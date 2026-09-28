@@ -74,6 +74,8 @@ Cuando una categoría necesita recibir o expulsar población:
 - si el porcentaje vuelve a zona normal, la ayuda poblacional se apaga;
 - si sigue fuera de zona, el motor continúa esperando nuevos resultados.
 
+Antes de acelerar un movimiento entre categorías vecinas, el motor debe comprobar que ese movimiento **mejora el equilibrio conjunto** de las dos categorías respecto del objetivo teórico de 14,2857 %. Si arreglar una categoría empeora más a la vecina, no se reduce el requisito y se conserva el umbral normal.
+
 Los umbrales exactos son lógica interna; no deben exponerse públicamente como una fórmula explotable por jugadores.
 
 ## 5. Estados de rueda: ataque y defensa
@@ -116,6 +118,8 @@ La prioridad principal de la rueda es el tiempo sin jugar.
 - Para una pareja nueva, la antigüedad empieza al ingresar a la rueda.
 - Para una pareja reactivada, empieza al reactivarse.
 - Una cancelación por cambio de ranking/categoría no debe borrar la antigüedad de espera.
+- La reasignación tras cancelación es inmediata, pero la **antigüedad absoluta sigue mandando**: una pareja cancelada no pasa por delante de otra que ya llevaba todavía más tiempo sin jugar.
+- Una victoria administrativa 6-0 6-0 no reinicia el reloj de “hace cuánto no juega”; solo un partido real lo reinicia.
 
 ## 7. Selección de rival para un atacante
 El atacante mira hacia arriba.
@@ -151,7 +155,9 @@ Si un atacante no encuentra **ningún defensor superior** disponible, espera has
 - WhatsApp/app informa la asignación.
 - Máximo un assignment abierto por pareja.
 - Desde la asignación corren **30 días corridos para jugar y cargar el resultado**.
+- No existe extensión extraordinaria de 15 días en Wheel v3: 30 días y listo.
 - Las dos parejas quedan ocupadas durante el assignment.
+- Si una versión de resultado fue cargada dentro de los 30 días, la otra pareja dispone de una ventana adicional de **7 días solo para confirmar o discutir ese resultado**; esa ventana no permite jugar un partido que no fue jugado dentro de los 30 días.
 - Resolver/cerrar libera inmediatamente a las parejas y dispara una nueva evaluación de la rueda.
 
 ## 9. Programación y cambios de fecha
@@ -210,7 +216,7 @@ La implementación puede usar deuda de posición para materializar este principi
 - Durante esa ventana las parejas todavía pueden arrepentirse, reprogramar dentro del plazo original o cargar el resultado si corresponde.
 - Pasadas las 48 horas, un no-show unilateral no se auto-valida: pasa a Administración.
 - Si existe contradicción entre las parejas, pasa a Administración.
-- Si la pareja reportada reconoce expresamente que no pudo presentarse, puede resolverse como incumplimiento/6-0 6-0 sin inventar un partido real.
+- Si la pareja reportada reconoce expresamente que no pudo presentarse, se resuelve **inmediatamente** como incumplimiento/6-0 6-0; no se espera a que termine la ventana de arrepentimiento del denunciante.
 - Mientras existe una disputa real de no-show, el assignment permanece bloqueado hasta resolución.
 
 ## 13. Ascenso
@@ -223,6 +229,7 @@ Después de la fase de formación:
 - una victoria administrativa/no-show no cuenta como victoria real de ascenso;
 - en Primera no hay ascenso de categoría;
 - el #1 de Primera conserva la lógica histórica de ELO/defensas acordada;
+- si el #1 deja de ocupar el #1 antes de completar el ascenso, su racha de ascenso se reinicia; cuando recupere la punta empieza de 0;
 - si el #1 pasa a inactividad:
   - pierde inmediatamente el liderazgo;
   - su mejor retorno posible pasa a #2;
@@ -245,7 +252,8 @@ Después de la fase de formación:
 - Requisito base para descender: acumular 3 derrotas antes de conseguir una victoria real.
 - El requisito puede reducirse a 2 o 1 por equilibrio poblacional.
 - Una reducción poblacional nunca causa descenso instantáneo sin un nuevo resultado.
-- Si la pareja es última activa e incumple: descenso directo, aunque estuviera 0/3.
+- Si la pareja es última activa e incumple: descenso directo, aunque estuviera 0/3, **salvo en 7ª**.
+- En 7ª no existe período de descenso: la categoría no tiene nivel inferior y la pareja continúa en la rueda normal ataque/defensa.
 
 ### Ruta de descenso
 Mientras una pareja sigue en período de descenso:
@@ -273,7 +281,8 @@ La inactividad es voluntaria y sale de la rueda.
 ### Solicitud
 - Si existe assignment abierto, primero debe resolverse.
 - La UI debe explicar que la inactividad se hará efectiva después de resolver el partido pendiente.
-- Una pareja inactiva:
+- Para minimizar migración innecesaria, el estado técnico `paused` representa la inactividad temporal de Wheel v3; `inactive` queda reservado para pareja disuelta/archivada. En superficie de jugador, `paused` se muestra como **Pareja inactiva**.
+- Una pareja temporalmente inactiva:
   - no recibe assignments;
   - no participa del balance ataque/defensa;
   - no cuenta para el porcentaje poblacional.
@@ -359,14 +368,22 @@ No crear un sistema general de estadísticas históricas de pareja.
   - terminó la fase de formación.
 
 ## 21. Preguntas abiertas finales antes de código
-1. ¿La extensión extraordinaria vigente de 15 días desaparece en Wheel v3 o sigue existiendo para causas externas?
-2. Si una pareja carga resultado cerca del día 30, ¿la confirmación rival tiene que resolverse dentro del mismo plazo de 30 días o sobrevive alguna ventana adicional?
-3. ¿`paused` e `inactive` actuales se unifican funcionalmente en el nuevo estado visible `inactiva`, o hay que mantener dos estados distintos?
-4. En 7ª, donde no existe categoría inferior, ¿qué consecuencia exacta tiene `último + incumplimiento` después de la fase de formación?
-5. En ascenso: si una pareja llega #1, acumula 1 o 2 victorias y luego pierde el #1 antes de ascender, ¿la racha se reinicia al perder la punta?
-6. En un no-show reconocido por la pareja reportada, ¿se resuelve inmediatamente como 6-0 6-0 o se respeta igualmente la ventana de 48 h de arrepentimiento?
-7. Para cancelaciones automáticas por inversión/cambio de categoría: se conserva `waiting_since` y se reasigna de inmediato. Falta definir si la marca `cancelado` puede superar a una pareja que ya esperaba todavía más tiempo o si la antigüedad absoluta sigue mandando.
-8. Para equilibrio poblacional entre categorías vecinas que están ambas fuera de rango, falta fijar la regla exacta que impide que una corrección mejore una categoría empeorando más a la otra.
+Las preguntas originales 1–9 de esta sección ya fueron resueltas y absorbidas en las reglas anteriores. La revisión transversal del repo dejó estos bordes todavía abiertos:
+
+1. **Circuitos independientes:** confirmar que fase de formación y porcentajes poblacionales se calculan por separado para Masculino y Femenino; un circuito no debe bloquear ni equilibrar al otro.
+2. **Ascendido que entra al fondo:** la regla histórica hace que un ascendido entre al fondo activo de la categoría superior. En Wheel v3, tocar el último activa período de descenso. Definir si un ascendido entra inmediatamente en período de descenso o si tiene una excepción inicial.
+3. **Pareja nueva que entra al fondo:** después de terminar la fase de formación, una pareja nueva normalmente entra última. Definir si eso la pone inmediatamente en período de descenso o si necesita primero jugar un partido.
+4. **Categoría con una sola activa:** la misma pareja sería #1 y última. Definir que espera sin rol efectivo hasta que exista una segunda activa, o decidir otra representación.
+5. **Repetición de rol por balance:** definir si existe un límite blando (por ejemplo, no repetir ataque o defensa más de dos veces seguidas salvo necesidad estructural) para evitar que el balance global impida a una pareja tener oportunidades de subir.
+6. **Séptima + incumplimientos repetidos:** como en 7ª no hay descenso ni período de descenso, definir qué frena a la última de 7ª de declarar repetidamente `No pude jugar` para evitar rivales sin una pérdida posicional materializable.
+7. **Lesión/abandono:** definir explícitamente si una victoria por partido iniciado y abandono cuenta como victoria real para ascenso/salir de período de descenso, y si la derrota cuenta para descenso.
+8. **Resultado cargado y confirmación:** confirmar si la ventana de 7 días corre desde cualquier carga dentro de los 30 días (aunque se cargue el día 5), con auto-validación por silencio al vencer.
+9. **Disolución y re-formación de la misma dupla:** definir si una pareja disuelta que luego vuelve a formarse retoma identidad/estado técnico previo o se trata competitivamente como pareja nueva. El código actual reutiliza la fila archivada.
+10. **Categoría inicial de dos jugadores nuevos:** el código actual permite elegir 1ª–7ª cuando ninguno tiene categoría individual. Confirmar si sigue siendo así o si ambos nuevos deben ingresar por una categoría predeterminada.
+11. **Inactividad temporal:** confirmar que la solicitud sigue requiriendo consentimiento de ambos integrantes, como la pausa actual.
+12. **Acción `No pude jugar`:** definir si basta con que cualquiera de los dos integrantes la pulse en nombre de la pareja o si, por ser una derrota automática, requiere confirmación del compañero.
+13. **Inicio de zonas al finalizar formación:** cuando la fase de formación termina, definir si los #1 comienzan inmediatamente zona de ascenso 0/3 y los últimos (excepto 7ª) período de descenso 0/3.
+14. **Umbral poblacional al confirmar resultado:** confirmar que el requisito 1/2/3 se recalcula con la población activa existente al momento de confirmar cada nuevo resultado y nunca queda congelado al iniciar una racha.
 
 ## 22. Plan de implementación después de cerrar preguntas
 1. Convertir este diseño en reglas definitivas dentro de `PROJECT_RULES.md` y `DECISIONS.md`.
