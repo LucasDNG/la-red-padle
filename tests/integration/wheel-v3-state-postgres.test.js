@@ -298,3 +298,9 @@ test('formation enabling match remembers which zone it belongs to',async()=>{
   assert.equal(state.awaiting_zone_first_match,true);
   assert.equal(state.awaiting_zone_kind,'promotion');
 });
+
+test('zone enabling state cannot be left half-defined',async()=>{
+  const p=await seedPair(1,4);
+  await assert.rejects(pool.query("UPDATE pair_wheel_state SET awaiting_zone_first_match=true,awaiting_zone_kind=NULL WHERE pair_id=$1",[p.id]));
+  await assert.rejects(pool.query("UPDATE pair_wheel_state SET awaiting_zone_first_match=false,awaiting_zone_kind='relegation' WHERE pair_id=$1",[p.id]));
+});
