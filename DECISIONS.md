@@ -121,3 +121,9 @@ Las preguntas de borde que faltan cerrar antes de tocar Wheel v3 están en `WHEE
 76. El récord de defensas del #1 de Primera mide un reinado individual: al perder la punta el contador corriente termina; si la dupla vuelve a #1 empieza de 0.
 77. Solo los reinados que superan o igualan el máximo quedan en el cuadro histórico; los empates se muestran como récord compartido.
 78. Disolver y re-formar la misma dupla no acumula defensas entre reinados; un récord histórico ya logrado permanece acreditado a esos dos jugadores.
+
+
+## Cierre funcional final de Wheel v3 — 2026-09-28
+79. Si al terminar la fase de formación una pareja está en zona de ascenso/descenso pero tiene 0 partidos reales, debe jugar primero un partido; ese primer resultado no cuenta para la zona y recién después entra en 0/3.
+80. La fórmula de ingreso de nuevas/ascendidas es `floor(N/2)+1`; excepción: con una sola pareja activa existente (N=1), la ingresante entra #2 y no desplaza al único #1.
+81. Con estas decisiones no quedan preguntas funcionales abiertas de Wheel v3; el siguiente paso es validar el diseño mediante simulaciones/tests antes de implementar.
