@@ -150,6 +150,7 @@ CREATE TABLE pair_wheel_state(
   defense_required_until_real boolean NOT NULL DEFAULT false,
   promotion_wins int NOT NULL DEFAULT 0 CHECK(promotion_wins>=0),
   awaiting_zone_first_match boolean NOT NULL DEFAULT false,
+  awaiting_zone_kind varchar(10) CHECK(awaiting_zone_kind IN('promotion','relegation')),
   inactive_since timestamptz,
   return_position_base int CHECK(return_position_base>0),
   inactive_reason varchar(20) CHECK(inactive_reason IN('voluntary','three_failures')),
