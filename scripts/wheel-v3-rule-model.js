@@ -326,3 +326,87 @@ export function shouldCancelAssignmentForStructure({
   if(Number(attackerCategory)!==Number(defenderCategory))return true;
   return Number(attackerPosition)<=Number(defenderPosition);
 }
+
+
+export function descendedEntryPosition(activeCount){
+  const n=Number(activeCount);
+  if(!Number.isInteger(n)||n<0)throw new Error('activeCount must be a non-negative integer');
+  return n===0?1:2;
+}
+
+export function firstPlaceReignAfterResult({
+  category,
+  wasNumberOne,
+  remainsNumberOne,
+  isRealMatch,
+  currentDefenses=0,
+}){
+  const c=Number(category),defenses=Number(currentDefenses);
+  if(c!==1)return {open:false,defenses:0,ended:false,defended:false};
+  if(!wasNumberOne&&remainsNumberOne)return {open:true,defenses:0,ended:false,defended:false};
+  if(wasNumberOne&&!remainsNumberOne)return {open:false,defenses,ended:true,defended:false};
+  if(wasNumberOne&&remainsNumberOne&&isRealMatch)return {open:true,defenses:defenses+1,ended:false,defended:true};
+  return {open:Boolean(remainsNumberOne),defenses,ended:false,defended:false};
+}
+
+export function inactivityStateOnPause({position,nowValue,reason='voluntary',penaltyDays=30}){
+  const pos=Number(position),now=new Date(nowValue);
+  if(!Number.isInteger(pos)||pos<1||Number.isNaN(now.getTime()))throw new Error('invalid inactivity state');
+  if(!['voluntary','three_failures'].includes(reason))throw new Error('invalid inactivity reason');
+  return {
+    inactiveSince:now,
+    returnPositionBase:pos,
+    inactiveReason:reason,
+    autoReactivateAt:reason==='three_failures'?new Date(now.getTime()+Number(penaltyDays)*24*60*60*1000):null,
+  };
+}
+
+export function canAutoReactivate({inactiveReason,autoReactivateAt,serverNow}){
+  if(inactiveReason!=='three_failures'||!autoReactivateAt)return false;
+  const until=new Date(autoReactivateAt),now=new Date(serverNow);
+  if(Number.isNaN(until.getTime())||Number.isNaN(now.getTime()))throw new Error('invalid reactivation dates');
+  return now>=until;
+}
+
+export function reviewDeadlineFromFirstResult(serverNowValue){
+  return deadlineFromServerTime(serverNowValue,7);
+}
+
+export function assignmentDeadlineFromServerTime(serverNowValue){
+  return deadlineFromServerTime(serverNowValue,30);
+}
+
+export function noShowReconsiderationDeadline(serverNowValue){
+  const now=new Date(serverNowValue);
+  if(Number.isNaN(now.getTime()))throw new Error('invalid no-show time');
+  return new Date(now.getTime()+48*60*60*1000);
+}
+
+export function resultCountsAsReal(resultType){
+  return resultType==='normal'||resultType==='injury_abandonment';
+}
+
+export function simultaneousOnePlacePenalty(order,penalizedIds,debt={}){
+  const out=[...order].map(Number);
+  const penalized=new Set([...penalizedIds].map(Number));
+  const nextDebt={...debt};
+  let i=0;
+  while(i<out.length){
+    if(!penalized.has(out[i])){i++;continue;}
+    let j=i;
+    while(j+1<out.length&&penalized.has(out[j+1]))j++;
+    if(j+1<out.length){
+      const next=out[j+1];
+      out.splice(j+1,1);
+      out.splice(i,0,next);
+      i=j+2;
+    }else{
+      for(let k=i;k<=j;k++){
+        const id=out[k];
+        nextDebt[id]=Number(nextDebt[id]||0)+1;
+      }
+      break;
+    }
+  }
+  return {order:out,debt:nextDebt};
+}
