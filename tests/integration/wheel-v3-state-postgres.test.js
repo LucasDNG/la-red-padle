@@ -1761,3 +1761,22 @@ test('late result after category change does not mutate promotion or relegation 
   const location=(await pool.query('SELECT category_id FROM pairs WHERE id=$1',[attacker.id])).rows[0];
   assert.equal(Number(location.category_id),Number(c3.id));
 });
+
+
+test('blocked top pair remains the structural top and does not make #2 a fake leader',async()=>{
+  const c=await category(3);
+  const top=await seedPairWithMembers(1,3,{tag:120});
+  const p2=await seedPair(2,3);
+  const p3=await seedPair(3,3);
+  await pool.query("UPDATE pair_wheel_state SET role='defense',role_streak=1 WHERE pair_id=$1",[top.id]);
+  await pool.query("UPDATE pair_wheel_state SET role='attack',role_streak=1 WHERE pair_id=$1",[p2.id]);
+  await pool.query("UPDATE pair_wheel_state SET role='defense',role_streak=1 WHERE pair_id=$1",[p3.id]);
+  await pool.query("UPDATE pairs SET discipline_state='review' WHERE id=$1",[top.id]);
+
+  const plan=await planWheelV3Category(pool,c.id);
+  const topPlanned=plan.pairs.find(p=>p.id===Number(top.id));
+  const second=plan.pairs.find(p=>p.id===Number(p2.id));
+  assert.equal(topPlanned.free,false);
+  assert.equal(second.role,'attack');
+  assert.ok(plan.assignments.every(a=>a.attackerId!==Number(top.id)&&a.defenderId!==Number(top.id)));
+});
