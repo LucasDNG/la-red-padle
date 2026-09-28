@@ -460,6 +460,17 @@ async function wheelV3SwapPairPositions(client,winnerPairId,loserPairId){
   return true;
 }
 
+async function wheelV3ConsumePositionDebt(client,pairIds){
+  const ids=[...new Set(pairIds.map(Number))];
+  if(!ids.length)return;
+  await q(client,`
+    UPDATE pairs
+    SET position_debt=GREATEST(0,position_debt-1),updated_at=CURRENT_TIMESTAMP
+    WHERE id=ANY($1::bigint[])
+      AND position_debt>0
+  `,[ids]);
+}
+
 async function wheelV3MovePairCategory(client,pairId,targetCategoryId,{mode}){
   const pair=(await q(client,`
     SELECT p.*,c.number source_number
@@ -476,6 +487,7 @@ async function wheelV3MovePairCategory(client,pairId,targetCategoryId,{mode}){
   const desired=mode==='promotion'
     ?entryPositionPenultimate(targetOrder.length)
     :descendedEntryPosition(targetOrder.length);
+  const shiftedByInsertion=targetOrder.slice(desired-1);
   targetOrder.splice(desired-1,0,Number(pairId));
 
   await q(client,`
@@ -485,6 +497,7 @@ async function wheelV3MovePairCategory(client,pairId,targetCategoryId,{mode}){
   `,[pairId,targetCategoryId]);
   await wheelV3SetCategoryOrder(client,sourceCategoryId,sourceOrder);
   await wheelV3SetCategoryOrder(client,targetCategoryId,targetOrder);
+  await wheelV3ConsumePositionDebt(client,shiftedByInsertion);
 
   const members=(await q(client,`
     SELECT u.id,u.current_category_number
@@ -1214,6 +1227,7 @@ export async function reactivateWheelV3Pair(client,pairId){
     fullMonths,
     activeCount:activeOrder.length,
   });
+  const shiftedByInsertion=activeOrder.slice(desired-1);
   activeOrder.splice(desired-1,0,Number(pairId));
 
   await q(client,`
@@ -1222,6 +1236,7 @@ export async function reactivateWheelV3Pair(client,pairId){
     WHERE id=$1
   `,[pairId]);
   await wheelV3SetCategoryOrder(client,row.category_id,activeOrder);
+  await wheelV3ConsumePositionDebt(client,shiftedByInsertion);
   await q(client,`
     UPDATE pair_wheel_state
     SET
