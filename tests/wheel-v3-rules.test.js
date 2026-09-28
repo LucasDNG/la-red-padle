@@ -18,6 +18,10 @@ import {
   chooseDefenderForAttacker,
   assignAttackersToDefenders,
   rebalanceInitialRoles,
+  entryPositionPenultimate,
+  populationMoveImprovesBalance,
+  populationDirectionalThreshold,
+  delayedResultMovement,
 } from '../scripts/wheel-v3-rule-model.js';
 
 test('pair anti-abuse state follows the exact two people regardless of order',()=>{
@@ -224,4 +228,36 @@ test('initial role rebalance keeps extremes forced and roughly balances the midd
 test('one active pair has no effective role',()=>{
   const rows=rebalanceInitialRoles([{id:1,position:1,role:'defense',roleStreak:2}]);
   assert.deepEqual(rows,[{id:1,position:1,role:null,roleStreak:0}]);
+});
+
+
+test('new and promoted pairs enter penultimate, preserving the only leader at N=1',()=>{
+  assert.equal(entryPositionPenultimate(0),1);
+  assert.equal(entryPositionPenultimate(1),2);
+  assert.equal(entryPositionPenultimate(2),2);
+  assert.equal(entryPositionPenultimate(10),10);
+});
+
+test('population acceleration only applies when the adjacent move improves joint balance',()=>{
+  assert.equal(populationMoveImprovesBalance([12,12,12,12,12,12,12],3,4),false);
+  assert.equal(populationMoveImprovesBalance([20,12,12,12,12,8,8],0,1),true);
+  assert.equal(populationMoveImprovesBalance([8,8,12,12,12,12,20],6,5),true);
+});
+
+test('population threshold is 3 in normal balance and can drop to 2 or 1 directionally',()=>{
+  assert.equal(populationDirectionalThreshold([12,12,12,12,12,12,12],3,4),3);
+  assert.equal(populationDirectionalThreshold([17,12,12,12,12,10,9],0,1),2);
+  assert.equal(populationDirectionalThreshold([20,12,12,12,12,8,8],0,1),1);
+  assert.equal(populationDirectionalThreshold([8,8,12,12,12,12,20],6,5),1);
+});
+
+test('delayed confirmed result never moves the winner downward',()=>{
+  assert.deepEqual(
+    delayedResultMovement({winnerPosition:8,loserPosition:4}),
+    {winnerPosition:4,loserPosition:8,moved:true},
+  );
+  assert.deepEqual(
+    delayedResultMovement({winnerPosition:3,loserPosition:7}),
+    {winnerPosition:3,loserPosition:7,moved:false},
+  );
 });
