@@ -251,6 +251,7 @@ export function relegationStateAfterResult({
   if(c>=7)return {active:false,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false};
   if(awaitingFirstMatch){
     if(!isRealMatch)return {active:false,losses:0,routeStep:0,descend:false,awaitingFirstMatch:true};
+    if(!isLast)return {active:false,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false};
     return {active:true,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false};
   }
   const active=Boolean(wasInRelegation)||Boolean(isLast);
