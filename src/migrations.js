@@ -5,7 +5,8 @@ import {fileURLToPath} from 'node:url';
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 export const PRODUCTION_MIGRATIONS=[
   path.resolve(__dirname,'../database/PATCH_MATCH_ABANDONMENT_2026-09-21.sql'),
-  path.resolve(__dirname,'../database/PATCH_FREE_TEXT_LOCATIONS_2026-09-22.sql')
+  path.resolve(__dirname,'../database/PATCH_FREE_TEXT_LOCATIONS_2026-09-22.sql'),
+  path.resolve(__dirname,'../database/PATCH_WHEEL_V3_STATE_2026-09-28.sql')
 ];
 
 export async function applyProductionMigrations(client){
@@ -31,6 +32,24 @@ export async function applyProductionMigrations(client){
         AND conrelid='matches'::regclass
     `)).rowCount;
     if(!constraint)throw new Error('Migración incompleta: falta matches_abandonment_consistency');
+
+    const wheelV3State=(await client.query(`
+      SELECT
+        to_regclass('public.league_wheel_state') IS NOT NULL
+        AND to_regclass('public.pair_wheel_state') IS NOT NULL
+        AND to_regclass('public.pair_duo_state') IS NOT NULL
+        AND to_regclass('public.first_place_reigns') IS NOT NULL AS ok
+    `)).rows[0]?.ok;
+    if(!wheelV3State)throw new Error('Migración incompleta: falta estado preparatorio Wheel v3');
+
+    const wheelV3Columns=(await client.query(`
+      SELECT count(*)::int n
+      FROM information_schema.columns
+      WHERE table_schema='public'
+        AND table_name='wheel_assignments'
+        AND column_name IN('attacker_pair_id','defender_pair_id','cancelled_at','first_result_at')
+    `)).rows[0]?.n;
+    if(wheelV3Columns!==4)throw new Error('Migración incompleta: faltan columnas Wheel v3 en wheel_assignments');
 
     return {ok:true,applied:PRODUCTION_MIGRATIONS.map(file=>path.basename(file))};
   }finally{
