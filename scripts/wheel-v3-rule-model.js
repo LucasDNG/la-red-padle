@@ -42,3 +42,37 @@ export function recordReign({currentDefenses,historicalMax}){
   if(defenses===max&&defenses>0)return {historicalMax:max,status:'shared_record'};
   return {historicalMax:max,status:'below_record'};
 }
+
+
+export function fullCalendarMonthsBetween(startValue,endValue){
+  const start=new Date(startValue),end=new Date(endValue);
+  if(Number.isNaN(start.getTime())||Number.isNaN(end.getTime())||end<start)throw new Error('invalid month range');
+  let months=(end.getUTCFullYear()-start.getUTCFullYear())*12+(end.getUTCMonth()-start.getUTCMonth());
+  const targetYear=start.getUTCFullYear()+Math.floor((start.getUTCMonth()+months)/12);
+  const targetMonth=(start.getUTCMonth()+months)%12;
+  const lastDay=new Date(Date.UTC(targetYear,targetMonth+1,0)).getUTCDate();
+  const anniversary=new Date(Date.UTC(
+    targetYear,
+    targetMonth,
+    Math.min(start.getUTCDate(),lastDay),
+    start.getUTCHours(),
+    start.getUTCMinutes(),
+    start.getUTCSeconds(),
+    start.getUTCMilliseconds(),
+  ));
+  if(anniversary>end)months--;
+  return Math.max(0,months);
+}
+
+export function resultAllowedAfterCancellation({playedAt,cancelledAt}){
+  if(cancelledAt==null)return true;
+  const played=new Date(playedAt),cancelled=new Date(cancelledAt);
+  if(Number.isNaN(played.getTime())||Number.isNaN(cancelled.getTime()))throw new Error('invalid cancellation dates');
+  return played<=cancelled;
+}
+
+export function deadlineFromServerTime(serverNowValue,days){
+  const now=new Date(serverNowValue),n=Number(days);
+  if(Number.isNaN(now.getTime())||!Number.isFinite(n)||n<0)throw new Error('invalid deadline data');
+  return new Date(now.getTime()+n*24*60*60*1000);
+}
