@@ -22,7 +22,8 @@
     "smoke:prod": "node scripts/smoke-production.js",
     "generate:secrets": "node scripts/generate-production-secrets.js",
     "preflight:core": "node scripts/preflight-production.js --mode=core",
-    "preflight:full": "node scripts/preflight-production.js --mode=full"
+    "preflight:full": "node scripts/preflight-production.js --mode=full",
+    "simulate:wheel-v3": "node scripts/simulate-wheel-v3.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
