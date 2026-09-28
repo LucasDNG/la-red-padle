@@ -30,23 +30,26 @@ No se busca un emparejamiento aleatorio de toda la categoría.
 - La cancelación conserva el rol ataque/defensa de cada pareja y su antigüedad de espera; la reasignación debe ejecutarse de inmediato con prioridad alta.
 
 ## 3. Fase de formación
-La liga tiene una fase inicial de formación.
+Cada circuito tiene su propia fase inicial de formación.
 
-- La fase termina cuando **cada una de las 7 categorías tiene al menos 5 parejas activas**.
+- Masculino y Femenino se calculan **por separado**: uno puede salir de formación aunque el otro todavía no.
+- Dentro de cada circuito, la fase termina cuando **cada una de sus 7 categorías tiene al menos 5 parejas activas**.
 - Mientras dura:
   - se juega normalmente dentro de cada categoría;
   - funciona la escalera interna;
   - no hay ascensos ni descensos entre categorías.
 - Cuando se cumple la condición:
-  - se informa en la web/app que finalizó la fase de formación;
-  - se activan ascensos y descensos;
-  - los contadores de ascenso/descenso empiezan desde cero;
+  - se informa por web/app y WhatsApp que finalizó la fase de formación;
+  - se activan ascensos y descensos para ese circuito;
+  - los #1 con al menos un partido real previo entran inmediatamente en zona de ascenso en 0/3;
+  - los últimos de 1ª a 6ª con al menos un partido real previo entran inmediatamente en período de descenso en 0/3;
+  - una pareja sin ningún partido real previo debe disputar primero un partido antes de activar su zona correspondiente;
   - la fase de formación **no vuelve a activarse jamás**, aunque después una categoría caiga por debajo de 5 activas.
 
 ## 4. Equilibrio poblacional entre categorías
-Hay 7 categorías. El reparto teórico uniforme es:
+Hay 7 categorías por circuito. El reparto teórico uniforme se calcula **separadamente en Masculino y Femenino**:
 
-- `100 / 7 = 14,2857 %` de las parejas activas por categoría.
+- `100 / 7 = 14,2857 %` de las parejas activas de ese mismo circuito por categoría.
 
 El sistema no exige cupos exactos. Busca una distribución razonablemente pareja.
 
@@ -75,6 +78,8 @@ Cuando una categoría necesita recibir o expulsar población:
 - si sigue fuera de zona, el motor continúa esperando nuevos resultados.
 
 Antes de acelerar un movimiento entre categorías vecinas, el motor debe comprobar que ese movimiento **mejora el equilibrio conjunto** de las dos categorías respecto del objetivo teórico de 14,2857 %. Si arreglar una categoría empeora más a la vecina, no se reduce el requisito y se conserva el umbral normal.
+
+El requisito 1/2/3 se **recalcula al confirmar cada nuevo resultado** usando la población activa existente en ese momento; no queda congelado cuando comenzó una racha.
 
 Los umbrales exactos son lógica interna; no deben exponerse públicamente como una fórmula explotable por jugadores.
 
@@ -160,7 +165,10 @@ Si un atacante no encuentra **ningún defensor superior** disponible, espera has
 - Desde la asignación corren **30 días corridos para jugar y cargar el resultado**.
 - No existe extensión extraordinaria de 15 días en Wheel v3: 30 días y listo.
 - Las dos parejas quedan ocupadas durante el assignment.
-- Si una versión de resultado fue cargada dentro de los 30 días, la otra pareja dispone de una ventana adicional de **7 días solo para confirmar o discutir ese resultado**; esa ventana no permite jugar un partido que no fue jugado dentro de los 30 días.
+- Si una versión de resultado fue cargada dentro de los 30 días, desde **ese mismo momento de carga** comienza una ventana de **7 días** para que la otra pareja confirme o discuta ese resultado.
+- Ejemplo: si se carga el día 8, la revisión vence 7 días después de esa carga; no espera al día 30.
+- Si la otra pareja no responde dentro de esos 7 días, la versión se auto-valida.
+- Esa ventana no permite jugar un partido que no fue jugado dentro de los 30 días.
 - Resolver/cerrar libera inmediatamente a las parejas y dispara una nueva evaluación de la rueda.
 
 ## 9. Programación y cambios de fecha
@@ -205,8 +213,9 @@ Si vencen los 30 días sin resultado ni declaración:
 ### Tres incumplimientos consecutivos
 - Esta regla es general para todas las categorías, no solo 7ª.
 - Una pareja que acumula **3 incumplimientos atribuibles consecutivos** recibe una penalización de **30 días sin nuevas asignaciones** y pasa a estado inactivo durante esa penalización.
+- Al cumplirse exactamente los 30 días, la pareja se **reactiva automáticamente**.
+- Cualquier assignment que se cierre sin incumplimiento atribuible a esa pareja reinicia su racha de incumplimientos consecutivos a 0.
 - En 7ª esta regla resuelve especialmente el caso de la última pareja, que no puede descender ni perder más posición.
-- Falta confirmar si al terminar los 30 días la reactivación es automática y qué evento corta/reinicia la racha de incumplimientos.
 
 ## 11. Penalización simultánea y deuda de posición
 La penalización debe hacer perder **exactamente un puesto efectivo** por incumplimiento ordinario.
@@ -255,8 +264,10 @@ Después de la fase de formación:
   - pierde la racha actual de ascenso;
   - el récord histórico de Primera no se borra.
 - Una pareja que **asciende** no entra al fondo: ingresa en la **mitad de la tabla activa** de la nueva categoría y desplaza hacia abajo a las parejas desde ese punto.
+- Fórmula aprobada con `N` parejas activas existentes: posición de ingreso = `floor(N / 2) + 1`.
+  - N=10 => entra #6.
+  - N=9 => entra #5.
 - Por ese ingreso no entra automáticamente en período de descenso.
-- La fórmula exacta de “mitad de tabla” para cantidades pares/impares queda pendiente de cierre.
 
 ## 14. Período de descenso
 Después de la fase de formación:
@@ -298,7 +309,7 @@ Mientras una pareja sigue en período de descenso:
   - el próximo rol es ataque.
 
 ### Parejas nuevas y categoría individual
-- Una pareja completamente nueva también ingresa en la **mitad de la tabla activa** de su categoría y desplaza hacia abajo desde ese punto.
+- Una pareja completamente nueva también ingresa en la **mitad de la tabla activa** de su categoría y desplaza hacia abajo desde ese punto, usando la misma fórmula `floor(N / 2) + 1`.
 - Dos jugadores sin categoría individual previa pueden elegir libremente una categoría inicial entre 1ª y 7ª.
 - Si los jugadores ya tienen categorías individuales distintas, la pareja compite en la categoría del jugador de nivel más alto (número de categoría más bajo).
 - Ejemplo: jugador de 2ª + jugador de 5ª => la pareja compite en 2ª.
@@ -351,7 +362,8 @@ Cada categoría muestra:
 ### Sanción de 30 días por incumplimientos
 - Tras 3 incumplimientos atribuibles consecutivos, la pareja pasa a inactiva y queda 30 días sin nuevas asignaciones.
 - Esta inactividad sancionatoria sigue sin producir descenso por el simple paso del tiempo.
-- Falta cerrar si la reactivación al día 30 es automática y cómo se reinicia la racha de incumplimientos.
+- Al día 30 se reactiva automáticamente.
+- Cualquier assignment cerrado sin incumplimiento atribuible a esa pareja reinicia la racha de incumplimientos consecutivos a 0.
 
 ## 17. Historial visible mínimo
 No existe una ficha pública de historial estadístico acumulado de pareja.
@@ -394,15 +406,23 @@ Administración debe conservar una auditoría técnica más completa de decision
 
 ## 19. Récord histórico de Primera
 - El único récord deportivo histórico especial es la cantidad de **defensas exitosas del puesto #1 de Primera**, separado por circuito.
-- Cada vez que una pareja ocupa el #1 de Primera, juega una defensa y conserva el #1, suma 1 defensa exitosa.
-- La pareja con la mayor cantidad histórica de defensas exitosas ocupa la sección pública de récord.
-- Si dos o más parejas empatan la mayor cantidad, el récord se muestra como **compartido**.
+- El contador visible/corriente pertenece a un **reinado concreto en el #1**, no es acumulativo entre reinados.
+- Cada vez que una pareja ocupa el #1 de Primera, juega una defensa y conserva el #1, suma 1 defensa en ese reinado.
+- Cuando pierde el #1, ese contador corriente deja de existir para su nueva posición.
+- Solo queda persistido como récord histórico si ese reinado alcanzó o igualó el máximo histórico.
+- Si supera el máximo, pasa a ser el nuevo récord.
+- Si iguala el máximo, el récord se muestra como **compartido**.
+- Si queda por debajo del máximo, ese número no se conserva como estadística histórica de la pareja.
+- Si la misma dupla vuelve a ser #1 meses después, su nuevo reinado empieza nuevamente en 0; **no suma** las defensas de su reinado anterior.
+- Si la dupla se disuelve y luego vuelve a formarse, también empieza cualquier nuevo reinado desde 0. Un récord histórico ya logrado por esos dos jugadores no se borra del cuadro histórico.
 - La antigua sección de máximo valor numérico se reutiliza para este récord y no conserva su significado anterior.
 - No existe ninguna métrica numérica paralela al ranking.
 - No crear un sistema general de estadísticas históricas de pareja.
 
-## 20. Principios de UX
+## 20. Principios de UX y notificaciones
 - La complejidad puede existir en el motor, pero no debe trasladarse al jugador.
+- Todo cambio operativo relevante debe generar aviso por WhatsApp a los integrantes afectados, además de quedar reflejado en la app cuando corresponda.
+- Como mínimo se notifican: nuevo assignment, carga de resultado y sus 7 días de revisión, confirmación/auto-validación/disputa, cancelación y reasignación, movimiento de posición, ascenso/descenso, entrada/salida de inactividad, sanción de 30 días y finalización de fase de formación.
 - Siempre que el sistema pueda determinar automáticamente el próximo partido, debe asignarlo sin pedir búsqueda de rival, desafío manual ni aceptación previa.
 - La interfaz debe comunicar principalmente **qué le toca hacer ahora** a cada pareja.
 - El sistema debe explicar siempre la próxima acción.
@@ -417,17 +437,10 @@ Administración debe conservar una auditoría técnica más completa de decision
   - terminó la fase de formación.
 
 ## 21. Preguntas abiertas finales antes de código
-La última revisión cerró la mayor parte de los bordes. Quedan únicamente estos puntos:
+Quedaron solo estos bordes después de la última tanda:
 
-1. **Circuitos independientes:** ¿fase de formación y porcentajes poblacionales se calculan por separado para Masculino y Femenino, de modo que un circuito pueda salir de formación aunque el otro todavía no?
-2. **Mitad de tabla:** falta definir la fórmula exacta. Ejemplo: si hay 10 activas y entra una nueva/ascendida, ¿entra #6? Si hay 9 activas, ¿entra #5 o #6?
-3. **Tres incumplimientos consecutivos:** al cumplirse los 30 días de sanción/inactividad, ¿la pareja se reactiva automáticamente o debe solicitar volver?
-4. **Racha de incumplimientos:** como son “consecutivos”, falta definir qué la reinicia. Propuesta simple: cualquier compromiso real resuelto sin incumplimiento atribuible reinicia el contador a 0.
-5. **Confirmación de resultado (reformulada):** si jugás y cargás el resultado el día 8 del assignment, ¿el rival tiene 7 días desde **ese día 8** para confirmar/discutir, y al terminar esos 7 días se auto-valida si no respondió? ¿O querés que esos 7 días recién empiecen al terminar el plazo general de 30?
-6. **Fin de fase de formación:** cuando se activa la competencia entre categorías, ¿los #1 arrancan inmediatamente zona de ascenso 0/3 y los últimos de 1ª–6ª período de descenso 0/3?
-7. **Umbral poblacional 1/2/3:** ¿se recalcula con la población activa existente al confirmar cada nuevo resultado, en vez de quedar congelado cuando empezó una racha?
-8. **Récord de defensas:** si la misma dupla fue #1 de Primera, perdió la punta y meses después vuelve a ser #1, ¿sus nuevas defensas se suman al contador histórico anterior de esa dupla o comienza un nuevo contador para ese nuevo período?
-9. **Récord y re-formación:** si esa dupla se disuelve y más adelante vuelve a formarse como pareja competitivamente nueva, ¿sus defensas históricas anteriores siguen perteneciendo al mismo récord histórico de la dupla o la nueva formación arranca un contador nuevo?
+1. **Primera activación sin partidos previos:** al terminar la fase de formación, una pareja que está #1 o última pero todavía tiene 0 partidos debe jugar primero. Falta definir si **ese primer partido ya puede contar** como la primera victoria/derrota de la zona, o si solo habilita la zona y recién el siguiente resultado empieza a contar desde 0.
+2. **Mitad de tabla con categorías diminutas:** la fórmula `floor(N/2)+1` da #1 cuando solo existe una activa (N=1). ¿Queremos esa consecuencia durante la fase de formación, o en ese caso especial la nueva debe entrar #2 para no desplazar al único #1 sin jugar?
 
 ## 22. Plan de implementación después de cerrar preguntas
 1. Convertir este diseño en reglas definitivas dentro de `PROJECT_RULES.md` y `DECISIONS.md`.
