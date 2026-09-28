@@ -304,3 +304,31 @@ test('zone enabling state cannot be left half-defined',async()=>{
   await assert.rejects(pool.query("UPDATE pair_wheel_state SET awaiting_zone_first_match=true,awaiting_zone_kind=NULL WHERE pair_id=$1",[p.id]));
   await assert.rejects(pool.query("UPDATE pair_wheel_state SET awaiting_zone_first_match=false,awaiting_zone_kind='relegation' WHERE pair_id=$1",[p.id]));
 });
+
+test('real match resets v3 wait but administrative forfeit does not',async()=>{
+  const l=await maleLeague();const c=await category(3);
+  const a=await seedPair(1,3);const b=await seedPair(2,3);
+  await pool.query("UPDATE pair_wheel_state SET real_waiting_since=CURRENT_TIMESTAMP-interval '20 days' WHERE pair_id IN($1,$2)",[a.id,b.id]);
+  const played=(await pool.query("SELECT CURRENT_TIMESTAMP-interval '2 days' t")).rows[0].t;
+  await pool.query("INSERT INTO matches(league_id,category_number,pair_a_id,pair_b_id,winner_pair_id,result_type,played_at,resolution_source) VALUES($1,3,$2,$3,$2,'normal',$4,'test')",[l.id,a.id,b.id,played]);
+  const afterReal=(await pool.query('SELECT pair_id,real_waiting_since FROM pair_wheel_state WHERE pair_id IN($1,$2) ORDER BY pair_id',[a.id,b.id])).rows;
+  assert.equal(new Date(afterReal[0].real_waiting_since).getTime(),new Date(played).getTime());
+  assert.equal(new Date(afterReal[1].real_waiting_since).getTime(),new Date(played).getTime());
+
+  const cpair=await seedPair(3,3);const dpair=await seedPair(4,3);
+  const old=(await pool.query("SELECT CURRENT_TIMESTAMP-interval '25 days' t")).rows[0].t;
+  await pool.query('UPDATE pair_wheel_state SET real_waiting_since=$1 WHERE pair_id IN($2,$3)',[old,cpair.id,dpair.id]);
+  await pool.query("INSERT INTO matches(league_id,category_number,pair_a_id,pair_b_id,winner_pair_id,result_type,played_at,resolution_source) VALUES($1,3,$2,$3,$2,'dissolution_forfeit',CURRENT_TIMESTAMP,'test')",[l.id,cpair.id,dpair.id]);
+  const afterAdmin=(await pool.query('SELECT real_waiting_since FROM pair_wheel_state WHERE pair_id=$1',[cpair.id])).rows[0].real_waiting_since;
+  assert.equal(new Date(afterAdmin).getTime(),new Date(old).getTime());
+});
+
+test('reactivation restarts v3 wait from PostgreSQL time',async()=>{
+  const p=await seedPair(1,5);
+  await pool.query("UPDATE pairs SET competition_state='paused' WHERE id=$1",[p.id]);
+  await pool.query("UPDATE pair_wheel_state SET real_waiting_since=CURRENT_TIMESTAMP-interval '40 days',inactive_since=CURRENT_TIMESTAMP-interval '10 days',return_position_base=1,inactive_reason='voluntary' WHERE pair_id=$1",[p.id]);
+  const before=(await pool.query('SELECT CURRENT_TIMESTAMP t')).rows[0].t;
+  await pool.query("UPDATE pairs SET competition_state='active' WHERE id=$1",[p.id]);
+  const after=(await pool.query('SELECT real_waiting_since FROM pair_wheel_state WHERE pair_id=$1',[p.id])).rows[0].real_waiting_since;
+  assert.ok(new Date(after).getTime()>=new Date(before).getTime());
+});
