@@ -2,11 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readLiveness,readHealth} from '../src/health.js';
 
-test('liveness is dependency-free and identifies wheel-v2 process',()=>{
+test('liveness is dependency-free and leaves authoritative engine to readiness',()=>{
   assert.deepEqual(readLiveness(),{
     ok:true,
     name:'LA RED Pádel',
-    engine:'wheel-v2',
+    engine:'database-selected',
     timezone:'America/Argentina/Buenos_Aires',
     process:'ok'
   });
@@ -30,4 +30,17 @@ test('readiness remains database-aware and verifies engine',async()=>{
 test('readiness rejects an unexpected engine',async()=>{
   const client={query:async()=>({rows:[{value:'wheel-v1'}]})};
   await assert.rejects(()=>readHealth(client),/Motor competitivo inesperado/);
+});
+
+
+test('readiness accepts wheel-v3 as an explicitly supported engine',async()=>{
+  const client={
+    async query(sql){
+      if(sql.includes('app_settings'))return {rows:[{value:'wheel-v3'}]};
+      return {rows:[{}]};
+    }
+  };
+  const result=await readHealth(client);
+  assert.equal(result.database,'ok');
+  assert.equal(result.engine,'wheel-v3');
 });
