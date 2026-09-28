@@ -599,3 +599,15 @@ test('a resolved no-show can count as a First-place defense without being a real
     {open:true,defenses:5,ended:false,defended:true},
   );
 });
+
+
+test('planning preserves an existing middle role when no real match changed it',()=>{
+  const rows=normalizeRolesForPlanning([
+    {id:1,position:1,role:'defense',roleStreak:1,defenseRequiredUntilReal:false,active:true,free:true,realWaitingSince:'2026-09-01T00:00:00Z'},
+    {id:2,position:2,role:'attack',roleStreak:1,defenseRequiredUntilReal:false,active:true,free:true,realWaitingSince:'2026-09-02T00:00:00Z'},
+    {id:3,position:3,role:'attack',roleStreak:1,defenseRequiredUntilReal:false,active:true,free:true,realWaitingSince:'2026-09-03T00:00:00Z'},
+    {id:4,position:4,role:'attack',roleStreak:1,defenseRequiredUntilReal:false,active:true,free:true,realWaitingSince:'2026-09-04T00:00:00Z'},
+  ]);
+  assert.equal(rows.find(x=>x.id===2).role,'attack');
+  assert.equal(rows.find(x=>x.id===3).role,'attack');
+});
