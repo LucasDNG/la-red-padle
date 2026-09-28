@@ -1,6 +1,6 @@
 import {q} from './db.js';
 import {formationComplete,planCategoryWheel,shouldCancelAssignmentForStructure,resultAllowedAfterCancellation,resultCountsAsReal,roleAfterRealMatch,promotionStateAfterResult,relegationStateAfterResult,populationDirectionalThreshold,entryPositionPenultimate,descendedEntryPosition,individualCategoriesAfterDescent,failureStateAfterClosure,roleAfterOwnFailure,administrativeFailureMovement,fullCalendarMonthsBetween,inactivityReturnPosition,simultaneousOnePlacePenalty} from './wheelV3Rules.js';
-import {scoreGames} from './core.js';
+import {scoreGames,resultEquals} from './core.js';
 
 export async function wheelV3FormationSnapshot(client,leagueId,{lock=false}={}){
   if(lock){
@@ -253,9 +253,11 @@ export async function registerWheelV3FirstResult(client,assignmentId){
     SET
       first_result_at=COALESCE(first_result_at,CURRENT_TIMESTAMP),
       confirmation_deadline_at=COALESCE(confirmation_deadline_at,CURRENT_TIMESTAMP+interval '7 days'),
-      status=CASE WHEN status='open' THEN 'result_pending' ELSE status END
+      status='result_pending',
+      closed_at=CASE WHEN status='cancelled' THEN NULL ELSE closed_at END,
+      close_reason=CASE WHEN status='cancelled' THEN NULL ELSE close_reason END
     WHERE id=$1
-      AND status IN('open','result_pending')
+      AND status IN('open','result_pending','cancelled')
     RETURNING *
   `,[assignmentId])).rows[0];
   if(!row)throw new Error('Assignment no disponible para primera carga');
@@ -1696,4 +1698,198 @@ export async function escalateExpiredWheelV3NoShows(client){
     escalated.push(updated);
   }
   return escalated;
+}
+
+
+function wheelV3ResultPayload(row){
+  return {
+    winner_pair_id:Number(row.winner_pair_id),
+    result_type:row.result_type,
+    played_at:row.played_at,
+    score:row.score,
+    abandoned_pair_id:row.abandoned_pair_id,
+  };
+}
+
+async function wheelV3ValidateFirstResultWindow(client,assignment,playedAt){
+  const now=(await q(client,`SELECT CURRENT_TIMESTAMP now`)).rows[0].now;
+  const played=new Date(playedAt);
+  if(Number.isNaN(played.getTime()))throw new Error('Fecha de partido inválida');
+  if(played>new Date(now))throw new Error('La fecha jugada no puede estar en el futuro');
+  if(played>new Date(assignment.deadline_at))throw new Error('El partido fue jugado fuera del plazo de 30 días');
+  if(!assignment.first_result_at&&new Date(now)>new Date(assignment.deadline_at))throw new Error('Venció el plazo de 30 días para cargar el primer resultado');
+  if(assignment.status==='cancelled'){
+    const eligibility=resultAllowedAfterCancellation({playedAt,cancelledAt:assignment.cancelled_at});
+    if(!eligibility)throw new Error('El partido fue jugado después de la cancelación');
+  }
+}
+
+export async function submitWheelV3ResultVersion(client,{
+  assignmentId,
+  pairId,
+  winnerPairId,
+  resultType,
+  playedAt,
+  score=null,
+  abandonedPairId=null,
+}){
+  if(!resultCountsAsReal(resultType))throw new Error('Solo se cargan resultados de partidos reales');
+  const assignment=(await q(client,`
+    SELECT * FROM wheel_assignments
+    WHERE id=$1
+    FOR UPDATE
+  `,[assignmentId])).rows[0];
+  if(!assignment)throw new Error('Assignment inexistente');
+  if(!['open','result_pending','cancelled'].includes(assignment.status))throw new Error('Assignment no admite carga de resultado');
+
+  const pairIds=[Number(assignment.pair_a_id),Number(assignment.pair_b_id)];
+  const submitter=Number(pairId),winner=Number(winnerPairId);
+  if(!pairIds.includes(submitter))throw new Error('Pareja cargadora inválida');
+  if(!pairIds.includes(winner))throw new Error('Ganador inválido');
+  await wheelV3ValidateFirstResultWindow(client,assignment,playedAt);
+
+  const version=(await q(client,`
+    INSERT INTO wheel_result_versions(
+      assignment_id,pair_id,winner_pair_id,result_type,played_at,score,abandoned_pair_id,version_no
+    )
+    VALUES($1,$2,$3,$4,$5,$6::jsonb,$7,1)
+    ON CONFLICT(assignment_id,pair_id)
+    DO UPDATE SET
+      winner_pair_id=EXCLUDED.winner_pair_id,
+      result_type=EXCLUDED.result_type,
+      played_at=EXCLUDED.played_at,
+      score=EXCLUDED.score,
+      abandoned_pair_id=EXCLUDED.abandoned_pair_id,
+      version_no=wheel_result_versions.version_no+1,
+      updated_at=CURRENT_TIMESTAMP
+    RETURNING *
+  `,[
+    assignmentId,
+    submitter,
+    winner,
+    resultType,
+    playedAt,
+    JSON.stringify(score??null),
+    abandonedPairId,
+  ])).rows[0];
+
+  const marked=await registerWheelV3FirstResult(client,assignmentId);
+  const versions=(await q(client,`
+    SELECT *
+    FROM wheel_result_versions
+    WHERE assignment_id=$1
+    ORDER BY pair_id
+    FOR UPDATE
+  `,[assignmentId])).rows;
+
+  if(versions.length>=2){
+    const first=versions[0],second=versions[1];
+    if(resultEquals(wheelV3ResultPayload(first),wheelV3ResultPayload(second))){
+      const applied=await applyWheelV3ConfirmedRealResult(client,{
+        assignmentId,
+        winnerPairId:first.winner_pair_id,
+        resultType:first.result_type,
+        score:first.score,
+        abandonedPairId:first.abandoned_pair_id,
+        playedAt:first.played_at,
+        resolutionSource:'pair_agreement',
+      });
+      return {status:'confirmed',version,assignment:marked,applied};
+    }
+    await q(client,`UPDATE wheel_assignments SET status='disputed' WHERE id=$1`,[assignmentId]);
+    return {status:'disputed',version,assignment:marked};
+  }
+
+  return {status:'result_pending',version,assignment:marked};
+}
+
+export async function confirmWheelV3Result(client,{assignmentId,confirmingPairId}){
+  const assignment=(await q(client,`
+    SELECT * FROM wheel_assignments
+    WHERE id=$1
+    FOR UPDATE
+  `,[assignmentId])).rows[0];
+  if(!assignment||assignment.status!=='result_pending')throw new Error('No hay resultado pendiente de confirmación');
+  const pairIds=[Number(assignment.pair_a_id),Number(assignment.pair_b_id)];
+  const confirming=Number(confirmingPairId);
+  if(!pairIds.includes(confirming))throw new Error('Pareja confirmante inválida');
+
+  const version=(await q(client,`
+    SELECT *
+    FROM wheel_result_versions
+    WHERE assignment_id=$1
+      AND pair_id<>$2
+    ORDER BY updated_at DESC,id DESC
+    LIMIT 1
+    FOR UPDATE
+  `,[assignmentId,confirming])).rows[0];
+  if(!version)throw new Error('No existe resultado rival para confirmar');
+
+  return applyWheelV3ConfirmedRealResult(client,{
+    assignmentId,
+    winnerPairId:version.winner_pair_id,
+    resultType:version.result_type,
+    score:version.score,
+    abandonedPairId:version.abandoned_pair_id,
+    playedAt:version.played_at,
+    resolutionSource:'explicit_confirmation',
+  });
+}
+
+export async function autoValidateDueWheelV3Results(client){
+  const assignments=(await q(client,`
+    SELECT id
+    FROM wheel_assignments
+    WHERE status='result_pending'
+      AND first_result_at IS NOT NULL
+      AND confirmation_deadline_at<=CURRENT_TIMESTAMP
+    ORDER BY confirmation_deadline_at,id
+    FOR UPDATE SKIP LOCKED
+  `)).rows;
+  const applied=[];
+  for(const item of assignments){
+    const versions=(await q(client,`
+      SELECT *
+      FROM wheel_result_versions
+      WHERE assignment_id=$1
+      ORDER BY updated_at DESC,id DESC
+      FOR UPDATE
+    `,[item.id])).rows;
+    if(!versions.length)continue;
+    if(versions.length>=2&&!resultEquals(wheelV3ResultPayload(versions[0]),wheelV3ResultPayload(versions[1]))){
+      await q(client,`UPDATE wheel_assignments SET status='disputed' WHERE id=$1`,[item.id]);
+      continue;
+    }
+    const version=versions[0];
+    applied.push(await applyWheelV3ConfirmedRealResult(client,{
+      assignmentId:item.id,
+      winnerPairId:version.winner_pair_id,
+      resultType:version.result_type,
+      score:version.score,
+      abandonedPairId:version.abandoned_pair_id,
+      playedAt:version.played_at,
+      resolutionSource:'silence_auto_validation',
+    }));
+  }
+  return applied;
+}
+
+export async function expireDueWheelV3Assignments(client){
+  const rows=(await q(client,`
+    SELECT id
+    FROM wheel_assignments
+    WHERE status='open'
+      AND first_result_at IS NULL
+      AND deadline_at<=CURRENT_TIMESTAMP
+    ORDER BY deadline_at,id
+    FOR UPDATE SKIP LOCKED
+  `)).rows;
+  const expired=[];
+  for(const row of rows){
+    expired.push(await applyWheelV3BothFailure(client,{
+      assignmentId:row.id,
+      resolutionSource:'deadline_both_failure',
+    }));
+  }
+  return expired;
 }
