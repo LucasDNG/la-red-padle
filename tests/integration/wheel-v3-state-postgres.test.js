@@ -10,7 +10,7 @@ if(!connectionString)throw new Error('TEST_DATABASE_URL es obligatorio para los 
 process.env.DATABASE_URL=connectionString;
 const {Pool}=pg;
 const pool=new Pool({connectionString});
-const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity,reportWheelV3NoShow,cancelWheelV3NoShow,contestWheelV3NoShow,acceptWheelV3NoShow,escalateExpiredWheelV3NoShows,submitWheelV3ResultVersion,confirmWheelV3Result,autoValidateDueWheelV3Results,expireDueWheelV3Assignments,expireWheelV3ScheduleProposals,formWheelV3Pair,archiveWheelV3Pair,resolveWheelV3FormationCategory,proposeWheelV3Schedule,acceptWheelV3Schedule,cancelWheelV3ScheduleProposal,wheelV3RecentMovements}=await import('../../src/wheelV3Engine.js');
+const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity,reportWheelV3NoShow,cancelWheelV3NoShow,contestWheelV3NoShow,acceptWheelV3NoShow,escalateExpiredWheelV3NoShows,submitWheelV3ResultVersion,confirmWheelV3Result,autoValidateDueWheelV3Results,expireDueWheelV3Assignments,expireWheelV3ScheduleProposals,formWheelV3Pair,archiveWheelV3Pair,resolveWheelV3FormationCategory,proposeWheelV3Schedule,acceptWheelV3Schedule,cancelWheelV3ScheduleProposal,wheelV3RecentMovements,resolveWheelV3ResultDispute,dismissWheelV3NoShowByAdmin,resolveWheelV3NoShowByAdmin}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
@@ -1911,4 +1911,106 @@ test('real ladder swap writes movement history for both pairs',async()=>{
   assert.equal(loserHistory[0].data.reason,'loss_to_lower_rival');
   assert.equal(Number(winnerHistory[0].data.fromPosition),2);
   assert.equal(Number(winnerHistory[0].data.toPosition),1);
+});
+
+
+async function seedAdmin(tag=0){
+  const base=70000000+tag;
+  return (await pool.query(
+    "INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender,role,verification_status) VALUES('Admin','V3',$1,$1,'x','male','admin','verified') RETURNING id",
+    [String(base)],
+  )).rows[0];
+}
+
+test('admin can select one disputed real-result version and decision is audited',async()=>{
+  const admin=await seedAdmin(1);
+  const c=await category(3);
+  const a=await seedPairWithMembers(1,3,{tag:127});
+  const b=await seedPairWithMembers(2,3,{tag:128});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,status,assigned_at,deadline_at,first_result_at,confirmation_deadline_at) VALUES($1,$2,$3,$4,$4,$3,'disputed',CURRENT_TIMESTAMP-interval '1 minute',CURRENT_TIMESTAMP+interval '30 days',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP+interval '7 days') RETURNING id",
+    [a.league_id,c.id,a.id,b.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[assignment.id,a.id,b.id]);
+  const played=(await pool.query('SELECT CURRENT_TIMESTAMP t')).rows[0].t;
+  const v1=(await pool.query(
+    "INSERT INTO wheel_result_versions(assignment_id,pair_id,winner_pair_id,result_type,played_at,score) VALUES($1,$2,$2,'normal',$4,$3::jsonb) RETURNING id",
+    [assignment.id,a.id,JSON.stringify({sets:[{kind:'set',pairA:6,pairB:2},{kind:'set',pairA:6,pairB:2}]}),played],
+  )).rows[0];
+  await pool.query(
+    "INSERT INTO wheel_result_versions(assignment_id,pair_id,winner_pair_id,result_type,played_at,score) VALUES($1,$2,$2,'normal',$4,$3::jsonb)",
+    [assignment.id,b.id,JSON.stringify({sets:[{kind:'set',pairA:2,pairB:6},{kind:'set',pairA:2,pairB:6}]}),played],
+  );
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await resolveWheelV3ResultDispute(client,{assignmentId:assignment.id,versionId:v1.id,adminUserId:admin.id});
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const match=(await pool.query('SELECT winner_pair_id,resolution_source FROM matches WHERE assignment_id=$1',[assignment.id])).rows[0];
+  assert.equal(Number(match.winner_pair_id),Number(a.id));
+  assert.equal(match.resolution_source,'admin_selected_version');
+  const audit=(await pool.query("SELECT * FROM admin_audit_events WHERE action='wheel_v3_resolve_result_dispute' AND target_id=$1",[assignment.id])).rows[0];
+  assert.equal(Number(audit.admin_user_id),Number(admin.id));
+  assert.equal(Number(audit.data.versionId),Number(v1.id));
+});
+
+test('admin can dismiss contested no-show and restore the assignment without sporting penalty',async()=>{
+  const admin=await seedAdmin(2);
+  const c=await category(4);
+  const a=await seedPairWithMembers(1,4,{tag:129});
+  const b=await seedPairWithMembers(2,4,{tag:130});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,status,scheduled_at,location_text,schedule_confirmed_at) VALUES($1,$2,$3,$4,$4,$3,'disputed',CURRENT_TIMESTAMP-interval '1 hour','Cancha',CURRENT_TIMESTAMP-interval '2 hours') RETURNING id",
+    [a.league_id,c.id,a.id,b.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[assignment.id,a.id,b.id]);
+  await pool.query(
+    "INSERT INTO wheel_no_shows(assignment_id,reported_by_pair_id,reported_pair_id,status,response_deadline_at) VALUES($1,$2,$3,'contested',CURRENT_TIMESTAMP+interval '1 day')",
+    [assignment.id,a.id,b.id],
+  );
+
+  const client=await pool.connect();
+  let result;
+  try{
+    await client.query('BEGIN');
+    result=await dismissWheelV3NoShowByAdmin(client,{assignmentId:assignment.id,adminUserId:admin.id});
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  assert.equal(result.status,'open');
+  assert.equal((await pool.query('SELECT status FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0].status,'open');
+  assert.equal((await pool.query('SELECT status FROM wheel_no_shows WHERE assignment_id=$1',[assignment.id])).rows[0].status,'resolved');
+  assert.equal(Number((await pool.query('SELECT count(*) n FROM matches WHERE assignment_id=$1',[assignment.id])).rows[0].n),0);
+});
+
+test('admin no-show ruling can identify either assignment pair as the failing side and audits it',async()=>{
+  const admin=await seedAdmin(3);
+  const c=await category(5);
+  const a=await seedPairWithMembers(1,5,{tag:131});
+  const b=await seedPairWithMembers(2,5,{tag:132});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,status,scheduled_at,location_text,schedule_confirmed_at) VALUES($1,$2,$3,$4,$4,$3,'disputed',CURRENT_TIMESTAMP-interval '1 hour','Cancha',CURRENT_TIMESTAMP-interval '2 hours') RETURNING id",
+    [a.league_id,c.id,a.id,b.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[assignment.id,a.id,b.id]);
+  await pool.query(
+    "INSERT INTO wheel_no_shows(assignment_id,reported_by_pair_id,reported_pair_id,status,response_deadline_at) VALUES($1,$2,$3,'admin_review',CURRENT_TIMESTAMP-interval '1 second')",
+    [assignment.id,a.id,b.id],
+  );
+
+  const client=await pool.connect();
+  let result;
+  try{
+    await client.query('BEGIN');
+    result=await resolveWheelV3NoShowByAdmin(client,{assignmentId:assignment.id,failingPairId:a.id,adminUserId:admin.id});
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  assert.equal(result.failingPairId,Number(a.id));
+  assert.equal((await pool.query('SELECT status FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0].status,'confirmed');
+  const audit=(await pool.query("SELECT data FROM admin_audit_events WHERE action='wheel_v3_resolve_no_show' AND target_id=$1",[assignment.id])).rows[0];
+  assert.equal(Number(audit.data.failingPairId),Number(a.id));
 });
