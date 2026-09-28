@@ -1146,7 +1146,7 @@ test('cancelled no-show can be reported again after a later reschedule on the sa
     await client.query('BEGIN');
     const first=await reportWheelV3NoShow(client,{assignmentId:assignment.id,reportedByPairId:a.id});
     await cancelWheelV3NoShow(client,{assignmentId:assignment.id,reportedByPairId:a.id});
-    await pool.query("UPDATE wheel_assignments SET scheduled_at=CURRENT_TIMESTAMP-interval '1 minute' WHERE id=$1",[assignment.id]);
+    await client.query("UPDATE wheel_assignments SET scheduled_at=CURRENT_TIMESTAMP-interval '1 minute' WHERE id=$1",[assignment.id]);
     const second=await reportWheelV3NoShow(client,{assignmentId:assignment.id,reportedByPairId:a.id});
     assert.notEqual(Number(first.id),Number(second.id));
     await client.query('COMMIT');
