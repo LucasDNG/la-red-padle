@@ -1403,6 +1403,13 @@ export async function applyWheelV3OneSidedFailure(client,{
   for(const categoryId of [...affectedCategories].sort((a,b)=>a-b)){
     refresh.push({categoryId,...await refreshWheelV3Category(client,categoryId)});
   }
+  await queueAssignmentNotification(client,assignment,{
+    type:'administrative_result',
+    title:'Partido resuelto administrativamente',
+    body:'El compromiso se cerró con una resolución administrativa y LA RED actualizó la rueda.',
+    payload:{assignmentId:assignment.id,failingPairId:failing,winnerPairId:winner,resolutionSource},
+    dedupeKey:`v3-admin-result:${assignment.id}`,
+  });
 
   return {
     match,
@@ -1665,6 +1672,13 @@ export async function applyWheelV3BothFailure(client,{
   for(const categoryId of [...affectedCategories].sort((a,b)=>a-b)){
     refresh.push({categoryId,...await refreshWheelV3Category(client,categoryId)});
   }
+  await queueAssignmentNotification(client,assignment,{
+    type:'both_failure',
+    title:'Compromiso vencido',
+    body:'El compromiso se cerró por incumplimiento de ambas parejas y se aplicaron las consecuencias correspondientes.',
+    payload:{assignmentId:assignment.id,resolutionSource},
+    dedupeKey:`v3-both-failure:${assignment.id}`,
+  });
 
   return {
     pairIds,
@@ -1695,7 +1709,7 @@ async function wheelV3PausePairNow(client,pairId,{reason='voluntary'}={}){
     SET competition_state='paused',pause_after_current=false,updated_at=CURRENT_TIMESTAMP
     WHERE id=$1
   `,[pairId]);
-  await q(client,`
+  const inactiveState=(await q(client,`
     UPDATE pair_wheel_state
     SET
       inactive_since=CURRENT_TIMESTAMP,
@@ -1705,7 +1719,8 @@ async function wheelV3PausePairNow(client,pairId,{reason='voluntary'}={}){
       promotion_wins=0,
       updated_at=CURRENT_TIMESTAMP
     WHERE pair_id=$1
-  `,[pairId,returnPosition,reason]);
+    RETURNING inactive_since
+  `,[pairId,returnPosition,reason])).rows[0];
 
   const activeOrder=await wheelV3ActiveOrder(client,pair.category_id);
   await wheelV3SetCategoryOrder(client,pair.category_id,activeOrder);
@@ -1715,7 +1730,7 @@ async function wheelV3PausePairNow(client,pairId,{reason='voluntary'}={}){
     title:'Pareja inactiva',
     body:'La pareja quedó fuera de la rueda. Su posición de retorno queda guardada según las reglas de inactividad.',
     payload:{pairId,reason,returnPosition},
-    dedupeKey:`v3-pause:${pairId}:${returnPosition}:${reason}`,
+    dedupeKey:`v3-pause:${pairId}:${new Date(inactiveState.inactive_since).toISOString()}`,
   });
   if(Number(pair.category_number)===1){
     const nextLeader=await wheelV3Leader(client,pair.category_id);
@@ -1963,6 +1978,14 @@ export async function escalateExpiredWheelV3NoShows(client){
       SET status='disputed'
       WHERE id=$1 AND status IN('open','result_pending')
     `,[row.assignment_id]);
+    const assignment=(await q(client,`SELECT * FROM wheel_assignments WHERE id=$1`,[row.assignment_id])).rows[0];
+    await queueAssignmentNotification(client,assignment,{
+      type:'no_show_admin_review',
+      title:'No-show enviado a Administración',
+      body:'La ventana de 48 horas terminó sin reconocimiento. Administración debe resolver el caso.',
+      payload:{assignmentId:row.assignment_id,noShowId:row.id},
+      dedupeKey:`v3-no-show-admin:${row.id}`,
+    });
     escalated.push(updated);
   }
   return escalated;
@@ -2422,6 +2445,25 @@ export async function formWheelV3Pair(client,{userIds,requestedCategoryNumber=nu
     await wheelV3ConsumePositionDebt(client,shiftedByInsertion);
   }
 
+  if(Number(resolved.duo?.failure_streak||0)>0){
+    const streak=Number(resolved.duo.failure_streak);
+    await queuePairNotification(client,pair.id,{
+      type:'failure_streak_warning',
+      title:'Incumplimientos pendientes',
+      body:`Esta dupla conserva ${streak} incumplimiento${streak===1?'':'s'} consecutivo${streak===1?'':'s'}. ${streak>=2?'Un incumplimiento más aplicará 30 días sin asignaciones.':''}`.trim(),
+      payload:{pairId:pair.id,failureStreak:streak},
+      dedupeKey:`v3-reform-failure-warning:${pair.id}:${streak}:${new Date(serverNow).toISOString()}`,
+    });
+  }
+  if(resolved.duo?.pending_relegation_category_id){
+    await queuePairNotification(client,pair.id,{
+      type:'relegation_resumed',
+      title:'Período de descenso retomado',
+      body:'La dupla volvió a formarse y retoma el período de descenso pendiente en la categoría donde se había abierto.',
+      payload:{pairId:pair.id,categoryNumber:resolved.categoryNumber,losses:Number(resolved.duo.pending_relegation_losses||0)},
+      dedupeKey:`v3-reform-relegation:${pair.id}:${resolved.duo.id}:${new Date(serverNow).toISOString()}`,
+    });
+  }
   const formation=underPenalty
     ?null
     :await completeWheelV3FormationIfReady(client,resolved.league.id);
@@ -2449,6 +2491,14 @@ export async function archiveWheelV3Pair(client,pairId){
   if(occupied)throw new Error('La pareja debe resolver su compromiso antes de disolverse');
 
   const previousLeader=await wheelV3Leader(client,pair.category_id);
+  const dissolvedAt=(await q(client,`SELECT CURRENT_TIMESTAMP now`)).rows[0].now;
+  await queuePairNotification(client,pairId,{
+    type:'pair_dissolved',
+    title:'Pareja disuelta',
+    body:'La pareja fue disuelta. Las obligaciones de la dupla exacta que deban sobrevivir quedan conservadas.',
+    payload:{pairId},
+    dedupeKey:`v3-dissolve:${pairId}:${new Date(dissolvedAt).toISOString()}`,
+  });
   await q(client,`DELETE FROM active_pair_memberships WHERE pair_id=$1`,[pairId]);
   await q(client,`
     UPDATE pairs
@@ -2699,6 +2749,13 @@ export async function dismissWheelV3NoShowByAdmin(client,{
     WHERE id=$1
   `,[assignmentId,status]);
 
+  await queueAssignmentNotification(client,assignment,{
+    type:'no_show_dismissed',
+    title:'No-show resuelto',
+    body:'Administración cerró el reporte de no-show sin aplicar una consecuencia deportiva. El compromiso continúa.',
+    payload:{assignmentId,status},
+    dedupeKey:`v3-no-show-dismissed:${noShow.id}`,
+  });
   await wheelV3AdminAudit(client,{
     adminUserId,
     action:'wheel_v3_dismiss_no_show',
