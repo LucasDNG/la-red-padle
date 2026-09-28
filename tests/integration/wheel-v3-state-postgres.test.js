@@ -10,7 +10,7 @@ if(!connectionString)throw new Error('TEST_DATABASE_URL es obligatorio para los 
 process.env.DATABASE_URL=connectionString;
 const {Pool}=pg;
 const pool=new Pool({connectionString});
-const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult}=await import('../../src/wheelV3Engine.js');
+const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
@@ -654,4 +654,134 @@ test('late historical real result never moves v3 wait backwards',async()=>{
   );
   const rows=(await pool.query('SELECT real_waiting_since FROM pair_wheel_state WHERE pair_id IN($1,$2)',[a.id,b.id])).rows;
   assert.ok(rows.every(r=>new Date(r.real_waiting_since).toISOString()==='2026-09-25T00:00:00.000Z'));
+});
+
+
+test('one-sided failure moves violator only downward, preserves rival wait and imposes defense',async()=>{
+  const c=await category(3);
+  await seedPair(1,3);
+  const failing=await seedPairWithMembers(2,3,{tag:20});
+  const rival=await seedPairWithMembers(3,3,{tag:21});
+  await seedPair(4,3);
+  await pool.query("UPDATE pair_wheel_state SET role='defense',role_streak=1,real_waiting_since='2026-09-01T00:00:00Z' WHERE pair_id=$1",[failing.id]);
+  await pool.query("UPDATE pair_wheel_state SET role='attack',role_streak=1,real_waiting_since='2026-09-02T00:00:00Z' WHERE pair_id=$1",[rival.id]);
+  await pool.query('UPDATE pair_duo_state SET failure_streak=1 WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[
+    failing.league_id,
+    Math.min(Number(failing.members[0].id),Number(failing.members[1].id)),
+    Math.max(Number(failing.members[0].id),Number(failing.members[1].id)),
+  ]);
+  await pool.query('UPDATE pair_duo_state SET failure_streak=2 WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[
+    rival.league_id,
+    Math.min(Number(rival.members[0].id),Number(rival.members[1].id)),
+    Math.max(Number(rival.members[0].id),Number(rival.members[1].id)),
+  ]);
+  const a=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id) VALUES($1,$2,$3,$4,$4,$3) RETURNING id",
+    [failing.league_id,c.id,failing.id,rival.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[a.id,failing.id,rival.id]);
+
+  const client=await pool.connect();
+  let result;
+  try{
+    await client.query('BEGIN');
+    result=await applyWheelV3OneSidedFailure(client,{assignmentId:a.id,failingPairId:failing.id,resolutionSource:'self_failure'});
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  assert.equal(result.swapped,true);
+  assert.equal(result.penalty30Days,false);
+  const positions=(await pool.query('SELECT id,position FROM pairs WHERE id IN($1,$2) ORDER BY id',[failing.id,rival.id])).rows;
+  const byId=Object.fromEntries(positions.map(r=>[Number(r.id),Number(r.position)]));
+  assert.equal(byId[Number(failing.id)],3);
+  assert.equal(byId[Number(rival.id)],2);
+  const failingState=(await pool.query('SELECT role,defense_required_until_real,real_waiting_since FROM pair_wheel_state WHERE pair_id=$1',[failing.id])).rows[0];
+  const rivalState=(await pool.query('SELECT real_waiting_since FROM pair_wheel_state WHERE pair_id=$1',[rival.id])).rows[0];
+  assert.equal(failingState.role,'defense');
+  assert.equal(failingState.defense_required_until_real,true);
+  assert.equal(new Date(failingState.real_waiting_since).toISOString(),'2026-09-01T00:00:00.000Z');
+  assert.equal(new Date(rivalState.real_waiting_since).toISOString(),'2026-09-02T00:00:00.000Z');
+  const failingDuo=(await pool.query('SELECT failure_streak FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[
+    failing.league_id,
+    Math.min(Number(failing.members[0].id),Number(failing.members[1].id)),
+    Math.max(Number(failing.members[0].id),Number(failing.members[1].id)),
+  ])).rows[0];
+  const rivalDuo=(await pool.query('SELECT failure_streak FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[
+    rival.league_id,
+    Math.min(Number(rival.members[0].id),Number(rival.members[1].id)),
+    Math.max(Number(rival.members[0].id),Number(rival.members[1].id)),
+  ])).rows[0];
+  assert.equal(Number(failingDuo.failure_streak),2);
+  assert.equal(Number(rivalDuo.failure_streak),0);
+});
+
+test('third failure that leaves violator last descends first and then applies 30-day inactivity',async()=>{
+  const male=await maleLeague();
+  for(let n=1;n<=7;n++)for(let p=1;p<=5;p++)await seedPair(p,n);
+  const c4=await category(4);
+  const failing=(await pool.query('SELECT * FROM pairs WHERE category_id=$1 AND position=4',[c4.id])).rows[0];
+  const rival=(await pool.query('SELECT * FROM pairs WHERE category_id=$1 AND position=5',[c4.id])).rows[0];
+  const base=63000000;
+  const ids=[];
+  for(let i=0;i<4;i++)ids.push((await pool.query(
+    "INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender,current_category_number) VALUES('Fail',$1,$2,$2,'x','male',4) RETURNING id",
+    [String(i),String(base+i)],
+  )).rows[0].id);
+  await pool.query('INSERT INTO pair_members(pair_id,user_id) VALUES($1,$2),($1,$3),($4,$5),($4,$6)',[failing.id,ids[0],ids[1],rival.id,ids[2],ids[3]]);
+  await pool.query("UPDATE league_wheel_state SET formation_completed_at=CURRENT_TIMESTAMP WHERE league_id=$1",[male.id]);
+  await pool.query('UPDATE pair_duo_state SET failure_streak=2 WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[male.id,Math.min(Number(ids[0]),Number(ids[1])),Math.max(Number(ids[0]),Number(ids[1]))]);
+  const a=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id) VALUES($1,$2,$3,$4,$4,$3) RETURNING id",
+    [male.id,c4.id,failing.id,rival.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[a.id,failing.id,rival.id]);
+
+  const client=await pool.connect();
+  let result;
+  try{
+    await client.query('BEGIN');
+    result=await applyWheelV3OneSidedFailure(client,{assignmentId:a.id,failingPairId:failing.id,resolutionSource:'self_failure'});
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  assert.equal(result.penalty30Days,true);
+  assert.equal(result.movements.some(m=>m.type==='relegation'),true);
+  const moved=(await pool.query('SELECT c.number,p.position,p.competition_state FROM pairs p JOIN categories c ON c.id=p.category_id WHERE p.id=$1',[failing.id])).rows[0];
+  assert.equal(Number(moved.number),5);
+  assert.equal(Number(moved.position),2);
+  assert.equal(moved.competition_state,'paused');
+  const inactive=(await pool.query('SELECT inactive_reason,return_position_base,EXTRACT(EPOCH FROM (auto_reactivate_at-inactive_since)) seconds FROM pair_wheel_state WHERE pair_id=$1',[failing.id])).rows[0];
+  assert.equal(inactive.inactive_reason,'three_failures');
+  assert.equal(Number(inactive.return_position_base),2);
+  assert.equal(Number(inactive.seconds),30*24*60*60);
+});
+
+test('accepted no-show can count as a First-place defense without resetting real wait',async()=>{
+  const c=await category(1);
+  const leader=await seedPairWithMembers(1,1,{tag:22});
+  const attacker=await seedPairWithMembers(2,1,{tag:23});
+  await pool.query("UPDATE pair_wheel_state SET role='defense',role_streak=1,real_waiting_since='2026-09-01T00:00:00Z' WHERE pair_id=$1",[leader.id]);
+  await pool.query("UPDATE pair_wheel_state SET role='attack',role_streak=1,real_waiting_since='2026-09-02T00:00:00Z' WHERE pair_id=$1",[attacker.id]);
+  const a=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id) VALUES($1,$2,$3,$4,$3,$4) RETURNING id",
+    [leader.league_id,c.id,attacker.id,leader.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[a.id,attacker.id,leader.id]);
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await applyWheelV3OneSidedFailure(client,{
+      assignmentId:a.id,
+      failingPairId:attacker.id,
+      resolutionSource:'no_show_accepted',
+      countsAsFirstPlaceDefense:true,
+    });
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const reign=(await pool.query('SELECT pair_id,defenses,ended_at FROM first_place_reigns WHERE league_id=$1 AND ended_at IS NULL',[leader.league_id])).rows[0];
+  assert.equal(Number(reign.pair_id),Number(leader.id));
+  assert.equal(Number(reign.defenses),1);
+  const wait=(await pool.query('SELECT real_waiting_since FROM pair_wheel_state WHERE pair_id=$1',[leader.id])).rows[0].real_waiting_since;
+  assert.equal(new Date(wait).toISOString(),'2026-09-01T00:00:00.000Z');
 });
