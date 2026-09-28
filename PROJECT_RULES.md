@@ -38,7 +38,7 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - En 7ª no existe período de descenso.
 - Una pareja que asciende entra **anteúltima** en la categoría superior y desplaza hacia abajo desde ese punto. No entra en período de descenso solo por ingresar: debe llegar posteriormente al último puesto por movimiento deportivo.
 - Una pareja nueva también entra **anteúltima** y se rige por la misma protección inicial.
-- El caso de tabla con 0/1 activas queda como borde final en `WHEEL_V3_SPEC.md`.
+- Si hay 0 activas, la nueva/ascendida entra #1; si hay exactamente 1 activa, entra #2 y no desplaza al único #1.
 - Descenso entra base #2 en la categoría inferior; si no existe #1 material, entra #1.
 - Los movimientos entre categorías son siempre adyacentes.
 - Al terminar la formación, los #1 de 2ª–7ª y los últimos de 1ª–6ª que ya tienen al menos un partido real previo entran inmediatamente en 0/3 de ascenso/descenso. Si tienen 0 partidos, primero deben disputar uno; **ese primer resultado no cuenta** para la zona y, al cerrarlo, recién ingresan en 0/3.
@@ -71,7 +71,8 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - La invitación muestra la categoría resultante.
 - La base impide pertenecer a dos parejas competitivamente vigentes.
 - La misma dupla que se disuelve y después vuelve a formarse se considera competitivamente una pareja nueva para ingreso/estadísticas, aunque la implementación pueda reutilizar una identidad técnica interna.
-- Un período de descenso pendiente de esa combinación exacta de dos personas **no se borra** por disolución ni por crear otras parejas en el medio; debe restaurarse si vuelven a juntarse.
+- Un período de descenso pendiente de esa combinación exacta de dos personas **no se borra** por disolución ni por crear otras parejas en el medio.
+- Si vuelven a juntarse antes de resolverlo, regresan excepcionalmente a la misma categoría donde se abrió y retoman el mismo contador. Una vez resuelto por victoria real o descenso, futuras formaciones usan las categorías individuales vigentes.
 - No se expone un historial estadístico acumulado de la pareja.
 
 ## 8. Estados
@@ -154,7 +155,8 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - En 7ª no hay descenso.
 - El incumplidor pasa a defensa obligatoria cuando sea materialmente posible; una defensa imposible por estar último no debe bloquear la rueda.
 - **Tres incumplimientos atribuibles consecutivos**, en cualquier categoría, provocan 30 días sin assignments y paso automático a inactiva. Al día 30 se reactiva automáticamente.
-- La racha se reinicia solo con un cierre real sin incumplimiento propio; una cancelación automática del sistema no la reinicia.
+- La racha pertenece a la dupla exacta y sobrevive a disoluciones/parejas intermedias. Al re-formarse se muestra y notifica el contador pendiente.
+- Se reinicia solo con un cierre real de esa dupla sin incumplimiento propio; una cancelación automática del sistema no la reinicia.
 
 ## 15. No-show
 - Solo puede reportarse después de la fecha/hora oficial.
@@ -164,8 +166,9 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Una disputa real de no-show mantiene el compromiso bloqueado hasta resolución.
 
 ## 16. Resultados
+- Si el partido ya se había jugado mientras el assignment era válido, puede cargarse aunque el sistema haya cancelado el assignment antes de la carga; debe declararse una fecha/hora de juego anterior a la cancelación y luego sigue confirmación/disputa normal.
 - Desde que existe una primera versión de resultado cargada, cambios posteriores del ranking no cancelan ese partido.
-- Al aplicar el resultado, el ganador nunca baja por movimientos posteriores: si actualmente está debajo del perdedor, intercambian; si ya está arriba, no hay intercambio adicional.
+- Al aplicar el resultado, el ganador nunca baja por movimientos posteriores: si actualmente está debajo del perdedor, intercambian; si ya está arriba, no hay intercambio adicional y se notifica por app/WhatsApp que no se aplican cambios porque el ganador pasaría a estar abajo por un cambio previo en el ranking.
 - Cualquier integrante puede cargar una versión de resultado en nombre de su pareja, salvo que una acción específica quede definida como de doble confirmación en `WHEEL_V3_SPEC.md`.
 - Una pareja carga ganador, fecha real y resultado estructurado.
 - Si la primera versión se cargó dentro de los 30 días, desde ese instante la otra pareja dispone de 7 días para confirmar o discutir. El silencio al vencer auto-valida la versión.
