@@ -98,7 +98,7 @@ La auditoría ampliada a 5/10/20 años confirmó la válvula vigente `gap >= 5 =
 
 
 ## Integración PostgreSQL automatizada
-Se incorpora un job de CI con PostgreSQL 16 y `npm run test:integration`. El bloque cubre frontera gap 4/5, entrada de descenso #2, deuda remanente, ELO, ascenso al fondo, retry concurrente exactamente una vez, movimientos concurrentes hacia la misma categoría y no-show objetado sin strike atribuible. CI confirmado en Node 22 + PostgreSQL 16: 20/20 tests puros y 7/7 tests de integración PostgreSQL verdes; frontend build verde.
+Se incorpora un job de CI con PostgreSQL 16 y `npm run test:integration`. El bloque cubre frontera gap 4/5, entrada de descenso #2, deuda remanente, métrica posicional legacy, ascenso al fondo, retry concurrente exactamente una vez, movimientos concurrentes hacia la misma categoría y no-show objetado sin strike atribuible. CI confirmado en Node 22 + PostgreSQL 16: 20/20 tests puros y 7/7 tests de integración PostgreSQL verdes; frontend build verde.
 
 
 ## Bloque pareja → rueda concurrente
@@ -110,7 +110,7 @@ Se agregaron 7 escenarios PostgreSQL end-to-end para programación, revisión de
 
 
 ## Bloque edge cases competitivos en validación
-Se prepararon correcciones para límite superior de la ventana de extensión, atribución cuando ambas parejas actuaron pero una tarde y recálculo ELO al pausar voluntariamente. Se agregaron 10 escenarios PostgreSQL de vencimiento, extensión, no-show, pausa y disolución. CI confirmado: 20/20 tests puros + 29/29 integración PostgreSQL verdes en Node 22/PostgreSQL 16; frontend build verde.
+Se prepararon correcciones para límite superior de la ventana de extensión, atribución cuando ambas parejas actuaron pero una tarde y recálculo de una métrica posicional legacy al pausar voluntariamente. Se agregaron 10 escenarios PostgreSQL de vencimiento, extensión, no-show, pausa y disolución. CI confirmado: 20/20 tests puros + 29/29 integración PostgreSQL verdes en Node 22/PostgreSQL 16; frontend build verde.
 
 
 ## Hardening lateral en validación
