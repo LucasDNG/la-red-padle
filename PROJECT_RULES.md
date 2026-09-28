@@ -36,12 +36,12 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - El requisito puede bajar a 2 o 1 según desvío poblacional de parejas activas, usando el esquema vigente de `WHEEL_V3_SPEC.md`, y se recalcula al confirmar cada nuevo resultado.
 - La población por sí sola nunca mueve una pareja: siempre hace falta un resultado posterior que materialice el movimiento.
 - En 7ª no existe período de descenso.
-- Una pareja que asciende entra en la **mitad de la tabla activa** de la categoría superior y desplaza hacia abajo desde ese punto: con N activas existentes, posición = `floor(N/2)+1`.
+- Una pareja que asciende entra en la **mitad de la tabla activa** de la categoría superior y desplaza hacia abajo desde ese punto: con N activas existentes, posición = `floor(N/2)+1`; excepción N=1 => entra #2.
 - Por entrar mediante ascenso no queda automáticamente en período de descenso.
-- Una pareja nueva también entra en la mitad de la tabla activa de su categoría con la misma fórmula `floor(N/2)+1` y desplaza hacia abajo.
+- Una pareja nueva también entra en la mitad de la tabla activa de su categoría con la misma fórmula `floor(N/2)+1` y desplaza hacia abajo; excepción N=1 => entra #2.
 - Descenso entra base #2 en la categoría inferior; si no existe #1 material, entra #1.
 - Los movimientos entre categorías son siempre adyacentes.
-- Al terminar la formación, los #1 de 2ª–7ª y los últimos de 1ª–6ª que ya tienen al menos un partido real previo entran inmediatamente en 0/3 de ascenso/descenso. Si tienen 0 partidos, primero deben disputar uno; falta definir si ese primer resultado ya cuenta o solo habilita la zona.
+- Al terminar la formación, los #1 de 2ª–7ª y los últimos de 1ª–6ª que ya tienen al menos un partido real previo entran inmediatamente en 0/3 de ascenso/descenso. Si tienen 0 partidos, primero deben disputar uno; **ese primer resultado no cuenta** para la zona y, al cerrarlo, recién ingresan en 0/3.
 
 ## 5. Categoría individual y categoría de pareja
 - La pareja compite en la categoría individual más fuerte de sus dos jugadores (número más bajo); dos jugadores sin categoría previa pueden elegir libremente 1ª–7ª.
