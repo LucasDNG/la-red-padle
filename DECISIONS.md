@@ -13,14 +13,14 @@ Este archivo contiene **solo decisiones que siguen vigentes**. Las decisiones re
 5. Cada pareja puede tener como máximo un compromiso abierto.
 6. El assignment da 30 días corridos para jugar y cargar una primera versión de resultado.
 7. No existe extensión extraordinaria de 15 días en Wheel v3.
-8. Si el resultado fue cargado dentro del plazo, existe una ventana adicional de 7 días solo para confirmar o discutir esa versión; el detalle final está pendiente de una confirmación de borde en la spec.
+8. Si el resultado fue cargado dentro del plazo, existe una ventana adicional fija de 7 días desde la primera carga para confirmar o discutir; el silencio al vencer auto-valida.
 9. La selección Wheel v3 usa roles ataque/defensa, prioridad por tiempo sin partido real y ventanas crecientes hacia arriba para el atacante.
 10. La repetición de rival se evita cuando existe alternativa, pero nunca debe bloquear la rueda.
-11. La fase de formación termina cuando las 7 categorías del circuito alcanzan el mínimo acordado de parejas activas; el alcance exacto por circuito está pendiente de confirmación.
+11. La fase de formación se calcula por circuito y termina irreversiblemente cuando las 7 categorías de ese circuito tienen al menos 5 parejas activas.
 12. Después de la formación, la población activa puede modificar el requisito deportivo 3/2/1, pero la población por sí sola nunca mueve una pareja.
 13. Todos los ascensos/descensos entre categorías son adyacentes.
-14. Una pareja que **asciende** entra en la mitad de la tabla activa de la categoría superior y desplaza hacia abajo; la fórmula exacta de mitad está pendiente.
-15. Una pareja nueva también entra en la mitad de la tabla activa de su categoría.
+14. Una pareja que **asciende** entra anteúltima de la tabla activa de la categoría superior; con N=0 entra #1 y con N=1 entra #2.
+15. Una pareja nueva también entra anteúltima de su categoría, con los mismos bordes N=0 => #1 y N=1 => #2.
 16. Una pareja que desciende entra normalmente #2 en la categoría inferior; si no existe #1 material, entra #1.
 17. En 7ª no existe zona/período de descenso.
 
@@ -49,7 +49,7 @@ Este archivo contiene **solo decisiones que siguen vigentes**. Las decisiones re
 35. Si ya estaba en período de descenso, el estado y contador se congelan durante la inactividad y se retoman al volver.
 36. La inactividad por sí sola nunca produce descenso de categoría.
 37. Tras 3 incumplimientos atribuibles consecutivos, la pareja pasa automáticamente a inactiva y queda 30 días sin nuevas asignaciones.
-38. La forma de reactivación al cumplir esos 30 días y el evento que reinicia la racha de incumplimientos siguen abiertos en `WHEEL_V3_SPEC.md`.
+38. La sanción de 30 días se reactiva automáticamente al vencer por reloj autoritativo; la racha se reinicia solo con cierre real sin incumplimiento propio o cuando el único incumplimiento fue del rival.
 
 ## No-show, incumplimientos y resultados
 
@@ -111,9 +111,9 @@ El reglamento funcional base de Wheel v3 está cerrado. La etapa siguiente es au
 
 ## Cierres adicionales — 2026-09-28
 68. La fase de formación y el equilibrio poblacional se calculan por separado para Masculino y Femenino.
-69. Nuevas y ascendidas ingresan a mitad de tabla con fórmula `floor(N/2)+1`, salvo el borde N=1 todavía pendiente.
+69. Nuevas y ascendidas ingresan anteúltimas: N=0 => #1; N=1 => #2; N>=2 => posición N.
 70. Tres incumplimientos atribuibles consecutivos generan 30 días de inactividad sin assignments y reactivación automática al vencer el plazo.
-71. Cualquier assignment cerrado sin incumplimiento atribuible reinicia la racha de incumplimientos a 0.
+71. La racha se reinicia con un partido real resuelto sin incumplimiento propio o cuando el incumplimiento fue únicamente del rival; una cancelación automática por ranking/categoría no la reinicia.
 72. La revisión de un resultado dura 7 días desde el momento exacto en que una de las parejas lo carga; silencio al vencer auto-valida.
 73. Todo movimiento operativo relevante debe notificarse por WhatsApp a los integrantes afectados.
 74. Al terminar la formación, los #1 de 2ª–7ª y los últimos de 1ª–6ª entran en 0/3 si ya tienen al menos un partido real previo; con 0 partidos deben disputar uno antes de activar la zona.
@@ -125,7 +125,7 @@ El reglamento funcional base de Wheel v3 está cerrado. La etapa siguiente es au
 
 ## Cierre funcional final de Wheel v3 — 2026-09-28
 79. Si al terminar la fase de formación una pareja está en zona de ascenso/descenso pero tiene 0 partidos reales, debe jugar primero un partido; ese primer resultado no cuenta para la zona y recién después entra en 0/3.
-80. La fórmula de ingreso de nuevas/ascendidas es `floor(N/2)+1`; excepción: con una sola pareja activa existente (N=1), la ingresante entra #2 y no desplaza al único #1.
+80. La fórmula vigente de ingreso de nuevas/ascendidas es anteúltima: N=0 => #1; N=1 => #2; N>=2 => posición N.
 81. Con estas decisiones no quedan preguntas funcionales abiertas de Wheel v3; el siguiente paso es validar el diseño mediante simulaciones/tests antes de implementar.
 
 ## Ajustes de auditoría — 2026-09-28
@@ -136,7 +136,7 @@ El reglamento funcional base de Wheel v3 está cerrado. La etapa siguiente es au
 86. Una vez cargada una primera versión de resultado, movimientos posteriores del ranking no cancelan el partido.
 87. Al aplicar ese resultado, el ganador nunca puede bajar por movimientos posteriores: solo se intercambia si el ganador está actualmente debajo del perdedor.
 88. Una cancelación automática por ranking/categoría no reinicia la racha de incumplimientos.
-89. Quedan cuatro bordes específicos en `WHEEL_V3_SPEC.md`: anteúltima con N=1, descenso pendiente si la dupla reaparece en otra categoría, evasión de incumplimientos cambiando de pareja y partido jugado pero no cargado antes de una cancelación.
+89. Los cuatro bordes específicos auditados quedaron cerrados: anteúltima con N=1, descenso pendiente de dupla exacta/categoría, racha exacta de incumplimientos y partido jugado antes de cancelación.
 
 ## Cierre de bordes de auditoría — 2026-09-28
 90. Con 0 activas una nueva/ascendida entra #1; con exactamente 1 activa entra #2, sin desplazar al único #1.
