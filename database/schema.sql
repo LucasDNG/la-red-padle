@@ -359,7 +359,7 @@ CREATE TABLE wheel_no_shows(
   assignment_id bigint NOT NULL UNIQUE REFERENCES wheel_assignments(id) ON DELETE CASCADE,
   reported_by_pair_id bigint NOT NULL REFERENCES pairs(id),
   reported_pair_id bigint NOT NULL REFERENCES pairs(id),
-  status varchar(12) NOT NULL DEFAULT 'pending' CHECK(status IN('pending','accepted','contested','resolved')),
+  status varchar(12) NOT NULL DEFAULT 'pending' CHECK(status IN('pending','accepted','contested','admin_review','resolved')),
   response_deadline_at timestamptz NOT NULL DEFAULT (now()+interval '48 hours'),
   created_at timestamptz NOT NULL DEFAULT now(),
   responded_at timestamptz,
