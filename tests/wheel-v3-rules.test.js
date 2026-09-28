@@ -496,3 +496,21 @@ test('simultaneous ordinary penalty makes each pair lose exactly one effective p
     {order:[1,2,3,4,5,6],debt:{5:1,6:1}},
   );
 });
+
+
+test('formation enabling relegation match only opens the zone if pair remains last',()=>{
+  assert.deepEqual(
+    relegationStateAfterResult({
+      category:4,
+      wasInRelegation:false,
+      losses:0,
+      routeStep:0,
+      isRealMatch:true,
+      won:true,
+      isLast:false,
+      threshold:3,
+      awaitingFirstMatch:true,
+    }),
+    {active:false,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false},
+  );
+});
