@@ -38,6 +38,8 @@ import {
   noShowReconsiderationDeadline,
   resultCountsAsReal,
   simultaneousOnePlacePenalty,
+  normalizeRolesForPlanning,
+  planCategoryWheel,
 } from '../scripts/wheel-v3-rule-model.js';
 
 test('pair anti-abuse state follows the exact two people regardless of order',()=>{
@@ -513,4 +515,39 @@ test('formation enabling relegation match only opens the zone if pair remains la
     }),
     {active:false,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false},
   );
+});
+
+
+test('role planning preserves mandatory defense and forced extremes',()=>{
+  const rows=normalizeRolesForPlanning([
+    {id:1,position:1,role:'attack',roleStreak:2,defenseRequiredUntilReal:false,active:true,free:true,realWaitingSince:'2026-09-01T00:00:00Z'},
+    {id:2,position:2,role:'attack',roleStreak:3,defenseRequiredUntilReal:true,active:true,free:true,realWaitingSince:'2026-09-02T00:00:00Z'},
+    {id:3,position:3,role:null,roleStreak:0,defenseRequiredUntilReal:false,active:true,free:true,realWaitingSince:'2026-09-03T00:00:00Z'},
+    {id:4,position:4,role:'defense',roleStreak:3,defenseRequiredUntilReal:false,active:true,free:true,realWaitingSince:'2026-09-04T00:00:00Z'},
+    {id:5,position:5,role:'defense',roleStreak:2,defenseRequiredUntilReal:false,active:true,free:true,realWaitingSince:'2026-09-05T00:00:00Z'},
+  ]);
+  assert.equal(rows[0].role,'defense');
+  assert.equal(rows[1].role,'defense');
+  assert.equal(rows.at(-1).role,'attack');
+});
+
+test('category planner normalizes roles and produces non-overlapping assignments',()=>{
+  const plan=planCategoryWheel([
+    {id:1,position:1,role:null,roleStreak:0,defenseRequiredUntilReal:false,active:true,free:true,realWaitingSince:'2026-09-01T00:00:00Z'},
+    {id:2,position:2,role:null,roleStreak:0,defenseRequiredUntilReal:false,active:true,free:true,realWaitingSince:'2026-09-02T00:00:00Z'},
+    {id:3,position:3,role:null,roleStreak:0,defenseRequiredUntilReal:false,active:true,free:true,realWaitingSince:'2026-09-03T00:00:00Z'},
+    {id:4,position:4,role:null,roleStreak:0,defenseRequiredUntilReal:false,active:true,free:true,realWaitingSince:'2026-09-04T00:00:00Z'},
+    {id:5,position:5,role:null,roleStreak:0,defenseRequiredUntilReal:false,active:true,free:true,realWaitingSince:'2026-09-05T00:00:00Z'},
+    {id:6,position:6,role:null,roleStreak:0,defenseRequiredUntilReal:false,active:true,free:true,realWaitingSince:'2026-09-06T00:00:00Z'},
+  ]);
+  const used=new Set();
+  for(const a of plan.assignments){
+    assert.ok(!used.has(a.attackerId));
+    assert.ok(!used.has(a.defenderId));
+    used.add(a.attackerId);
+    used.add(a.defenderId);
+    const attacker=plan.pairs.find(p=>p.id===a.attackerId);
+    const defender=plan.pairs.find(p=>p.id===a.defenderId);
+    assert.ok(attacker.position>defender.position);
+  }
 });
