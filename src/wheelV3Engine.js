@@ -1,6 +1,6 @@
 import {q} from './db.js';
 import {formationComplete,planCategoryWheel,shouldCancelAssignmentForStructure,resultAllowedAfterCancellation,resultCountsAsReal,roleAfterRealMatch,promotionStateAfterResult,relegationStateAfterResult,populationDirectionalThreshold,entryPositionPenultimate,descendedEntryPosition,individualCategoriesAfterDescent,failureStateAfterClosure,roleAfterOwnFailure,administrativeFailureMovement,fullCalendarMonthsBetween,inactivityReturnPosition,simultaneousOnePlacePenalty} from './wheelV3Rules.js';
-import {scoreGames,resultEquals} from './core.js';
+import {scoreGames,resultEquals,normalizeScore} from './core.js';
 
 export async function wheelV3FormationSnapshot(client,leagueId,{lock=false}={}){
   if(lock){
@@ -788,7 +788,7 @@ export async function applyWheelV3ConfirmedRealResult(client,{
     assignment.pair_b_id,
     winner,
     resultType,
-    JSON.stringify(score??null),
+    JSON.stringify(normalizedScore??null),
     abandonedPairId,
     games.a,
     games.b,
@@ -1716,6 +1716,7 @@ async function wheelV3ValidateFirstResultWindow(client,assignment,playedAt){
   const played=new Date(playedAt);
   if(Number.isNaN(played.getTime()))throw new Error('Fecha de partido inválida');
   if(played>new Date(now))throw new Error('La fecha jugada no puede estar en el futuro');
+  if(played<new Date(assignment.assigned_at))throw new Error('El partido no puede ser anterior al assignment');
   if(played>new Date(assignment.deadline_at))throw new Error('El partido fue jugado fuera del plazo de 30 días');
   if(!assignment.first_result_at&&new Date(now)>new Date(assignment.deadline_at))throw new Error('Venció el plazo de 30 días para cargar el primer resultado');
   if(assignment.cancelled_at){
@@ -1747,6 +1748,19 @@ export async function submitWheelV3ResultVersion(client,{
   if(!pairIds.includes(submitter))throw new Error('Pareja cargadora inválida');
   if(!pairIds.includes(winner))throw new Error('Ganador inválido');
   await wheelV3ValidateFirstResultWindow(client,assignment,playedAt);
+
+  let normalizedScore=score;
+  if(resultType==='normal'){
+    normalizedScore=normalizeScore(score);
+    const aSets=normalizedScore.sets.filter(s=>s.pairA>s.pairB).length;
+    const bSets=normalizedScore.sets.length-aSets;
+    const scoreWinner=aSets>bSets?Number(assignment.pair_a_id):Number(assignment.pair_b_id);
+    if(scoreWinner!==winner)throw new Error('El ganador no coincide con el marcador');
+    if(abandonedPairId!=null)throw new Error('Un resultado normal no lleva abandono');
+  }else if(resultType==='injury_abandonment'){
+    const abandoned=Number(abandonedPairId);
+    if(!pairIds.includes(abandoned)||abandoned===winner)throw new Error('Abandono inválido');
+  }
 
   const version=(await q(client,`
     INSERT INTO wheel_result_versions(
