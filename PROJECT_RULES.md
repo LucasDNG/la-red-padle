@@ -31,17 +31,17 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - La sección pública que antes representaba otro récord se reutiliza exclusivamente para mostrar este dato.
 
 ## 4. Ascenso, descenso y equilibrio poblacional
-- Wheel v3 tiene una fase de formación inicial: hasta que se cumpla el mínimo acordado de activas en cada categoría del circuito no hay movimientos entre categorías.
+- Wheel v3 tiene una fase de formación **separada por circuito**: Masculino y Femenino avanzan independientemente. Hasta que un circuito tenga al menos 5 activas en cada una de sus 7 categorías no hay movimientos entre categorías en ese circuito.
 - Terminada la formación, el requisito base de ascenso/descenso es 3 resultados deportivos correspondientes.
-- El requisito puede bajar a 2 o 1 según desvío poblacional de parejas activas, usando el esquema vigente de `WHEEL_V3_SPEC.md`.
+- El requisito puede bajar a 2 o 1 según desvío poblacional de parejas activas, usando el esquema vigente de `WHEEL_V3_SPEC.md`, y se recalcula al confirmar cada nuevo resultado.
 - La población por sí sola nunca mueve una pareja: siempre hace falta un resultado posterior que materialice el movimiento.
 - En 7ª no existe período de descenso.
-- Una pareja que asciende entra en la **mitad de la tabla activa** de la categoría superior y desplaza hacia abajo desde ese punto; la fórmula exacta de mitad está pendiente en `WHEEL_V3_SPEC.md`.
+- Una pareja que asciende entra en la **mitad de la tabla activa** de la categoría superior y desplaza hacia abajo desde ese punto: con N activas existentes, posición = `floor(N/2)+1`.
 - Por entrar mediante ascenso no queda automáticamente en período de descenso.
-- Una pareja nueva también entra en la mitad de la tabla activa de su categoría y desplaza hacia abajo.
+- Una pareja nueva también entra en la mitad de la tabla activa de su categoría con la misma fórmula `floor(N/2)+1` y desplaza hacia abajo.
 - Descenso entra base #2 en la categoría inferior; si no existe #1 material, entra #1.
 - Los movimientos entre categorías son siempre adyacentes.
-- El instante exacto de activación de zonas al terminar la fase de formación está pendiente en `WHEEL_V3_SPEC.md`.
+- Al terminar la formación, los #1 y los últimos de 1ª–6ª que ya tienen al menos un partido real previo entran inmediatamente en 0/3 de ascenso/descenso. Si tienen 0 partidos, primero deben disputar uno; falta definir si ese primer resultado ya cuenta o solo habilita la zona.
 
 ## 5. Categoría individual y categoría de pareja
 - La pareja compite en la categoría individual más fuerte de sus dos jugadores (número más bajo); dos jugadores sin categoría previa pueden elegir libremente 1ª–7ª.
@@ -96,7 +96,7 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Si estaba en período de descenso, ese estado y contador quedan congelados durante la inactividad y se retoman al volver.
 - La inactividad por sí sola nunca genera descenso de categoría.
 - Técnicamente puede conservarse `paused` para esta inactividad temporal y `inactive` para disolución/archivo, mientras la UI hable de “inactiva”.
-- Tras 3 incumplimientos atribuibles consecutivos, la pareja pasa automáticamente a inactiva y queda 30 días sin nuevas asignaciones; la forma de reactivación al cumplir el plazo está pendiente en `WHEEL_V3_SPEC.md`.
+- Tras 3 incumplimientos atribuibles consecutivos, la pareja pasa automáticamente a inactiva y queda 30 días sin nuevas asignaciones; al día 30 se reactiva automáticamente. Cualquier assignment cerrado sin incumplimiento atribuible reinicia la racha a 0.
 
 ## 10. Disolución
 - Puede iniciarla cualquiera.
@@ -162,7 +162,7 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 ## 16. Resultados
 - Cualquier integrante puede cargar una versión de resultado en nombre de su pareja, salvo que una acción específica quede definida como de doble confirmación en `WHEEL_V3_SPEC.md`.
 - Una pareja carga ganador, fecha real y resultado estructurado.
-- Si la primera versión se cargó dentro de los 30 días, la otra pareja dispone de una ventana adicional de 7 días solo para confirmar o discutir.
+- Si la primera versión se cargó dentro de los 30 días, desde ese instante la otra pareja dispone de 7 días para confirmar o discutir. El silencio al vencer auto-valida la versión.
 - Versiones idénticas pueden confirmarse automáticamente.
 - Versiones incompatibles generan una disputa administrativa real.
 - La primera versión puede editarse hasta que el rival responda; editar no reinicia el plazo.
