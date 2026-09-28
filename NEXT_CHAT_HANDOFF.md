@@ -297,3 +297,13 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - Resultado ya cargado bloquea nuevas asignaciones; además `No pude jugar` y un no-show nuevo quedan prohibidos después de la primera carga de resultado.
 - El backend público v3 conserva formas compatibles para ranking, próximos, resultados y perfil de pareja.
 - Aún falta ejecutar suites/build reales en un entorno con repo+PostgreSQL, corregir cualquier fallo, completar auditoría frontend/contratos y recién después considerar el switch de `engine`.
+
+### CI real como gate de Wheel v3 — 2026-09-28
+- Workflow: .github/workflows/ci.yml, nombre LA RED final checks.
+- Los runs de push se consultan por la API de GitHub Actions; fetch_commit_workflow_runs no los mostraba porque filtra otro tipo de evento.
+- Ya hubo ejecuciones reales con frontend build, npm run check, npm test y npm run verify:db en verde.
+- CI detectó y permitió corregir dos fallos unitarios: contrato de liveness y desbalance de roles iniciales.
+- CI también detectó una incompatibilidad v2 en no-show tras convertir la unicidad a índice parcial; wheel-v2 quedó compatible usando ON CONFLICT DO NOTHING.
+- Se corrigieron errores de sintaxis en tests PostgreSQL v3 que antes impedían ejecutar esa suite.
+- Run de confirmación en curso al escribir este checkpoint: 36497136449, SHA 6b8e7108745252197baafcba0ec3c4711706affd.
+- No declarar la suite PostgreSQL completa verde hasta que ese run termine.
