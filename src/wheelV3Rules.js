@@ -429,41 +429,46 @@ export function simultaneousOnePlacePenalty(order,penalizedIds,debt={}){
 
 
 export function normalizeRolesForPlanning(pairs){
-  const eligible=[...pairs].filter(p=>p.active!==false&&p.free!==false).sort((a,b)=>Number(a.position)-Number(b.position));
-  if(eligible.length===0)return [];
-  if(eligible.length===1)return [{...eligible[0],role:null,roleStreak:0}];
-
-  const output=eligible.map(p=>({...p}));
-  output[0].role='defense';
-  output[0].roleStreak=eligible[0].role==='defense'?Math.max(1,Number(eligible[0].roleStreak)||0):1;
-  output.at(-1).role='attack';
-  output.at(-1).roleStreak=eligible.at(-1).role==='attack'?Math.max(1,Number(eligible.at(-1).roleStreak)||0):1;
-
-  const middle=output.slice(1,-1);
-  let attackCount=output.filter(p=>p.role==='attack').length;
-  let defenseCount=output.filter(p=>p.role==='defense').length;
-
-  const unresolved=[];
-  for(const pair of middle){
-    if(pair.defenseRequiredUntilReal){
-      pair.role='defense';
-      pair.roleStreak=eligible.find(x=>Number(x.id)===Number(pair.id))?.role==='defense'
-        ?Math.max(1,Number(pair.roleStreak)||0)
-        :1;
-      defenseCount++;
-      continue;
-    }
-    if(pair.role==='attack'){attackCount++;continue;}
-    if(pair.role==='defense'){defenseCount++;continue;}
-    unresolved.push(pair);
+  const active=[...pairs].filter(p=>p.active!==false).sort((a,b)=>Number(a.position)-Number(b.position));
+  if(active.length===0)return [];
+  if(active.length===1){
+    const only={...active[0]};
+    if(only.free!==false){only.role=null;only.roleStreak=0;}
+    return [only];
   }
 
-  for(const pair of unresolved){
+  const output=active.map(p=>({...p}));
+  const actualTop=output[0];
+  const actualBottom=output.at(-1);
+
+  if(actualTop.free!==false){
+    actualTop.role='defense';
+    actualTop.roleStreak=active[0].role==='defense'?Math.max(1,Number(active[0].roleStreak)||0):1;
+  }
+  if(actualBottom.free!==false){
+    actualBottom.role='attack';
+    actualBottom.roleStreak=active.at(-1).role==='attack'?Math.max(1,Number(active.at(-1).roleStreak)||0):1;
+  }
+
+  const free=output.filter(p=>p.free!==false);
+  let attackCount=free.filter(p=>p.role==='attack').length;
+  let defenseCount=free.filter(p=>p.role==='defense').length;
+
+  for(const pair of free){
+    if(pair===actualTop||pair===actualBottom)continue;
+    if(pair.defenseRequiredUntilReal){
+      if(pair.role!=='defense'){
+        pair.role='defense';
+        pair.roleStreak=1;
+        defenseCount++;
+      }
+      continue;
+    }
+    if(pair.role==='attack'||pair.role==='defense')continue;
     pair.role=attackCount<=defenseCount?'attack':'defense';
     pair.roleStreak=1;
     if(pair.role==='attack')attackCount++;else defenseCount++;
   }
-
   return output;
 }
 
