@@ -854,7 +854,7 @@ export async function applyWheelV3ConfirmedRealResult(client,{
     const counts=await wheelV3LeagueCounts(client,assignment.league_id);
     const activeCount=await wheelV3ActiveCount(client,assignment.category_id);
     const currentRows=(await q(client,`
-      SELECT p.id,p.position,pws.promotion_wins,pws.awaiting_zone_first_match,pws.awaiting_zone_kind
+      SELECT p.id,p.category_id,p.position,pws.promotion_wins,pws.awaiting_zone_first_match,pws.awaiting_zone_kind
       FROM pairs p
       JOIN pair_wheel_state pws ON pws.pair_id=p.id
       WHERE p.id=ANY($1::bigint[])
@@ -862,69 +862,81 @@ export async function applyWheelV3ConfirmedRealResult(client,{
     `,[pairIds])).rows;
     const current=Object.fromEntries(currentRows.map(r=>[Number(r.id),r]));
 
-    const winnerPromotion=promotionStateAfterResult({
-      category:Number(category.number),
-      position:Number(current[winner].position),
-      activeCount,
-      currentWins:Number(current[winner].promotion_wins||0),
-      isRealMatch:true,
-      won:true,
-      threshold:Number(category.number)>1
-        ?populationDirectionalThreshold(counts,Number(category.number)-1,Number(category.number)-2)
-        :3,
-      awaitingFirstMatch:Boolean(current[winner].awaiting_zone_first_match)&&current[winner].awaiting_zone_kind==='promotion',
-      wasNumberOneBefore:Number(before[winner].position)===1,
-    });
-    await wheelV3PersistPromotionState(client,winner,winnerPromotion);
+    const winnerStillHere=Number(current[winner].category_id)===Number(category.id);
+    const loserStillHere=Number(current[loser].category_id)===Number(category.id);
 
-    const loserPromotion=promotionStateAfterResult({
-      category:Number(category.number),
-      position:Number(current[loser].position),
-      activeCount,
-      currentWins:Number(current[loser].promotion_wins||0),
-      isRealMatch:true,
-      won:false,
-      threshold:3,
-      awaitingFirstMatch:Boolean(current[loser].awaiting_zone_first_match)&&current[loser].awaiting_zone_kind==='promotion',
-      wasNumberOneBefore:Number(before[loser].position)===1,
-    });
-    await wheelV3PersistPromotionState(client,loser,loserPromotion);
+    let winnerPromotion={active:false,wins:0,promote:false,awaitingFirstMatch:false};
+    let loserPromotion={active:false,wins:0,promote:false,awaitingFirstMatch:false};
+    if(winnerStillHere){
+      winnerPromotion=promotionStateAfterResult({
+        category:Number(category.number),
+        position:Number(current[winner].position),
+        activeCount,
+        currentWins:Number(current[winner].promotion_wins||0),
+        isRealMatch:true,
+        won:true,
+        threshold:Number(category.number)>1
+          ?populationDirectionalThreshold(counts,Number(category.number)-1,Number(category.number)-2)
+          :3,
+        awaitingFirstMatch:Boolean(current[winner].awaiting_zone_first_match)&&current[winner].awaiting_zone_kind==='promotion',
+        wasNumberOneBefore:Number(before[winner].category_id)===Number(category.id)&&Number(before[winner].position)===1,
+      });
+      await wheelV3PersistPromotionState(client,winner,winnerPromotion);
+    }
+    if(loserStillHere){
+      loserPromotion=promotionStateAfterResult({
+        category:Number(category.number),
+        position:Number(current[loser].position),
+        activeCount,
+        currentWins:Number(current[loser].promotion_wins||0),
+        isRealMatch:true,
+        won:false,
+        threshold:3,
+        awaitingFirstMatch:Boolean(current[loser].awaiting_zone_first_match)&&current[loser].awaiting_zone_kind==='promotion',
+        wasNumberOneBefore:Number(before[loser].category_id)===Number(category.id)&&Number(before[loser].position)===1,
+      });
+      await wheelV3PersistPromotionState(client,loser,loserPromotion);
+    }
 
     let winnerRelegation={active:false,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false};
     let loserRelegation={active:false,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false};
     if(Number(category.number)<7){
-      const winnerDuo=await wheelV3DuoStateForPair(client,winner,{lock:true});
-      const loserDuo=await wheelV3DuoStateForPair(client,loser,{lock:true});
       const threshold=populationDirectionalThreshold(counts,Number(category.number)-1,Number(category.number));
-      winnerRelegation=relegationStateAfterResult({
-        category:Number(category.number),
-        wasInRelegation:Number(winnerDuo.pending_relegation_category_id)===Number(category.id),
-        losses:Number(winnerDuo.pending_relegation_losses||0),
-        routeStep:Number(winnerDuo.relegation_route_step||0),
-        isRealMatch:true,
-        won:true,
-        isLast:Number(current[winner].position)===activeCount,
-        threshold,
-        awaitingFirstMatch:Boolean(current[winner].awaiting_zone_first_match)&&current[winner].awaiting_zone_kind==='relegation',
-      });
-      loserRelegation=relegationStateAfterResult({
-        category:Number(category.number),
-        wasInRelegation:Number(loserDuo.pending_relegation_category_id)===Number(category.id),
-        losses:Number(loserDuo.pending_relegation_losses||0),
-        routeStep:Number(loserDuo.relegation_route_step||0),
-        isRealMatch:true,
-        won:false,
-        isLast:Number(current[loser].position)===activeCount,
-        threshold,
-        awaitingFirstMatch:Boolean(current[loser].awaiting_zone_first_match)&&current[loser].awaiting_zone_kind==='relegation',
-      });
-      await wheelV3PersistRelegationState(client,winner,category.id,winnerRelegation);
-      await wheelV3PersistRelegationState(client,loser,category.id,loserRelegation);
-      if(current[winner].awaiting_zone_kind==='relegation'){
-        await q(client,`UPDATE pair_wheel_state SET awaiting_zone_first_match=false,awaiting_zone_kind=NULL WHERE pair_id=$1`,[winner]);
+      if(winnerStillHere){
+        const winnerDuo=await wheelV3DuoStateForPair(client,winner,{lock:true});
+        winnerRelegation=relegationStateAfterResult({
+          category:Number(category.number),
+          wasInRelegation:Number(winnerDuo.pending_relegation_category_id)===Number(category.id),
+          losses:Number(winnerDuo.pending_relegation_losses||0),
+          routeStep:Number(winnerDuo.relegation_route_step||0),
+          isRealMatch:true,
+          won:true,
+          isLast:Number(current[winner].position)===activeCount,
+          threshold,
+          awaitingFirstMatch:Boolean(current[winner].awaiting_zone_first_match)&&current[winner].awaiting_zone_kind==='relegation',
+        });
+        await wheelV3PersistRelegationState(client,winner,category.id,winnerRelegation);
+        if(current[winner].awaiting_zone_kind==='relegation'){
+          await q(client,`UPDATE pair_wheel_state SET awaiting_zone_first_match=false,awaiting_zone_kind=NULL WHERE pair_id=$1`,[winner]);
+        }
       }
-      if(current[loser].awaiting_zone_kind==='relegation'){
-        await q(client,`UPDATE pair_wheel_state SET awaiting_zone_first_match=false,awaiting_zone_kind=NULL WHERE pair_id=$1`,[loser]);
+      if(loserStillHere){
+        const loserDuo=await wheelV3DuoStateForPair(client,loser,{lock:true});
+        loserRelegation=relegationStateAfterResult({
+          category:Number(category.number),
+          wasInRelegation:Number(loserDuo.pending_relegation_category_id)===Number(category.id),
+          losses:Number(loserDuo.pending_relegation_losses||0),
+          routeStep:Number(loserDuo.relegation_route_step||0),
+          isRealMatch:true,
+          won:false,
+          isLast:Number(current[loser].position)===activeCount,
+          threshold,
+          awaitingFirstMatch:Boolean(current[loser].awaiting_zone_first_match)&&current[loser].awaiting_zone_kind==='relegation',
+        });
+        await wheelV3PersistRelegationState(client,loser,category.id,loserRelegation);
+        if(current[loser].awaiting_zone_kind==='relegation'){
+          await q(client,`UPDATE pair_wheel_state SET awaiting_zone_first_match=false,awaiting_zone_kind=NULL WHERE pair_id=$1`,[loser]);
+        }
       }
     }
 
@@ -1090,9 +1102,17 @@ async function wheelV3AdministrativeRelegationDecision(client,pairId,{ownFailure
 
 async function wheelV3CountAdministrativeFirstPlaceDefense(client,{assignment,winnerPairId,countsAsFirstPlaceDefense}){
   if(!countsAsFirstPlaceDefense)return null;
+  if(Number(assignment.defender_pair_id)!==Number(winnerPairId))return null;
+  if(assignment.first_place_reign_id){
+    return (await q(client,`
+      UPDATE first_place_reigns
+      SET defenses=defenses+1,updated_at=CURRENT_TIMESTAMP
+      WHERE id=$1 AND pair_id=$2
+      RETURNING *
+    `,[assignment.first_place_reign_id,winnerPairId])).rows[0]||null;
+  }
   const pair=await wheelV3CurrentPairRow(client,winnerPairId);
   if(Number(pair.category_number)!==1||Number(pair.position)!==1)return null;
-  if(Number(assignment.defender_pair_id)!==Number(winnerPairId))return null;
   const reign=await wheelV3OpenReign(client,pair.league_id,winnerPairId);
   return (await q(client,`
     UPDATE first_place_reigns
