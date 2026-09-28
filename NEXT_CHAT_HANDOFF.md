@@ -214,3 +214,13 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
   - la segunda ejecución es idempotente.
 - `database/verify.sql` ahora falla si alguna pareja no tiene `pair_wheel_state`, una dupla exacta no tiene `pair_duo_state`, una pausada carece de snapshot de retorno o una sanción de 30 días carece de timestamps.
 - Siguiente paso: confirmar CI PostgreSQL del HEAD y ampliar tests de comportamiento/concurrencia v3 antes de tocar el runtime.
+
+### Auditoría de estado persistente Wheel v3 — 2026-09-28
+- Se detectó y corrigió un error real de delimitadores PL/pgSQL en los triggers preparatorios.
+- Se agregó `defense_required_until_real` para persistir la defensa obligatoria posterior a incumplimiento.
+- Se agregó `relegation_route_step` para que la ruta de descenso no se pierda por reinicio/disolución.
+- Se agregó `awaiting_zone_kind` para distinguir el partido habilitante de ascenso vs descenso al cerrar formación.
+- El patch preparatorio ahora también evoluciona instalaciones que ya hubieran recibido una versión anterior de las tablas v3 mediante `ALTER ... ADD COLUMN IF NOT EXISTS`.
+- Se agregaron regresiones PostgreSQL para persistencia de descenso por dupla, múltiples encarnaciones de la misma dupla, sanción de 30 días, circuito correcto, cancelación/resultados y evolución de schema.
+- `verify.sql` valida coherencia de zona habilitante y ruta de descenso vacía.
+- El runtime continúa en `wheel-v2`.
