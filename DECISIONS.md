@@ -1,84 +1,97 @@
 # LA RED Pádel — Decisiones vigentes
 
-Este archivo contiene únicamente decisiones que siguen vigentes. Las decisiones reemplazadas viven en `PROJECT_JOURNEY.md`, no acá.
+Este archivo contiene **solo decisiones que siguen vigentes**. Las decisiones reemplazadas se documentan en `PROJECT_JOURNEY.md`.
 
+> **Wheel v3 — 2026-09-28:** el diseño funcional nuevo está consolidado en `WHEEL_V3_SPEC.md`. El código productivo continúa en `wheel-v2` hasta cerrar las preguntas abiertas, escribir tests/simulaciones e implementar la migración.
 
-> **Transición Wheel v3 — 2026-09-28:** las decisiones nuevas del motor están consolidadas en `WHEEL_V3_SPEC.md` y prevalecen sobre ítems anteriores incompatibles (especialmente selección de rival, aceptación/asignación, no-show, pausa/inactividad y válvula poblacional). Aún no se reescriben esos ítems aquí porque quedan preguntas finales explícitas en la spec y el código sigue en `wheel-v2`. Antes de implementar, cerrar esas preguntas y luego consolidar este archivo eliminando las reglas reemplazadas.
+## Ranking y competencia
 
-1. El ranking es una escalera estructural: las estadísticas no gobiernan la posición.
-2. Si una pareja ubicada abajo vence a una ubicada arriba, intercambian posiciones; el resto no se reordena.
-3. La posición real dentro de la categoría es el ranking; no existe una métrica numérica paralela.
-4. La rueda es automática y cada pareja puede tener como máximo un compromiso abierto.
-5. Rival nunca enfrentado primero; después, cruce más antiguo; waiting time resuelve categorías impares.
-6. El assignment da 30 días corridos para jugar **y cargar** el resultado.
-7. Solo existe una programación oficial; una propuesta nueva no reemplaza la anterior hasta que ambas parejas la aceptan.
-8. Las propuestas tienen 48 h; una propuesta demasiado tardía no traslada automáticamente toda la responsabilidad al rival.
-9. Existe una única extensión extraordinaria de 15 días por causa externa confirmada por ambas parejas.
-10. No-show se reporta después de la programación oficial; la pareja reportada tiene 48 h para objetar.
-11. Si un no-show se contradice sin evidencia objetiva suficiente, la rueda continúa con penalización operativa a ambas, sin inventar resultado deportivo ni crear trabajo Admin ordinario.
-12. Un resultado cargado abre 15 días de confirmación; silencio auto-valida.
-13. Dos versiones incompatibles de un partido jugado generan una disputa real para Admin.
-14. Lesión/abandono es un resultado deportivo sin inventar games ni aplicar una penalización adicional.
-15. Estados competitivo y disciplinario son dimensiones separadas.
-16. Disciplina individual sobrevive al cambio de pareja.
-17. Pausa voluntaria requiere a ambos; `pause_after_current` evita una asignación nueva después de cerrar el compromiso actual.
-18. Disolución tiene salida a 7 días y nunca borra obligaciones ya abiertas.
-19. La categoría individual no cambia solo por jugar temporalmente con un compañero más fuerte; cambia por movimiento deportivo real.
-20. Formación de pareja requiere invitación + aceptación; Admin no aprueba parejas.
-21. Un usuario no puede pertenecer a dos parejas competitivas vigentes.
-22. DNI es único y privado; login jugador usa DNI + contraseña.
-23. Registro final exige DNI + frente + dorso para verificación inicial.
-24. Las imágenes del DNI son temporales, privadas y visibles solo por Admin durante la verificación; la fila activa se elimina al verificar/rechazar.
-25. Una foto defectuosa se resuelve con `PEDIR NUEVAS FOTOS`, no con rechazo automático de cuenta.
-26. Reenvío de DNI conserva la misma cuenta/DNI y reemplaza frente+dorso como conjunto.
-27. El login Admin está separado del login jugador: frontend `/admin-la-red`, backend `/api/auth/admin-login`.
-28. Una cuenta Admin no puede autenticarse por el endpoint normal de jugadores.
-29. La ruta privada Admin es discreción, no seguridad: siguen siendo obligatorios rol, contraseña y TOTP cuando esté configurado.
-30. El primer propietario se crea por promoción explícita de una cuenta existente; no existe alta pública de Admin.
-31. Admin es una cola de excepciones: identidad, disputas reales, disciplina, canchas, correcciones excepcionales, auditoría y contingencias globales.
-32. Admin no elige rivales ni ordena manualmente el ranking; tampoco resuelve coordinación ordinaria ni aprueba parejas.
-33. Toda acción Admin sensible queda auditada.
-34. WhatsApp es el canal operativo principal; la app conserva el estado oficial.
-35. Eventos relevantes de un compromiso se notifican a ambos integrantes de las parejas afectadas.
-36. Próximos partidos solo son públicos cuando fecha/hora/lugar fueron aceptados.
-37. El único récord deportivo histórico especial es la cantidad de defensas exitosas del #1 de Primera, separado Masculino/Femenino.
-38. LA RED es una liga continua, sin temporadas ni resets.
-39. Canchas son administrables y archivables sin borrar historial.
-40. La primera versión competitiva es 18+ y usa aceptaciones legales versionadas.
-41. LA RED no se define como sin fines de lucro ni promete gratuidad permanente.
-42. La capa comercial futura (reservas/pagos/comisiones) queda desacoplada del motor deportivo.
-43. El producto final se instala desde un `schema.sql` consolidado; no se reconstruye una instalación nueva encadenando migraciones históricas.
-44. La identidad visual aprobada es parte estable del producto y no puede degradarse por una reescritura técnica.
-45. Hero oficial: cancha real de pádel nocturna; nunca tenis.
-46. Todas las páginas internas comparten un sistema visual coherente de espaciado, cards, títulos, formularios y responsive.
-47. `Mi liga` y `Mi pareja` deben explicar el proceso y la próxima acción, no limitarse a mostrar datos técnicos.
-48. Login/registro deriva de la URL activa y reacciona a cambios de `location.search`.
-49. En SQL crítico se evitan placeholders reutilizados en contextos con inferencias de tipo incompatibles; se usan casts o parámetros separados.
-50. En Admin, éxito de la acción y éxito del refresco posterior son estados distintos.
-51. Gates técnicos deben comprobar sintaxis, tests y consistencia de imports/exports, no solo `node --check`.
-52. Los `.md` son la memoria oficial de LA RED: reglas, arquitectura, decisiones, auditoría y estado deben actualizarse junto con código/tests.
+1. La posición estructural dentro de la categoría es el único ranking competitivo.
+2. No existe una puntuación numérica paralela al puesto.
+3. Si una pareja ubicada abajo vence a una ubicada arriba en un partido real, intercambian posiciones; el resto no se reordena globalmente.
+4. La rueda ordinaria es automática; no existe un flujo normal de buscar rival, desafiar y esperar aceptación.
+5. Cada pareja puede tener como máximo un compromiso abierto.
+6. El assignment da 30 días corridos para jugar y cargar una primera versión de resultado.
+7. No existe extensión extraordinaria de 15 días en Wheel v3.
+8. Si el resultado fue cargado dentro del plazo, existe una ventana adicional de 7 días solo para confirmar o discutir esa versión; el detalle final está pendiente de una confirmación de borde en la spec.
+9. La selección Wheel v3 usa roles ataque/defensa, prioridad por tiempo sin partido real y ventanas crecientes hacia arriba para el atacante.
+10. La repetición de rival se evita cuando existe alternativa, pero nunca debe bloquear la rueda.
+11. La fase de formación termina cuando las 7 categorías del circuito alcanzan el mínimo acordado de parejas activas; el alcance exacto por circuito está pendiente de confirmación.
+12. Después de la formación, la población activa puede modificar el requisito deportivo 3/2/1, pero la población por sí sola nunca mueve una pareja.
+13. Todos los ascensos/descensos entre categorías son adyacentes.
+14. Una pareja que desciende entra normalmente #2 en la categoría inferior; si no existe #1 material, entra #1.
+15. En 7ª no existe zona/período de descenso.
 
-53. El descenso usa una válvula de equilibrio: normalmente exige 3 derrotas consecutivas siendo última; si la categoría tiene al menos 5 parejas activas más que la categoría inferior, exige 2. La regla anterior de población totalmente irrelevante queda reemplazada solo para este umbral de descenso.
-54. Cinco derrotas consecutivas no se adopta: matemáticamente haría el descenso mucho menos frecuente y agravaría la acumulación hacia categorías superiores.
+## Récord histórico de Primera
 
+16. El único récord deportivo histórico especial es la cantidad de defensas exitosas del puesto #1 de Primera.
+17. Masculino y Femenino tienen récords separados.
+18. Una defensa exitosa exige que la pareja ya sea #1 de Primera, dispute una defensa y conserve el #1.
+19. La sección pública histórica se dedica únicamente a este récord.
+20. No se muestra un historial estadístico acumulado de partidos/victorias/derrotas por pareja.
+21. El jugador puede ver hasta los últimos 5 movimientos reales de ranking/categoría, con fecha y explicación simple.
 
-## Decisiones de superficie de usuario y canchas — 2026-09-22
-48. El rival no se elige mediante un botón de “desafiar”: la rueda automática sigue siendo la única fuente ordinaria de asignación.
-49. Todo flujo ordinario que requiera una acción humana debe poder completarse desde la web; no se considera terminado si exige consola, llamada manual a API o conocimiento técnico.
-50. El lugar de un partido es texto libre propuesto por una pareja y aceptado por la otra; no depende de una cancha precargada.
-51. Una mención de lugar hecha por jugadores no implica vínculo comercial, recomendación ni patrocinio de LA RED.
-52. El catálogo de canchas queda reservado a la capa comercial: solo sedes activas marcadas explícitamente como adheridas se publican como “Canchas adheridas a LA RED”.
-53. Pausa y disolución muestran en frontend quién pidió la acción, cuándo falta confirmación del compañero y cuál es la siguiente acción disponible.
-54. Extensión extraordinaria y no-show se ofrecen en pantalla únicamente cuando la ventana temporal correspondiente está habilitada.
-55. Un resultado propio todavía editable se vuelve a mostrar precargado para corregirlo; una disputa incompatible pasa a estado de espera de resolución administrativa.
-56. La ventana disciplinaria de 15 días posterior al cierre de un partido debe ser accesible desde Mi liga mediante partidos recientes reportables.
+## Inactividad
 
-## Decisiones prioritarias incorporadas — 2026-09-28
-57. La posición estructural es el único ranking competitivo; se elimina cualquier métrica numérica paralela del producto.
-58. La sección histórica de Primera muestra únicamente el récord de defensas exitosas del puesto #1.
-59. Los partidos ordinarios se asignan automáticamente; no se reintroduce un flujo manual de desafíos cuando el motor puede determinar el rival.
-60. Una pareja puede avisar que pasará a inactiva; un compromiso ya asignado debe resolverse deportivamente antes de aplicar la inactividad.
-61. Una vez inactiva, no recibe partidos ni sanciones por no jugar y no pierde puestos o categoría por el simple paso del tiempo.
-62. La experiencia del jugador debe priorizar la próxima acción concreta y ocultar complejidad interna innecesaria.
-63. Los últimos 5 movimientos reales con fecha sustituyen un historial estadístico acumulado de pareja.
-64. Las dudas de borde todavía abiertas están enumeradas en `WHEEL_V3_SPEC.md` y deben cerrarse antes de implementar Wheel v3.
+22. Una pareja puede avisar que quiere pasar a inactiva.
+23. Si ya tiene un partido asignado, primero debe resolverse la situación de ese compromiso.
+24. No está obligada físicamente a jugar: si decide no disputar el compromiso, primero se aplica la consecuencia deportiva correspondiente y después pasa a inactiva.
+25. La nueva regla indica intercambio de posición con el rival en ese cierre; la semántica exacta para evitar que un atacante se beneficie incumpliendo queda abierta en `WHEEL_V3_SPEC.md`.
+26. Una vez inactiva no recibe assignments.
+27. Una inactiva no participa del balance ataque/defensa ni del cálculo de población activa.
+28. La inactividad por sí sola no genera castigos periódicos, pérdida mensual de puestos ni descenso de categoría.
+29. La antigua regla de perder puestos por meses de inactividad queda eliminada.
+30. Puede conservarse técnicamente `paused` como inactividad temporal y `inactive` como disolución/archivo si eso simplifica la migración; en la interfaz del jugador se usa “inactiva”.
+31. La posición exacta al reactivar y el tratamiento de un período de descenso previo siguen abiertos en la spec.
+
+## No-show, incumplimientos y resultados
+
+32. `No pude jugar` permite reconocer un incumplimiento sin esperar a que venzan los 30 días.
+33. Una victoria administrativa no cuenta como victoria real para ascenso ni para salir de período de descenso.
+34. Solo un partido real reinicia la antigüedad de “hace cuánto no juega”.
+35. Un no-show reconocido expresamente por la pareja reportada se resuelve inmediatamente; no espera las 48 horas.
+36. Un no-show unilateral no reconocido o contradicho pasa a Administración después de la ventana de reconsideración acordada.
+37. Una disputa real de resultado requiere intervención administrativa.
+38. Lesión/abandono conserva un tratamiento deportivo especial sin inventar games; su efecto exacto sobre zonas Wheel v3 está pendiente de confirmación.
+
+## Parejas y categorías individuales
+
+39. Formar pareja requiere invitación + aceptación; Admin no aprueba parejas.
+40. Un usuario no puede pertenecer a dos parejas competitivas vigentes.
+41. La categoría individual no cambia solo por jugar temporalmente con un compañero más fuerte; cambia por movimiento deportivo real.
+42. La categoría inicial de dos jugadores sin categoría previa sigue pendiente de confirmación final en Wheel v3.
+43. Disolución nunca borra obligaciones abiertas.
+44. La re-formación futura de una misma dupla tiene su tratamiento competitivo pendiente de confirmación.
+
+## Identidad, seguridad y administración
+
+45. DNI es único y privado; login jugador usa DNI + contraseña.
+46. Registro exige DNI + frente + dorso para verificación inicial.
+47. Las imágenes del DNI son temporales y se eliminan de la base activa al cerrar la revisión.
+48. Una foto defectuosa se resuelve con `PEDIR NUEVAS FOTOS`, sin crear otra cuenta.
+49. Login Admin está separado: frontend `/admin-la-red`, backend `/api/auth/admin-login`.
+50. Una cuenta Admin no puede autenticarse por el endpoint normal de jugadores.
+51. Conocer la ruta Admin no otorga acceso: siguen siendo obligatorios rol, contraseña y TOTP cuando corresponda.
+52. El primer propietario se promueve explícitamente; no existe alta pública de administradores.
+53. Admin es una cola de excepciones: identidad, disputas reales, disciplina, canchas, correcciones, auditoría y contingencias.
+54. Admin no elige rivales ni ordena manualmente el ranking.
+55. Toda acción administrativa sensible queda auditada.
+
+## Producto, UX y negocio
+
+56. WhatsApp es el canal operativo principal; la app conserva el estado oficial.
+57. Los eventos relevantes de un compromiso se notifican a ambos integrantes de las parejas afectadas.
+58. La complejidad puede existir en el motor, pero la UX debe centrarse en “qué me toca hacer ahora”.
+59. Todo flujo ordinario que requiera una acción humana debe poder completarse desde la web.
+60. El lugar de un partido es texto libre acordado por jugadores y no crea vínculo comercial con la sede mencionada.
+61. El catálogo de canchas adheridas es una capa comercial separada del motor deportivo.
+62. LA RED es continua, sin temporadas ni resets anuales.
+63. La primera versión competitiva es 18+ y usa aceptaciones legales versionadas.
+64. LA RED no se define como sin fines de lucro ni promete gratuidad permanente.
+65. La capa comercial futura de reservas/pagos/comisiones no puede alterar resultados ni ranking.
+66. La identidad visual aprobada debe preservarse: hero de cancha real de pádel nocturna, sin referencias a tenis.
+67. Los `.md` son la memoria oficial; toda regla implementada debe quedar alineada con código, tests y documentación.
+
+## Preguntas todavía abiertas
+
+Las preguntas de borde que faltan cerrar antes de tocar Wheel v3 están en `WHEEL_V3_SPEC.md`. No deben resolverse por intuición ni por cómo funciona Wheel v2 hoy.
