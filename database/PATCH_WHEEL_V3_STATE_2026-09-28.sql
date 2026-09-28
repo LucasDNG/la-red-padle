@@ -192,7 +192,8 @@ ALTER TABLE wheel_assignments
   ADD COLUMN IF NOT EXISTS attacker_pair_id bigint REFERENCES pairs(id),
   ADD COLUMN IF NOT EXISTS defender_pair_id bigint REFERENCES pairs(id),
   ADD COLUMN IF NOT EXISTS cancelled_at timestamptz,
-  ADD COLUMN IF NOT EXISTS first_result_at timestamptz;
+  ADD COLUMN IF NOT EXISTS first_result_at timestamptz,
+  ADD COLUMN IF NOT EXISTS first_place_reign_id bigint;
 
 DO $$
 BEGIN
@@ -237,6 +238,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_first_place_open_reign
 
 CREATE INDEX IF NOT EXISTS idx_first_place_record
   ON first_place_reigns(league_id,defenses DESC,started_at);
+
+
+DO $
+BEGIN
+  IF NOT EXISTS(
+    SELECT 1 FROM pg_constraint
+    WHERE conname='wheel_assignments_first_place_reign_fk'
+      AND conrelid='wheel_assignments'::regclass
+  ) THEN
+    ALTER TABLE wheel_assignments
+      ADD CONSTRAINT wheel_assignments_first_place_reign_fk
+      FOREIGN KEY(first_place_reign_id) REFERENCES first_place_reigns(id);
+  END IF;
+END $;
 
 
 ALTER TABLE wheel_result_versions DROP CONSTRAINT IF EXISTS wheel_result_versions_result_type_check;
