@@ -1,7 +1,10 @@
 import {q} from './db.js';
-import {formationComplete,planCategoryWheel} from './wheelV3Rules.js';
+import {formationComplete,planCategoryWheel,shouldCancelAssignmentForStructure,resultAllowedAfterCancellation} from './wheelV3Rules.js';
 
 export async function wheelV3FormationSnapshot(client,leagueId,{lock=false}={}){
+  if(lock){
+    await q(client,`SELECT id FROM categories WHERE league_id=$1 ORDER BY number FOR UPDATE`,[leagueId]);
+  }
   const rows=(await q(client,`
     SELECT c.id,c.number,count(p.id) FILTER (WHERE p.competition_state='active')::int active_count
     FROM categories c
@@ -9,7 +12,6 @@ export async function wheelV3FormationSnapshot(client,leagueId,{lock=false}={}){
     WHERE c.league_id=$1
     GROUP BY c.id,c.number
     ORDER BY c.number
-    ${lock?'FOR UPDATE OF c':''}
   `,[leagueId])).rows;
   if(rows.length!==7)throw new Error('Wheel v3 requiere exactamente 7 categorías por circuito');
   return {
@@ -185,4 +187,87 @@ export async function createWheelV3AssignmentsForCategory(client,categoryId){
     created.push(assignment);
   }
   return {plan,created};
+}
+
+
+export async function cancelInvalidWheelV3AssignmentsForCategory(client,categoryId){
+  await q(client,`SELECT id FROM categories WHERE id=$1 FOR UPDATE`,[categoryId]);
+  const rows=(await q(client,`
+    SELECT
+      wa.*,
+      attacker.category_id attacker_category_id,
+      attacker.position attacker_position,
+      defender.category_id defender_category_id,
+      defender.position defender_position
+    FROM wheel_assignments wa
+    JOIN pairs attacker ON attacker.id=wa.attacker_pair_id
+    JOIN pairs defender ON defender.id=wa.defender_pair_id
+    WHERE wa.category_id=$1
+      AND wa.status IN('open','result_pending')
+    ORDER BY wa.id
+    FOR UPDATE OF wa
+  `,[categoryId])).rows;
+
+  const cancelled=[];
+  for(const row of rows){
+    const shouldCancel=shouldCancelAssignmentForStructure({
+      hasFirstResult:Boolean(row.first_result_at),
+      attackerCategory:row.attacker_category_id,
+      defenderCategory:row.defender_category_id,
+      attackerPosition:row.attacker_position,
+      defenderPosition:row.defender_position,
+    });
+    if(!shouldCancel)continue;
+
+    const reason=Number(row.attacker_category_id)!==Number(row.defender_category_id)
+      ?'system_category_cancel'
+      :'system_ranking_cancel';
+
+    const closed=(await q(client,`
+      UPDATE wheel_assignments
+      SET
+        status='cancelled',
+        cancelled_at=CURRENT_TIMESTAMP,
+        closed_at=CURRENT_TIMESTAMP,
+        close_reason=$2
+      WHERE id=$1
+        AND first_result_at IS NULL
+        AND status IN('open','result_pending')
+      RETURNING *
+    `,[row.id,reason])).rows[0];
+    if(!closed)continue;
+
+    await q(client,`DELETE FROM wheel_assignment_participants WHERE assignment_id=$1`,[row.id]);
+    cancelled.push(closed);
+  }
+  return cancelled;
+}
+
+export async function registerWheelV3FirstResult(client,assignmentId){
+  const row=(await q(client,`
+    UPDATE wheel_assignments
+    SET
+      first_result_at=COALESCE(first_result_at,CURRENT_TIMESTAMP),
+      confirmation_deadline_at=COALESCE(confirmation_deadline_at,CURRENT_TIMESTAMP+interval '7 days'),
+      status=CASE WHEN status='open' THEN 'result_pending' ELSE status END
+    WHERE id=$1
+      AND status IN('open','result_pending')
+    RETURNING *
+  `,[assignmentId])).rows[0];
+  if(!row)throw new Error('Assignment no disponible para primera carga');
+  return row;
+}
+
+export async function wheelV3CancelledResultEligibility(client,assignmentId,playedAt){
+  const row=(await q(client,`
+    SELECT id,cancelled_at,status
+    FROM wheel_assignments
+    WHERE id=$1
+  `,[assignmentId])).rows[0];
+  if(!row)throw new Error('Assignment inexistente');
+  if(row.status!=='cancelled')return {eligible:true,cancelledAt:row.cancelled_at};
+  return {
+    eligible:resultAllowedAfterCancellation({playedAt,cancelledAt:row.cancelled_at}),
+    cancelledAt:row.cancelled_at,
+  };
 }
