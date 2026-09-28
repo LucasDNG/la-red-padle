@@ -147,3 +147,10 @@ El reglamento funcional base de Wheel v3 está cerrado. La etapa siguiente es au
 95. Un partido jugado válidamente antes de una cancelación puede cargarse después de la cancelación y seguir confirmación/disputa normal.
 96. Si al aplicar ese resultado el ganador ya está arriba por cambios previos, no se mueve el ranking y se avisa: no se aplican cambios porque el ganador pasaría a estar abajo.
 97. Si el partido no se había jugado antes de la cancelación, la cancelación competitiva es definitiva.
+
+## Tiempo autoritativo — 2026-09-28
+98. Ningún plazo competitivo depende del reloj del dispositivo del jugador.
+99. La autoridad temporal es backend/base de datos; timestamps y comparaciones se almacenan en UTC.
+100. Para decisiones de vencimiento se prefiere PostgreSQL `CURRENT_TIMESTAMP/NOW()` dentro de la transacción correspondiente.
+101. El frontend solo muestra deadlines y cuentas regresivas basadas en una referencia `server_now`; alterar la hora local no cambia reglas ni vencimientos.
+102. Las fechas pueden mostrarse en horario de Argentina, pero la lógica permanece en UTC.
