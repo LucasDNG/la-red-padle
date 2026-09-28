@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {databasePoolOptions,productionConfigReport,assertRuntimeConfig,frontendOrigins} from '../src/config.js';
+import {databasePoolOptions,productionConfigReport,assertRuntimeConfig,frontendOrigins,corsOrigins} from '../src/config.js';
 
 const strongEnv={
   NODE_ENV:'production',
@@ -68,6 +68,13 @@ test('production frontend origins reject paths and normalize harmless trailing s
   ]);
 });
 
+
+test('production CORS autoriza los dominios oficiales de LA RED además del frontend configurado',()=>{
+  const origins=corsOrigins(strongEnv);
+  assert.ok(origins.includes('https://la-red-padle.vercel.app'));
+  assert.ok(origins.includes('https://www.laredpadel.com.ar'));
+  assert.ok(origins.includes('https://laredpadel.com.ar'));
+});
 
 test('WhatsApp production config validates Graph version, phone id and template name',()=>{
   assert.ok(productionConfigReport({...strongEnv,WHATSAPP_GRAPH_VERSION:'26'},{strictIntegrations:true}).errors.some(x=>x.includes('WHATSAPP_GRAPH_VERSION')));
