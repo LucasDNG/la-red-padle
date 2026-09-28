@@ -30,16 +30,15 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Cada defensa real en la que la pareja ya ocupa el #1 de Primera y conserva la punta suma 1.
 - La sección pública que antes representaba otro récord se reutiliza exclusivamente para mostrar este dato.
 
-## 4. Ascenso y descenso
-- #1 + 3 victorias consecutivas => asciende una categoría, salvo Primera.
-- Ascendido entra al fondo del bloque activo de la categoría superior.
-- Regla base: última pareja + 3 derrotas consecutivas => desciende, salvo 7ª.
-- Válvula de equilibrio: si esa categoría tiene **5 o más parejas activas que la categoría inmediatamente inferior**, la última desciende con 2 derrotas consecutivas. Cuando la diferencia vuelve a ser menor a 5, el requisito vuelve automáticamente a 3.
-- La regla poblacional solo modifica el umbral deportivo aplicable; no sustituye el ranking ni mueve parejas por sí sola. El diseño poblacional vigente está en `WHEEL_V3_SPEC.md`.
-- Descenso entra base #2 en la categoría inferior; la deuda empuja posiciones hacia abajo.
-- Si la categoría inferior no tiene activos, entra #1.
-- Deuda que no puede materializarse se conserva.
-- La racha que provoca el movimiento se reinicia.
+## 4. Ascenso, descenso y equilibrio poblacional
+- Wheel v3 tiene una fase de formación inicial: hasta que se cumpla el mínimo acordado de activas en cada categoría del circuito no hay movimientos entre categorías.
+- Terminada la formación, el requisito base de ascenso/descenso es 3 resultados deportivos correspondientes.
+- El requisito puede bajar a 2 o 1 según desvío poblacional de parejas activas, usando el esquema vigente de `WHEEL_V3_SPEC.md`.
+- La población por sí sola nunca mueve una pareja: siempre hace falta un resultado posterior que materialice el movimiento.
+- En 7ª no existe período de descenso.
+- Descenso entra base #2 en la categoría inferior; si no existe #1 material, entra #1.
+- Los movimientos entre categorías son siempre adyacentes.
+- Las preguntas sobre ascendido/nuevo que entra último y el instante exacto de activación de zonas están pendientes en `WHEEL_V3_SPEC.md`.
 
 ## 5. Categoría individual y categoría de pareja
 - La pareja compite en la categoría individual más fuerte de sus dos jugadores; dos jugadores nuevos pueden elegir 1ª–7ª.
@@ -103,14 +102,15 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Máximo un partido abierto por pareja.
 - El sistema asigna automáticamente el rival cuando las reglas permiten determinarlo.
 - No existe un flujo ordinario de buscar rival → desafiar → esperar aceptación.
-- La UX debe comunicar qué le toca hacer a la pareja, no obligarla a ejecutar manualmente la lógica del motor.
-- El sistema asigna rival automáticamente.
-- Solo misma categoría y parejas habilitadas.
-- Prioridad de rival: nunca enfrentado; luego cruce más antiguo.
-- En categoría impar, tiene prioridad quien lleva más tiempo esperando.
-- Sin rival elegible no corre reloj ni hay sanción.
-- Desde la asignación hay 30 días corridos para **jugar y cargar** resultado.
-- Resolver rápido libera inmediatamente para una nueva asignación.
+- Solo se enfrentan parejas habilitadas de la misma categoría.
+- Wheel v3 usa roles `ataque` y `defensa`.
+- El ataque busca únicamente hacia arriba; la defensa queda disponible para recibir ataques.
+- La prioridad principal es el tiempo sin partido real.
+- La búsqueda del atacante comienza en una ventana de hasta 3 puestos hacia arriba y se amplía inmediatamente de a 3 si no hay defensor elegible.
+- Se evita repetir rival consecutivo si existe alternativa, pero nunca se bloquea la rueda por esa preferencia.
+- Las parejas inactivas y las que ya tienen assignment abierto no participan del balance de roles.
+- Desde la asignación hay 30 días corridos para **jugar y cargar** una primera versión de resultado.
+- Resolver rápido libera inmediatamente para una nueva evaluación de la rueda.
 
 ## 12. Programación
 - Una sola programación oficial vigente: día, hora y **lugar escrito libremente por los jugadores**.
@@ -123,40 +123,37 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Para atribuir unilateralmente un vencimiento al rival, la propuesta válida debe haberse hecho al menos 48 horas antes del vencimiento general.
 - Propuestas posteriores siguen siendo válidas para acordar, pero no trasladan automáticamente toda la culpa.
 
-## 13. Extensión extraordinaria
-- Al vencer los 30 días se abre una ventana técnica de 48 horas únicamente para que ambas parejas confirmen una causa externa. Durante esa ventana no se habilita jugar/cargar salvo que la extensión quede activada.
-- Una causa externa confirmada por ambas parejas permite una única extensión de 15 días.
-- Si solo una la confirma, no se activa.
-- No existe segunda extensión.
-- Si la extensión vence sin resolución: ambas pierden una posición/deuda.
-- Esa penalización no es derrota deportiva ni suma strike para pausa automática.
-- Una caída comprobada de LA RED suspende/compensa plazos sin sancionar jugadores.
+## 13. Plazo general
+- Wheel v3 usa un plazo único de 30 días para jugar y cargar una primera versión de resultado.
+- No existe una extensión extraordinaria de 15 días.
+- Una caída comprobada de LA RED puede suspender/compensar relojes sin sancionar jugadores.
+- Si existe una versión cargada dentro del plazo, hay una ventana adicional de 7 días solo para confirmarla o discutirla; el inicio exacto de esa ventana está pendiente de confirmación final en `WHEEL_V3_SPEC.md`.
 
 ## 14. Incumplimientos
-- Ninguna pareja coordinó: ambas pierden una posición/deuda.
-- Una sola pareja hizo una propuesta válida con margen y la otra nunca respondió: penaliza solo la no respondiente.
-- Ambas actuaron pero no resolvieron: ambas penalizadas.
-- Si ya había programación oficial y vence sin resultado/no-show atribuible: ambas penalizadas.
-- Penalización administrativa no cuenta como derrota deportiva.
-- Dos incumplimientos atribuibles consecutivos => pausa automática.
+- Una pareja puede marcar `No pude jugar` sin esperar al día 30.
+- Si una sola pareja reconoce el incumplimiento, el compromiso se cierra y se aplica la consecuencia administrativa/deportiva vigente; la victoria administrativa del rival no cuenta como victoria real de ascenso ni para salir de período de descenso.
+- Si ambas incumplen o vence el plazo sin resultado ni reconocimiento unilateral, se aplican las penalizaciones a ambas sin generar una espera indefinida.
+- Las penalizaciones simultáneas deben hacer perder exactamente un puesto efectivo a cada sancionada, usando deuda si hace falta.
+- Después de la fase de formación, última activa + incumplimiento propio implica descenso directo salvo 7ª.
+- En 7ª no hay descenso; la consecuencia para incumplimientos repetidos cuando ya no puede perder posición está pendiente de cierre.
+- Un incumplidor pasa a defensa obligatoria cuando sea materialmente posible; una defensa imposible por estar último no debe bloquear la rueda.
 
 ## 15. No-show
 - Solo puede reportarse después de la fecha/hora oficial.
-- Pareja reportada tiene 48 horas para objetar.
-- Silencio => incumplimiento atribuible a la reportada y penalización de posición/deuda.
-- Objeción sin evidencia objetiva suficiente => ambas parejas reciben penalización operativa y el compromiso se cierra sin inventar resultado deportivo.
-- No-show ordinario no requiere administración.
+- El denunciante dispone de una ventana de 48 horas para retirar el reporte y reprogramar dentro del plazo original si corresponde.
+- Si la pareja reportada reconoce expresamente que no pudo presentarse, se resuelve inmediatamente sin esperar el fin de esas 48 horas.
+- Si el no-show queda unilateral o existe contradicción, pasa a Administración; no se auto-valida por silencio.
+- Una disputa real de no-show mantiene el compromiso bloqueado hasta resolución.
 
 ## 16. Resultados
-- Cualquier integrante actúa en nombre de su pareja.
+- Cualquier integrante puede cargar una versión de resultado en nombre de su pareja, salvo que una acción específica quede definida como de doble confirmación en `WHEEL_V3_SPEC.md`.
 - Una pareja carga ganador, fecha real y resultado estructurado.
-- La otra dispone de 15 días para confirmar o cargar su versión.
-- Silencio => auto-validación de la única versión.
-- Versión idéntica => confirmación automática.
-- Versiones incompatibles => disputa administrativa real.
-- Primera versión puede editarse hasta que el rival responda; editar no reinicia el plazo.
-- Después de respuesta, versiones inmutables.
-- Un resultado cargado bloquea nuevas asignaciones hasta cerrar.
+- Si la primera versión se cargó dentro de los 30 días, la otra pareja dispone de una ventana adicional de 7 días solo para confirmar o discutir.
+- Versiones idénticas pueden confirmarse automáticamente.
+- Versiones incompatibles generan una disputa administrativa real.
+- La primera versión puede editarse hasta que el rival responda; editar no reinicia el plazo.
+- Después de respuesta, las versiones quedan inmutables.
+- Un resultado pendiente bloquea nuevas asignaciones hasta cerrar.
 
 ## 17. Marcador
 - Sets estructurados.
@@ -169,8 +166,9 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Se registra quién abandona.
 - Rival obtiene victoria deportiva; abandonante derrota deportiva.
 - No se cargan sets parciales ni games.
-- Sí aplica escalera, rachas, ascenso/descenso y defensa de Primera.
-- Sin penalización extra.
+- Sí puede aplicar intercambio de escalera según posiciones.
+- El efecto exacto sobre contadores de ascenso/descenso y sobre el récord de defensa de Primera está pendiente de confirmación final en `WHEEL_V3_SPEC.md`.
+- Sin penalización administrativa extra.
 - No se publican diagnósticos médicos.
 
 ## 19. Disciplina
