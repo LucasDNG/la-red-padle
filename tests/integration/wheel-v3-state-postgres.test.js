@@ -2014,3 +2014,34 @@ test('admin no-show ruling can identify either assignment pair as the failing si
   const audit=(await pool.query("SELECT data FROM admin_audit_events WHERE action='wheel_v3_resolve_no_show' AND target_id=$1",[assignment.id])).rows[0];
   assert.equal(Number(audit.data.failingPairId),Number(a.id));
 });
+
+
+test('loaded result keeps both pairs occupied until confirmation and prevents a new assignment for them',async()=>{
+  const c=await category(6);
+  const defender=await seedPairWithMembers(1,6,{tag:20});
+  const attacker=await seedPairWithMembers(2,6,{tag:21});
+  await pool.query("UPDATE pair_wheel_state SET role='defense',role_streak=1 WHERE pair_id=$1",[defender.id]);
+  await pool.query("UPDATE pair_wheel_state SET role='attack',role_streak=1 WHERE pair_id=$1",[attacker.id]);
+
+  const a=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id) VALUES($1,$2,$3,$4,$4,$3) RETURNING id",
+    [defender.league_id,c.id,defender.id,attacker.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[a.id,defender.id,attacker.id]);
+
+  await registerWheelV3FirstResult(pool,a.id);
+
+  const state=(await pool.query('SELECT status,first_result_at,confirmation_deadline_at FROM wheel_assignments WHERE id=$1',[a.id])).rows[0];
+  assert.equal(state.status,'result_pending');
+  assert.ok(state.first_result_at);
+  assert.ok(state.confirmation_deadline_at);
+
+  const plan=await createWheelV3AssignmentsForCategory(pool,c.id);
+  assert.equal(plan.created.length,0);
+
+  const occupied=(await pool.query(
+    'SELECT pair_id FROM wheel_assignment_participants WHERE assignment_id=$1 ORDER BY pair_id',
+    [a.id],
+  )).rows.map(r=>Number(r.pair_id));
+  assert.deepEqual(occupied.sort((x,y)=>x-y),[Number(defender.id),Number(attacker.id)].sort((x,y)=>x-y));
+});
