@@ -1,6 +1,7 @@
 import {q} from './db.js';
 import {formationComplete,planCategoryWheel,shouldCancelAssignmentForStructure,resultAllowedAfterCancellation,resultCountsAsReal,roleAfterRealMatch,promotionStateAfterResult,relegationStateAfterResult,populationDirectionalThreshold,entryPositionPenultimate,descendedEntryPosition,individualCategoriesAfterDescent,failureStateAfterClosure,roleAfterOwnFailure,administrativeFailureMovement,fullCalendarMonthsBetween,inactivityReturnPosition,simultaneousOnePlacePenalty,categoryForReformedPair} from './wheelV3Rules.js';
 import {scoreGames,resultEquals,normalizeScore} from './core.js';
+import {queuePairNotification,queueAssignmentNotification} from './notifications.js';
 
 export async function wheelV3FormationSnapshot(client,leagueId,{lock=false}={}){
   if(lock){
@@ -137,6 +138,22 @@ export async function completeWheelV3FormationIfReady(client,leagueId){
     WHERE league_id=$1 AND formation_completed_at IS NULL
     RETURNING formation_completed_at
   `,[leagueId])).rows[0];
+  if(row){
+    const pairIds=(await q(client,`
+      SELECT id FROM pairs
+      WHERE league_id=$1 AND competition_state<>'inactive'
+      ORDER BY id
+    `,[leagueId])).rows.map(r=>Number(r.id));
+    for(const pairId of pairIds){
+      await queuePairNotification(client,pairId,{
+        type:'formation_completed',
+        title:'Terminó la fase de formación',
+        body:'El circuito completó su fase de formación. Desde ahora quedan habilitados ascensos y descensos.',
+        payload:{leagueId,completedAt:row.formation_completed_at},
+        dedupeKey:`v3-formation:${leagueId}`,
+      });
+    }
+  }
   return {
     completed:Boolean(row),
     alreadyCompleted:false,
@@ -213,6 +230,13 @@ export async function createWheelV3AssignmentsForCategory(client,categoryId){
       Object.assign(assignment,linked);
     }
 
+    await queueAssignmentNotification(client,assignment,{
+      type:'assignment_created',
+      title:'Nuevo partido asignado',
+      body:'LA RED asignó automáticamente tu próximo partido. Tenés 30 días para jugar y cargar el resultado.',
+      payload:{assignmentId:assignment.id,deadlineAt:assignment.deadline_at},
+      dedupeKey:`v3-assignment:${assignment.id}`,
+    });
     created.push(assignment);
   }
   return {plan,created};
@@ -268,6 +292,13 @@ export async function cancelInvalidWheelV3AssignmentsForCategory(client,category
 
     await q(client,`DELETE FROM wheel_assignment_participants WHERE assignment_id=$1`,[row.id]);
     await wheelV3ResolveNoShowOnAssignmentClose(client,row.id);
+    await queueAssignmentNotification(client,row,{
+      type:'assignment_cancelled',
+      title:'Partido competitivo cancelado',
+      body:'El ranking o la categoría cambió y este cruce dejó de ser competitivo. LA RED buscará un nuevo rival.',
+      payload:{assignmentId:row.id,reason},
+      dedupeKey:`v3-cancel:${row.id}`,
+    });
     cancelled.push(closed);
   }
   return cancelled;
@@ -420,7 +451,7 @@ async function wheelV3MovementEvent(client,{
   fromCategory=null,
   toCategory=null,
 }){
-  return (await q(client,`
+  const row=(await q(client,`
     INSERT INTO competitive_events(source_key,event_type,pair_id,assignment_id,data)
     VALUES($1,'wheel_v3_movement',$2,$3,$4::jsonb)
     ON CONFLICT(source_key) DO NOTHING
@@ -437,6 +468,21 @@ async function wheelV3MovementEvent(client,{
       toCategory,
     }),
   ])).rows[0]||null;
+  if(row){
+    const detail=fromCategory!=null&&toCategory!=null
+      ?`${fromCategory}ª → ${toCategory}ª`
+      :fromPosition!=null&&toPosition!=null
+        ?`#${fromPosition} → #${toPosition}`
+        :'Tu posición competitiva cambió.';
+    await queuePairNotification(client,pairId,{
+      type:'wheel_v3_movement',
+      title:'Movimiento en LA RED',
+      body:`Se actualizó tu posición: ${detail}`,
+      payload:{reason,fromPosition,toPosition,fromCategory,toCategory,assignmentId},
+      dedupeKey:`v3-movement:${sourceKey}`,
+    });
+  }
+  return row;
 }
 
 export async function wheelV3RecentMovements(client,pairId){
@@ -1054,6 +1100,13 @@ export async function applyWheelV3ConfirmedRealResult(client,{
   for(const categoryId of [...affectedCategories].sort((a,b)=>a-b)){
     refresh.push({categoryId,...await refreshWheelV3Category(client,categoryId)});
   }
+  await queueAssignmentNotification(client,assignment,{
+    type:'result_confirmed',
+    title:'Resultado confirmado',
+    body:'El resultado ya es oficial y LA RED actualizó la rueda.',
+    payload:{assignmentId:assignment.id,winnerPairId:winner,resolutionSource},
+    dedupeKey:`v3-result-confirmed:${assignment.id}`,
+  });
 
   return {
     match,
@@ -1109,11 +1162,19 @@ async function wheelV3ApplyThirtyDayPenalty(client,pairId,duoId){
       updated_at=CURRENT_TIMESTAMP
     WHERE pair_id=$1
   `,[pairId,pair.position]);
-  await q(client,`
+  const duo=(await q(client,`
     UPDATE pair_duo_state
     SET penalty_until=CURRENT_TIMESTAMP+interval '30 days',updated_at=CURRENT_TIMESTAMP
     WHERE id=$1
-  `,[duoId]);
+    RETURNING penalty_until
+  `,[duoId])).rows[0];
+  await queuePairNotification(client,pairId,{
+    type:'failure_sanction',
+    title:'30 días sin asignaciones',
+    body:'La pareja alcanzó 3 incumplimientos consecutivos y queda inactiva durante 30 días.',
+    payload:{pairId,penaltyUntil:duo.penalty_until},
+    dedupeKey:`v3-sanction:${duoId}:${new Date(duo.penalty_until).toISOString()}`,
+  });
   const activeOrder=await wheelV3ActiveOrder(client,pair.category_id);
   await wheelV3SetCategoryOrder(client,pair.category_id,activeOrder);
 }
@@ -1412,6 +1473,13 @@ export async function reactivateWheelV3Pair(client,pairId){
   }
 
   const leagueId=(await q(client,`SELECT league_id FROM categories WHERE id=$1`,[row.category_id])).rows[0].league_id;
+  await queuePairNotification(client,pairId,{
+    type:'pair_reactivated',
+    title:'Pareja reactivada',
+    body:'La pareja volvió a la rueda y ya puede recibir nuevos partidos.',
+    payload:{pairId,position:desired},
+    dedupeKey:`v3-reactivation:${pairId}:${new Date(row.server_now).toISOString()}`,
+  });
   await wheelV3MovementEvent(client,{
     sourceKey:`v3:reactivation:${pairId}:${new Date(row.server_now).toISOString()}`,
     pairId:Number(pairId),
@@ -1642,6 +1710,13 @@ async function wheelV3PausePairNow(client,pairId,{reason='voluntary'}={}){
   const activeOrder=await wheelV3ActiveOrder(client,pair.category_id);
   await wheelV3SetCategoryOrder(client,pair.category_id,activeOrder);
   await wheelV3SyncPromotionEdgeAfterAdministrativeMovement(client,pair.category_id,previousLeader);
+  await queuePairNotification(client,pairId,{
+    type:'pair_inactive',
+    title:'Pareja inactiva',
+    body:'La pareja quedó fuera de la rueda. Su posición de retorno queda guardada según las reglas de inactividad.',
+    payload:{pairId,reason,returnPosition},
+    dedupeKey:`v3-pause:${pairId}:${returnPosition}:${reason}`,
+  });
   if(Number(pair.category_number)===1){
     const nextLeader=await wheelV3Leader(client,pair.category_id);
     if(nextLeader)await wheelV3OpenReign(client,pair.league_id,nextLeader);
@@ -1761,7 +1836,7 @@ export async function reportWheelV3NoShow(client,{assignmentId,reportedByPairId}
   `,[assignmentId])).rows[0];
   if(existing)return existing;
 
-  return (await q(client,`
+  const created=(await q(client,`
     INSERT INTO wheel_no_shows(
       assignment_id,reported_by_pair_id,reported_pair_id,
       status,response_deadline_at
@@ -1769,6 +1844,14 @@ export async function reportWheelV3NoShow(client,{assignmentId,reportedByPairId}
     VALUES($1,$2,$3,'pending',CURRENT_TIMESTAMP+interval '48 hours')
     RETURNING *
   `,[assignmentId,reporter,reported])).rows[0];
+  await queueAssignmentNotification(client,assignment,{
+    type:'no_show_reported',
+    title:'No-show reportado',
+    body:'Se informó un no-show. El reporte puede resolverse o pasar a Administración según la respuesta.',
+    payload:{assignmentId,noShowId:created.id,responseDeadlineAt:created.response_deadline_at},
+    dedupeKey:`v3-no-show:${created.id}`,
+  });
+  return created;
 }
 
 export async function cancelWheelV3NoShow(client,{assignmentId,reportedByPairId}){
@@ -1818,6 +1901,14 @@ export async function contestWheelV3NoShow(client,{assignmentId,reportedPairId})
     SET status='disputed'
     WHERE id=$1 AND status IN('open','result_pending')
   `,[assignmentId]);
+  const assignment=(await q(client,`SELECT * FROM wheel_assignments WHERE id=$1`,[assignmentId])).rows[0];
+  await queueAssignmentNotification(client,assignment,{
+    type:'no_show_disputed',
+    title:'No-show en revisión',
+    body:'El reporte de no-show fue objetado y quedó bloqueado para revisión administrativa.',
+    payload:{assignmentId,noShowId:updated.id},
+    dedupeKey:`v3-no-show-disputed:${updated.id}`,
+  });
   return updated;
 }
 
@@ -1967,7 +2058,17 @@ export async function submitWheelV3ResultVersion(client,{
     abandonedPairId,
   ])).rows[0];
 
+  const wasFirstLoad=!assignment.first_result_at;
   const marked=await registerWheelV3FirstResult(client,assignmentId);
+  if(wasFirstLoad){
+    await queueAssignmentNotification(client,marked,{
+      type:'result_loaded',
+      title:'Resultado cargado',
+      body:'Se cargó un resultado. Hay 7 días para confirmarlo o discutirlo.',
+      payload:{assignmentId,confirmationDeadlineAt:marked.confirmation_deadline_at},
+      dedupeKey:`v3-result-loaded:${assignmentId}`,
+    });
+  }
   const versions=(await q(client,`
     SELECT *
     FROM wheel_result_versions
@@ -1991,6 +2092,13 @@ export async function submitWheelV3ResultVersion(client,{
       return {status:'confirmed',version,assignment:marked,applied};
     }
     await q(client,`UPDATE wheel_assignments SET status='disputed' WHERE id=$1`,[assignmentId]);
+    await queueAssignmentNotification(client,marked,{
+      type:'result_disputed',
+      title:'Resultado en disputa',
+      body:'Las versiones cargadas no coinciden. Administración debe resolver el resultado.',
+      payload:{assignmentId},
+      dedupeKey:`v3-result-disputed:${assignmentId}`,
+    });
     return {status:'disputed',version,assignment:marked};
   }
 
@@ -2417,7 +2525,7 @@ export async function proposeWheelV3Schedule(client,{
     WHERE assignment_id=$1 AND status='pending'
   `,[assignmentId]);
 
-  return (await q(client,`
+  const proposal=(await q(client,`
     INSERT INTO wheel_schedule_proposals(
       assignment_id,proposed_by_pair_id,scheduled_at,location_text,venue_id,
       response_deadline_at
@@ -2425,6 +2533,14 @@ export async function proposeWheelV3Schedule(client,{
     VALUES($1,$2,$3,$4,$5,CURRENT_TIMESTAMP+interval '48 hours')
     RETURNING *
   `,[assignmentId,proposer,when,location,venueId])).rows[0];
+  await queueAssignmentNotification(client,assignment,{
+    type:'schedule_proposal',
+    title:'Nueva propuesta de fecha',
+    body:'Hay una nueva propuesta de fecha y lugar. La otra pareja tiene 48 horas para responder.',
+    payload:{assignmentId,proposalId:proposal.id,responseDeadlineAt:proposal.response_deadline_at},
+    dedupeKey:`v3-schedule-proposal:${proposal.id}`,
+  });
+  return proposal;
 }
 
 export async function acceptWheelV3Schedule(client,{
@@ -2461,7 +2577,7 @@ export async function acceptWheelV3Schedule(client,{
     WHERE id=$1
   `,[proposal.id]);
 
-  return (await q(client,`
+  const updated=(await q(client,`
     UPDATE wheel_assignments
     SET
       scheduled_at=$2,
@@ -2471,6 +2587,14 @@ export async function acceptWheelV3Schedule(client,{
     WHERE id=$1
     RETURNING *
   `,[assignmentId,proposal.scheduled_at,proposal.location_text,proposal.venue_id])).rows[0];
+  await queueAssignmentNotification(client,updated,{
+    type:'schedule_confirmed',
+    title:'Fecha confirmada',
+    body:'La fecha y el lugar del partido quedaron confirmados por ambas parejas.',
+    payload:{assignmentId,scheduledAt:updated.scheduled_at,locationText:updated.location_text},
+    dedupeKey:`v3-schedule-confirmed:${proposal.id}`,
+  });
+  return updated;
 }
 
 export async function cancelWheelV3ScheduleProposal(client,{
