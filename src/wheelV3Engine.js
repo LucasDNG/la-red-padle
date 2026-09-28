@@ -1,5 +1,6 @@
 import {q} from './db.js';
-import {formationComplete,planCategoryWheel,shouldCancelAssignmentForStructure,resultAllowedAfterCancellation} from './wheelV3Rules.js';
+import {formationComplete,planCategoryWheel,shouldCancelAssignmentForStructure,resultAllowedAfterCancellation,resultCountsAsReal,roleAfterRealMatch,promotionStateAfterResult,relegationStateAfterResult,populationDirectionalThreshold,entryPositionPenultimate,descendedEntryPosition,individualCategoriesAfterDescent} from './wheelV3Rules.js';
+import {scoreGames} from './core.js';
 
 export async function wheelV3FormationSnapshot(client,leagueId,{lock=false}={}){
   if(lock){
@@ -377,4 +378,197 @@ export async function refreshWheelV3Category(client,categoryId){
   const cancelled=await cancelInvalidWheelV3AssignmentsForCategory(client,categoryId);
   const assignmentResult=await createWheelV3AssignmentsForCategory(client,categoryId);
   return {cancelled,created:assignmentResult.created,plan:assignmentResult.plan};
+}
+
+
+async function wheelV3CategoryRow(client,categoryId){
+  const row=(await q(client,`
+    SELECT c.id,c.league_id,c.number
+    FROM categories c
+    WHERE c.id=$1
+  `,[categoryId])).rows[0];
+  if(!row)throw new Error('Categoría inexistente');
+  return row;
+}
+
+async function wheelV3LeagueCounts(client,leagueId){
+  const rows=(await q(client,`
+    SELECT c.number,count(p.id) FILTER (WHERE p.competition_state='active')::int active_count
+    FROM categories c
+    LEFT JOIN pairs p ON p.category_id=c.id
+    WHERE c.league_id=$1
+    GROUP BY c.id,c.number
+    ORDER BY c.number
+  `,[leagueId])).rows;
+  return Array.from({length:7},(_,i)=>Number(rows.find(r=>Number(r.number)===i+1)?.active_count||0));
+}
+
+async function wheelV3ActiveOrder(client,categoryId,{excludePairId=null}={}){
+  const values=[];
+  const params=[categoryId];
+  let exclude='';
+  if(excludePairId!=null){
+    params.push(excludePairId);
+    exclude=' AND id<>$2';
+  }
+  const rows=(await q(client,`
+    SELECT id
+    FROM pairs
+    WHERE category_id=$1
+      AND competition_state='active'
+      ${exclude}
+    ORDER BY position,id
+    FOR UPDATE
+  `,params)).rows;
+  for(const row of rows)values.push(Number(row.id));
+  return values;
+}
+
+async function wheelV3SetCategoryOrder(client,categoryId,activeOrder){
+  const paused=(await q(client,`
+    SELECT id
+    FROM pairs
+    WHERE category_id=$1
+      AND competition_state='paused'
+      AND NOT (id=ANY($2::bigint[]))
+    ORDER BY position,id
+    FOR UPDATE
+  `,[categoryId,activeOrder.length?activeOrder:[-1]])).rows.map(r=>Number(r.id));
+  const all=[...activeOrder,...paused];
+  if(!all.length)return;
+  const base=900000+all.length;
+  for(let i=0;i<all.length;i++)await q(client,`UPDATE pairs SET position=$2 WHERE id=$1`,[all[i],base+i]);
+  for(let i=0;i<all.length;i++)await q(client,`UPDATE pairs SET position=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[all[i],i+1]);
+}
+
+async function wheelV3SwapPairPositions(client,winnerPairId,loserPairId){
+  const rows=(await q(client,`
+    SELECT id,category_id,position
+    FROM pairs
+    WHERE id=ANY($1::bigint[])
+    ORDER BY id
+    FOR UPDATE
+  `,[[winnerPairId,loserPairId]])).rows;
+  if(rows.length!==2)throw new Error('Parejas inexistentes');
+  const winner=rows.find(r=>Number(r.id)===Number(winnerPairId));
+  const loser=rows.find(r=>Number(r.id)===Number(loserPairId));
+  if(Number(winner.category_id)!==Number(loser.category_id))return false;
+  if(Number(winner.position)<=Number(loser.position))return false;
+  await q(client,`UPDATE pairs SET position=999999 WHERE id=$1`,[winnerPairId]);
+  await q(client,`UPDATE pairs SET position=$2 WHERE id=$1`,[loserPairId,winner.position]);
+  await q(client,`UPDATE pairs SET position=$2 WHERE id=$1`,[winnerPairId,loser.position]);
+  return true;
+}
+
+async function wheelV3MovePairCategory(client,pairId,targetCategoryId,{mode}){
+  const pair=(await q(client,`
+    SELECT p.*,c.number source_number
+    FROM pairs p
+    JOIN categories c ON c.id=p.category_id
+    WHERE p.id=$1
+    FOR UPDATE OF p
+  `,[pairId])).rows[0];
+  if(!pair)throw new Error('Pareja inexistente');
+  const target=await wheelV3CategoryRow(client,targetCategoryId);
+  const sourceCategoryId=Number(pair.category_id);
+  const sourceOrder=await wheelV3ActiveOrder(client,sourceCategoryId,{excludePairId:pairId});
+  const targetOrder=await wheelV3ActiveOrder(client,targetCategoryId,{excludePairId:pairId});
+  const desired=mode==='promotion'
+    ?entryPositionPenultimate(targetOrder.length)
+    :descendedEntryPosition(targetOrder.length);
+  targetOrder.splice(desired-1,0,Number(pairId));
+
+  await q(client,`
+    UPDATE pairs
+    SET category_id=$2,position=999998,updated_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+  `,[pairId,targetCategoryId]);
+  await wheelV3SetCategoryOrder(client,sourceCategoryId,sourceOrder);
+  await wheelV3SetCategoryOrder(client,targetCategoryId,targetOrder);
+
+  const members=(await q(client,`
+    SELECT u.id,u.current_category_number
+    FROM pair_members pm
+    JOIN users u ON u.id=pm.user_id
+    WHERE pm.pair_id=$1
+    FOR UPDATE OF u
+  `,[pairId])).rows;
+  if(mode==='promotion'){
+    for(const member of members){
+      const current=member.current_category_number==null?null:Number(member.current_category_number);
+      const next=current==null?Number(target.number):Math.min(current,Number(target.number));
+      await q(client,`UPDATE users SET current_category_number=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[member.id,next]);
+    }
+  }else{
+    const nextValues=individualCategoriesAfterDescent(members.map(m=>m.current_category_number??target.number),Number(target.number));
+    for(let i=0;i<members.length;i++){
+      await q(client,`UPDATE users SET current_category_number=$2,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[members[i].id,nextValues[i]]);
+    }
+  }
+
+  await q(client,`
+    UPDATE pair_wheel_state
+    SET
+      role='attack',
+      role_streak=1,
+      promotion_wins=0,
+      awaiting_zone_first_match=false,
+      awaiting_zone_kind=NULL,
+      updated_at=CURRENT_TIMESTAMP
+    WHERE pair_id=$1
+  `,[pairId]);
+
+  if(mode==='relegation'){
+    const duoStateId=await wheelV3DuoStateIdForPair(client,pairId);
+    await q(client,`
+      UPDATE pair_duo_state
+      SET
+        pending_relegation_category_id=NULL,
+        pending_relegation_losses=0,
+        relegation_route_step=0,
+        pending_relegation_started_at=NULL,
+        updated_at=CURRENT_TIMESTAMP
+      WHERE id=$1
+    `,[duoStateId]);
+  }
+
+  return {
+    pairId:Number(pairId),
+    fromCategoryId:sourceCategoryId,
+    toCategoryId:Number(targetCategoryId),
+    from:Number(pair.source_number),
+    to:Number(target.number),
+    entryPosition:desired,
+  };
+}
+
+async function wheelV3OpenReign(client,leagueId,pairId){
+  const open=(await q(client,`
+    SELECT *
+    FROM first_place_reigns
+    WHERE league_id=$1 AND ended_at IS NULL
+    FOR UPDATE
+  `,[leagueId])).rows[0];
+  if(open&&Number(open.pair_id)===Number(pairId))return open;
+  if(open){
+    await q(client,`UPDATE first_place_reigns SET ended_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=$1`,[open.id]);
+  }
+  return (await q(client,`
+    INSERT INTO first_place_reigns(league_id,pair_id)
+    VALUES($1,$2)
+    RETURNING *
+  `,[leagueId,pairId])).rows[0];
+}
+
+async function wheelV3UpdateFirstPlaceReignAfterRealResult(client,{leagueId,categoryNumber,leaderBefore,leaderAfter,assignment}){
+  if(Number(categoryNumber)!==1||!leaderAfter)return null;
+  const open=await wheelV3OpenReign(client,leagueId,leaderAfter);
+  if(Number(leaderBefore)!==Number(leaderAfter))return open;
+  if(Number(assignment.defender_pair_id)!==Number(leaderAfter))return open;
+  return (await q(client,`
+    UPDATE first_place_reigns
+    SET defenses=defenses+1,updated_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+    RETURNING *
+  `,[open.id])).rows[0];
 }
