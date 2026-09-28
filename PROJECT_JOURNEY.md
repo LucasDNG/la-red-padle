@@ -184,3 +184,11 @@ Antes de código quedan únicamente dos bordes pequeños documentados en `WHEEL_
 Se cerraron los dos últimos bordes del diseño antes de implementación. Si una pareja queda #1/última al terminar la fase de formación pero todavía tiene 0 partidos reales, debe disputar primero un partido; ese resultado solo habilita la zona y recién después entra en 0/3. Además, la fórmula de ingreso a mitad de tabla mantiene `floor(N/2)+1`, con una excepción para categorías con una sola activa: la ingresante entra #2 y no desplaza al único #1.
 
 Con esto Wheel v3 queda funcionalmente definido. La etapa siguiente no es escribir código de inmediato: primero corresponde modelar y simular el reglamento completo, buscar ciclos imposibles, bloqueos, abuso de sanciones y deriva poblacional, y convertir esos hallazgos en tests antes de reemplazar Wheel v2.
+
+## Auditoría anti-abuso e ingreso anteúltimo — 2026-09-28
+
+La primera auditoría de Wheel v3 detectó vías de evasión por disolución/re-formación y por resultados demorados. Se cerró que un período de descenso pendiente pertenece a la combinación exacta de dos personas y sobrevive aunque formen otras parejas en el medio; un descenso real también ajusta la categoría individual necesaria para que separarse no borre ese descenso.
+
+También se fijó que, una vez cargada una primera versión de resultado, cambios posteriores del ranking no cancelan el partido y nunca pueden hacer bajar al ganador al aplicar el resultado. Una cancelación automática del sistema tampoco limpia la racha de incumplimientos.
+
+A partir de esta revisión cambió la regla de ingreso: nuevas y ascendidas ya no entran a mitad de tabla sino **anteúltimas**, para que deban pelear desde abajo. Ese cambio obliga a rehacer la simulación longitudinal antes de implementar.
