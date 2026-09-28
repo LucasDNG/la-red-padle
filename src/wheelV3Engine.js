@@ -1266,6 +1266,9 @@ export async function applyWheelV3OneSidedFailure(client,{
   `,[assignmentId])).rows[0];
   if(!assignment)throw new Error('Assignment inexistente');
   if(!['open','result_pending','disputed'].includes(assignment.status))throw new Error('Assignment no disponible');
+  if(resolutionSource==='self_failure'&&(assignment.status!=='open'||assignment.first_result_at)){
+    throw new Error('No se puede informar incumplimiento después de cargar un resultado');
+  }
 
   const existing=(await q(client,`SELECT * FROM matches WHERE assignment_id=$1`,[assignmentId])).rows[0];
   if(existing)return {match:existing,idempotent:true,movements:[],refresh:[]};
@@ -1860,7 +1863,7 @@ export async function reportWheelV3NoShow(client,{assignmentId,reportedByPairId}
     FOR UPDATE
   `,[assignmentId])).rows[0];
   if(!assignment)throw new Error('Assignment inexistente');
-  if(!['open','result_pending'].includes(assignment.status))throw new Error('Assignment no disponible para no-show');
+  if(assignment.status!=='open'||assignment.first_result_at)throw new Error('Assignment no disponible para no-show');
   if(!assignment.scheduled_at)throw new Error('El assignment no tiene fecha/hora oficial');
   const now=(await q(client,`SELECT CURRENT_TIMESTAMP now`)).rows[0].now;
   if(new Date(now)<new Date(assignment.scheduled_at))throw new Error('El no-show solo puede reportarse después del horario oficial');
