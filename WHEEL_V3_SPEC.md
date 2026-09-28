@@ -103,9 +103,12 @@ La rueda se basa en dos roles.
 - Para evitar bloqueos, el motor puede repetir un rol cuando haga falta:
   - defensa -> defensa;
   - ataque -> ataque.
+- Como regla de equilibrio, se intenta no superar **2 ataques consecutivos ni 2 defensas consecutivas** para una misma pareja.
+- Ese límite es blando: puede superarse si es necesario para que la rueda no se trabe.
 - La prioridad sigue siendo que las parejas jueguen y no queden estancadas.
 
 ### Extremos
+- Si una categoría tiene una sola pareja activa, esa pareja simplemente espera; no se fuerza un rol efectivo ni un assignment hasta que exista otra activa.
 - El #1 activo siempre queda en defensa: no tiene rival arriba para atacar.
 - El último activo siempre queda en ataque: no tiene rival debajo para defender.
 - Si una defensa obligatoria resulta estructuralmente imposible por estar último, se libera esa defensa y pasa a ataque.
@@ -175,6 +178,8 @@ Mensaje conceptual ante cancelación:
 ## 10. "No pude jugar"
 Una pareja puede reconocer antes del vencimiento que no pudo cumplir.
 
+- Cualquiera de los dos integrantes puede marcar `No pude jugar` en nombre de toda la pareja; no requiere confirmación del compañero.
+- La UI/auditoría debe mostrar quién realizó la acción, por ejemplo: `No pude jugar (informado por Nombre Apellido)`.
 - Si una sola pareja marca `No pude jugar`:
   - el assignment se cierra inmediatamente;
   - esa pareja recibe derrota administrativa 6-0 6-0;
@@ -196,6 +201,12 @@ Si ambas parejas reconocen que no pudieron jugar:
 Si vencen los 30 días sin resultado ni declaración:
 - se trata como incumplimiento de ambas;
 - no existe espera indefinida ni renovación automática del plazo.
+
+### Tres incumplimientos consecutivos
+- Esta regla es general para todas las categorías, no solo 7ª.
+- Una pareja que acumula **3 incumplimientos atribuibles consecutivos** recibe una penalización de **30 días sin nuevas asignaciones** y pasa a estado inactivo durante esa penalización.
+- En 7ª esta regla resuelve especialmente el caso de la última pareja, que no puede descender ni perder más posición.
+- Falta confirmar si al terminar los 30 días la reactivación es automática y qué evento corta/reinicia la racha de incumplimientos.
 
 ## 11. Penalización simultánea y deuda de posición
 La penalización debe hacer perder **exactamente un puesto efectivo** por incumplimiento ordinario.
@@ -236,6 +247,9 @@ Después de la fase de formación:
   - su mejor retorno posible pasa a #2;
   - pierde la racha actual de ascenso;
   - el récord histórico de Primera no se borra.
+- Una pareja que **asciende** no entra al fondo: ingresa en la **mitad de la tabla activa** de la nueva categoría y desplaza hacia abajo a las parejas desde ese punto.
+- Por ese ingreso no entra automáticamente en período de descenso.
+- La fórmula exacta de “mitad de tabla” para cantidades pares/impares queda pendiente de cierre.
 
 ## 14. Período de descenso
 Después de la fase de formación:
@@ -276,34 +290,61 @@ Mientras una pareja sigue en período de descenso:
   - los contadores de ascenso/descenso de la nueva categoría parten de cero;
   - el próximo rol es ataque.
 
+### Parejas nuevas y categoría individual
+- Una pareja completamente nueva también ingresa en la **mitad de la tabla activa** de su categoría y desplaza hacia abajo desde ese punto.
+- Dos jugadores sin categoría individual previa pueden elegir libremente una categoría inicial entre 1ª y 7ª.
+- Si los jugadores ya tienen categorías individuales distintas, la pareja compite en la categoría del jugador de nivel más alto (número de categoría más bajo).
+- Ejemplo: jugador de 2ª + jugador de 5ª => la pareja compite en 2ª.
+- Al disolverse, cada jugador recupera/conserva su categoría individual previa, salvo mejoras obtenidas por ascensos deportivos reales de la pareja.
+- Un ascenso deportivo real mejora la categoría individual de ambos integrantes al nivel alcanzado.
+- Una misma dupla que se disuelve y luego vuelve a formarse se trata **competitivamente como una pareja nueva**, aunque pueda reutilizarse una identidad técnica interna si eso conviene a la implementación.
+
 ## 16. Inactividad
-La inactividad es voluntaria y sale de la rueda.
+La inactividad es voluntaria y sale de la rueda; también puede ser aplicada automáticamente como sanción de 30 días por 3 incumplimientos consecutivos.
 
 ### Solicitud
-- Una pareja puede avisar que quiere pasar a inactiva.
+- **Alcanza con que uno de los dos integrantes la solicite** en nombre de la pareja.
 - Si existe un assignment abierto, primero debe resolverse la situación de ese compromiso.
-- No se obliga físicamente a jugar: si decide no disputar el partido pendiente, se aplica la consecuencia deportiva definida para ese cierre y recién después pasa a inactiva.
-- La regla nueva acordada indica que, en ese cierre por pase a inactividad, se produce un intercambio de posición con el rival. La semántica exacta de ese intercambio queda marcada como borde a confirmar para evitar que una pareja atacante ubicada más abajo pueda beneficiarse al incumplir.
-- Para minimizar migración innecesaria, el estado técnico `paused` puede seguir representando la inactividad temporal de Wheel v3; `inactive` queda reservado para pareja disuelta/archivada. En superficie de jugador, `paused` se muestra como **Pareja inactiva**.
-- Una pareja temporalmente inactiva:
+- No se obliga físicamente a jugar: si decide no disputar el partido pendiente, se aplica primero la consecuencia deportiva y recién después pasa a inactiva.
+- Si la pareja que incumple estaba **por encima** de su rival, intercambian posiciones: el rival sube y la incumplidora baja.
+- Si la pareja que incumple estaba **por debajo**, no se intercambian posiciones; incumplir nunca puede hacerla subir.
+- Técnicamente `paused` puede seguir representando la inactividad temporal y `inactive` quedar reservado para disolución/archivo; en superficie se muestra “Pareja inactiva”.
+- Una pareja inactiva:
   - no recibe assignments;
   - no participa del balance ataque/defensa;
   - no cuenta para el porcentaje poblacional;
-  - no recibe castigos periódicos por no jugar;
-  - no pierde puestos ni categoría por el simple paso del tiempo.
+  - no acumula nuevas derrotas ni incumplimientos simplemente por estar inactiva;
+  - nunca desciende de categoría por el mero paso del tiempo.
 
 ### Bloque visual
 Cada categoría muestra:
 1. bloque de parejas activas con ranking competitivo;
 2. debajo, bloque separado `Parejas inactivas`.
 
-### Regla de retorno todavía a cerrar
-La regla anterior de perder una posición por cada mes después del tercero queda **eliminada**. Falta definir únicamente cómo se materializa la posición de retorno cuando la pareja vuelve, porque el bloque activo pudo cambiar mientras estuvo fuera.
+### Posición de retorno
+- Durante los primeros **3 meses completos** de inactividad conserva su posición de retorno.
+- Desde el 4º mes completo, pierde **1 posición de retorno por cada mes completo adicional**.
+- Ejemplo: se inactiva siendo #5 y vuelve a los 6 meses completos => vuelve #8.
+- La pérdida por tiempo se detiene en el fondo de la **misma categoría**; la inactividad nunca provoca descenso de categoría.
+- Si se inactivó siendo #1 de cualquier categoría, pierde inmediatamente el derecho a volver #1:
+  - si vuelve dentro de los primeros 3 meses, vuelve como máximo #2;
+  - desde el 4º mes, ese #2 base también pierde una posición por cada mes completo adicional.
+- Al reactivar, se inserta en su posición de retorno y desplaza hacia abajo a las parejas activas desde ese punto.
+- Si dos parejas inactivas tienen calculada la misma posición de retorno:
+  - la que se reactiva primero ocupa ese puesto;
+  - cuando la otra se reactiva después, también se inserta en ese puesto y desplaza hacia abajo a la que había vuelto antes.
+- La antigüedad de espera para la rueda comienza de nuevo al reactivarse.
 
 ### Inactividad y descenso
-- La inactividad por sí sola nunca produce descenso.
-- Mientras está inactiva, el estado competitivo queda congelado y no se generan nuevas derrotas por no jugar.
-- Falta confirmar si un período de descenso ya iniciado antes de inactivarse se conserva congelado y continúa al reactivar.
+- Si la pareja ya estaba en período de descenso al inactivarse, ese estado y su contador quedan **congelados**.
+- Mientras está inactiva no suma nuevas derrotas.
+- Al reactivarse retoma el período de descenso desde el mismo estado.
+- En 7ª no existe período de descenso.
+
+### Sanción de 30 días por incumplimientos
+- Tras 3 incumplimientos atribuibles consecutivos, la pareja pasa a inactiva y queda 30 días sin nuevas asignaciones.
+- Esta inactividad sancionatoria sigue sin producir descenso por el simple paso del tiempo.
+- Falta cerrar si la reactivación al día 30 es automática y cómo se reinicia la racha de incumplimientos.
 
 ## 17. Historial visible mínimo
 No existe una ficha pública de historial estadístico acumulado de pareja.
@@ -348,6 +389,7 @@ Administración debe conservar una auditoría técnica más completa de decision
 - El único récord deportivo histórico especial es la cantidad de **defensas exitosas del puesto #1 de Primera**, separado por circuito.
 - Cada vez que una pareja ocupa el #1 de Primera, juega una defensa y conserva el #1, suma 1 defensa exitosa.
 - La pareja con la mayor cantidad histórica de defensas exitosas ocupa la sección pública de récord.
+- Si dos o más parejas empatan la mayor cantidad, el récord se muestra como **compartido**.
 - La antigua sección de máximo valor numérico se reutiliza para este récord y no conserva su significado anterior.
 - No existe ninguna métrica numérica paralela al ranking.
 - No crear un sistema general de estadísticas históricas de pareja.
@@ -368,27 +410,17 @@ Administración debe conservar una auditoría técnica más completa de decision
   - terminó la fase de formación.
 
 ## 21. Preguntas abiertas finales antes de código
-Las preguntas anteriores se conservan conceptualmente, pero fueron reformuladas después de incorporar la eliminación de la métrica numérica paralela, el nuevo récord de Primera y la nueva inactividad sin castigo temporal.
+La última revisión cerró la mayor parte de los bordes. Quedan únicamente estos puntos:
 
-1. **Circuitos independientes:** confirmar que fase de formación y porcentajes poblacionales se calculan por separado para Masculino y Femenino.
-2. **Ascendido que entra al fondo:** definir si un ascendido que entra último en la categoría superior entra inmediatamente en período de descenso o tiene una excepción inicial.
-3. **Pareja nueva que entra al fondo:** definir si una pareja nueva que queda última entra inmediatamente en período de descenso o si necesita primero disputar un partido.
-4. **Categoría con una sola activa:** definir si espera sin rol efectivo hasta que exista una segunda activa.
-5. **Repetición de rol por balance:** definir si existe un límite blando de roles iguales consecutivos para evitar que una pareja quede defendiendo repetidamente sin oportunidades de atacar.
-6. **Séptima + incumplimientos repetidos:** como en 7ª no existe descenso, definir una consecuencia efectiva cuando la última incumple repetidamente y ya no puede perder más posición.
-7. **Lesión/abandono:** confirmar si un partido iniciado y luego abandonado cuenta como victoria/derrota real para ascenso y descenso.
-8. **Confirmación de resultado:** confirmar que los 7 días de revisión empiezan desde la carga del resultado, incluso si se cargó mucho antes del día 30, y que luego se auto-valida por silencio.
-9. **Disolución y re-formación de la misma dupla:** definir si competitivamente vuelve como pareja nueva aunque internamente se reutilice su identidad técnica.
-10. **Categoría inicial de dos jugadores nuevos:** confirmar si ambos nuevos pueden elegir 1ª–7ª o deben ingresar por una categoría predeterminada.
-11. **Solicitud de inactividad:** confirmar si requiere consentimiento de ambos integrantes o si uno solo puede avisarla por la pareja.
-12. **Acción `No pude jugar`:** definir si cualquiera de los dos integrantes puede asumir esa derrota por toda la pareja o si requiere confirmación del compañero.
-13. **Fin de fase de formación:** confirmar si, al activarse ascensos/descensos, los #1 arrancan 0/3 y los últimos de 1ª–6ª arrancan período de descenso 0/3 inmediatamente.
-14. **Umbral poblacional 1/2/3:** confirmar que se recalcula con la población activa al confirmar cada nuevo resultado y no queda congelado al iniciar una racha.
-15. **Inactividad con assignment pendiente:** la regla nueva dice “intercambia posición con el rival” si decide no jugar antes de quedar inactiva. Confirmar si ese intercambio es literal en ambos sentidos o si debe evitarse que un atacante ubicado abajo suba por incumplir.
-16. **Posición al reactivar:** como ya no existe pérdida mensual de puestos, definir dónde vuelve una pareja si el ranking activo cambió durante su ausencia.
-17. **Período de descenso previo a inactividad:** confirmar si queda congelado y se retoma al reactivar, sin sumar pérdidas mientras estuvo inactiva.
-18. **#1 de Primera que pasa a inactiva:** confirmar si sigue perdiendo inmediatamente el #1 y su mejor retorno es #2, como se había acordado antes.
-19. **Récord de defensas de Primera:** confirmar si el contador histórico de una pareja es acumulativo entre distintos períodos en los que vuelve a ocupar el #1, y qué se muestra si dos parejas empatan el récord.
+1. **Circuitos independientes:** ¿fase de formación y porcentajes poblacionales se calculan por separado para Masculino y Femenino, de modo que un circuito pueda salir de formación aunque el otro todavía no?
+2. **Mitad de tabla:** falta definir la fórmula exacta. Ejemplo: si hay 10 activas y entra una nueva/ascendida, ¿entra #6? Si hay 9 activas, ¿entra #5 o #6?
+3. **Tres incumplimientos consecutivos:** al cumplirse los 30 días de sanción/inactividad, ¿la pareja se reactiva automáticamente o debe solicitar volver?
+4. **Racha de incumplimientos:** como son “consecutivos”, falta definir qué la reinicia. Propuesta simple: cualquier compromiso real resuelto sin incumplimiento atribuible reinicia el contador a 0.
+5. **Confirmación de resultado (reformulada):** si jugás y cargás el resultado el día 8 del assignment, ¿el rival tiene 7 días desde **ese día 8** para confirmar/discutir, y al terminar esos 7 días se auto-valida si no respondió? ¿O querés que esos 7 días recién empiecen al terminar el plazo general de 30?
+6. **Fin de fase de formación:** cuando se activa la competencia entre categorías, ¿los #1 arrancan inmediatamente zona de ascenso 0/3 y los últimos de 1ª–6ª período de descenso 0/3?
+7. **Umbral poblacional 1/2/3:** ¿se recalcula con la población activa existente al confirmar cada nuevo resultado, en vez de quedar congelado cuando empezó una racha?
+8. **Récord de defensas:** si la misma dupla fue #1 de Primera, perdió la punta y meses después vuelve a ser #1, ¿sus nuevas defensas se suman al contador histórico anterior de esa dupla o comienza un nuevo contador para ese nuevo período?
+9. **Récord y re-formación:** si esa dupla se disuelve y más adelante vuelve a formarse como pareja competitivamente nueva, ¿sus defensas históricas anteriores siguen perteneciendo al mismo récord histórico de la dupla o la nueva formación arranca un contador nuevo?
 
 ## 22. Plan de implementación después de cerrar preguntas
 1. Convertir este diseño en reglas definitivas dentro de `PROJECT_RULES.md` y `DECISIONS.md`.
