@@ -10,7 +10,7 @@ if(!connectionString)throw new Error('TEST_DATABASE_URL es obligatorio para los 
 process.env.DATABASE_URL=connectionString;
 const {Pool}=pg;
 const pool=new Pool({connectionString});
-const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties}=await import('../../src/wheelV3Engine.js');
+const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
@@ -842,4 +842,109 @@ test('due 30-day sanctions auto-reactivate by PostgreSQL time and future ones st
   const byId=Object.fromEntries(states.map(r=>[Number(r.id),r.competition_state]));
   assert.equal(byId[Number(due.id)],'active');
   assert.equal(byId[Number(future.id)],'paused');
+});
+
+
+test('simultaneous failure makes both sanctioned pairs lose exactly one effective place',async()=>{
+  const c=await category(3);
+  const pairs=[];
+  for(let position=1;position<=8;position++){
+    pairs.push(position===5||position===6
+      ?await seedPairWithMembers(position,3,{tag:40+position})
+      :await seedPair(position,3));
+  }
+  const p5=pairs[4],p6=pairs[5];
+  const a=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id) VALUES($1,$2,$3,$4,$3,$4) RETURNING id",
+    [p5.league_id,c.id,p5.id,p6.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[a.id,p5.id,p6.id]);
+
+  const client=await pool.connect();
+  let result;
+  try{
+    await client.query('BEGIN');
+    result=await applyWheelV3BothFailure(client,{assignmentId:a.id});
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const order=(await pool.query('SELECT id FROM pairs WHERE category_id=$1 AND competition_state=\'active\' ORDER BY position',[c.id])).rows.map(r=>Number(r.id));
+  assert.deepEqual(order,[
+    Number(pairs[0].id),Number(pairs[1].id),Number(pairs[2].id),Number(pairs[3].id),
+    Number(pairs[6].id),Number(p5.id),Number(p6.id),Number(pairs[7].id),
+  ]);
+  assert.equal(result.movements.length,0);
+  assert.deepEqual(result.penalties30Days,[]);
+});
+
+test('bottom simultaneous penalties accrue future position debt when no lower pair exists',async()=>{
+  const c=await category(4);
+  const pairs=[];
+  for(let position=1;position<=6;position++){
+    pairs.push(position>=5
+      ?await seedPairWithMembers(position,4,{tag:50+position})
+      :await seedPair(position,4));
+  }
+  const p5=pairs[4],p6=pairs[5];
+  const a=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id) VALUES($1,$2,$3,$4,$3,$4) RETURNING id",
+    [p5.league_id,c.id,p5.id,p6.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[a.id,p5.id,p6.id]);
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await applyWheelV3BothFailure(client,{assignmentId:a.id});
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const debts=(await pool.query('SELECT id,position_debt FROM pairs WHERE id IN($1,$2) ORDER BY id',[p5.id,p6.id])).rows;
+  assert.ok(debts.every(r=>Number(r.position_debt)===1));
+});
+
+test('future insertion that pushes an indebted pair down consumes one debt',async()=>{
+  const male=await maleLeague();
+  const seeded={};
+  for(let n=1;n<=7;n++){
+    seeded[n]=[];
+    for(let p=1;p<=5;p++)seeded[n].push(await seedPair(p,n));
+  }
+  const leader=seeded[3][0];
+  const challenger=seeded[3][1];
+  const targetLast=seeded[2][4];
+  await pool.query('UPDATE pairs SET position_debt=1 WHERE id=$1',[targetLast.id]);
+
+  const base=64000000;
+  const ids=[];
+  for(let i=0;i<4;i++)ids.push((await pool.query(
+    "INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender,current_category_number) VALUES('Debt',$1,$2,$2,'x','male',3) RETURNING id",
+    [String(i),String(base+i)],
+  )).rows[0].id);
+  await pool.query('INSERT INTO pair_members(pair_id,user_id) VALUES($1,$2),($1,$3),($4,$5),($4,$6)',[leader.id,ids[0],ids[1],challenger.id,ids[2],ids[3]]);
+  await pool.query("UPDATE league_wheel_state SET formation_completed_at=CURRENT_TIMESTAMP WHERE league_id=$1",[male.id]);
+  await pool.query('UPDATE pair_wheel_state SET promotion_wins=2 WHERE pair_id=$1',[leader.id]);
+  const c3=await category(3);
+  const a=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,status,first_result_at,confirmation_deadline_at) VALUES($1,$2,$3,$4,$4,$3,'result_pending',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP+interval '7 days') RETURNING id",
+    [male.id,c3.id,leader.id,challenger.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[a.id,leader.id,challenger.id]);
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await applyWheelV3ConfirmedRealResult(client,{
+      assignmentId:a.id,
+      winnerPairId:leader.id,
+      resultType:'normal',
+      score:{sets:[{pairA:6,pairB:1},{pairA:6,pairB:1}]},
+      playedAt:'2026-09-28T20:00:00Z',
+      resolutionSource:'test',
+    });
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const last=(await pool.query('SELECT position,position_debt FROM pairs WHERE id=$1',[targetLast.id])).rows[0];
+  assert.equal(Number(last.position),6);
+  assert.equal(Number(last.position_debt),0);
 });
