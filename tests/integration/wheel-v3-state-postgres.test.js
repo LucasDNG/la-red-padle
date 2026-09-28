@@ -564,3 +564,68 @@ test('cancelled assignment accepts only a match played before its authoritative 
   assert.equal((await wheelV3CancelledResultEligibility(pool,a.id,before)).eligible,true);
   assert.equal((await wheelV3CancelledResultEligibility(pool,a.id,after)).eligible,false);
 });
+
+
+test('formation close initializes promotion and relegation zones atomically',async()=>{
+  const male=await maleLeague();
+  const seeded={};
+  for(let categoryNumber=1;categoryNumber<=7;categoryNumber++){
+    seeded[categoryNumber]=[];
+    for(let position=1;position<=5;position++)seeded[categoryNumber].push(await seedPair(position,categoryNumber));
+  }
+
+  const bottom=seeded[3][4];
+  const u1=(await pool.query("INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('Zone','One','50000001','5001','x','male') RETURNING id")).rows[0];
+  const u2=(await pool.query("INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('Zone','Two','50000002','5002','x','male') RETURNING id")).rows[0];
+  await pool.query('INSERT INTO pair_members(pair_id,user_id) VALUES($1,$2),($1,$3)',[bottom.id,u1.id,u2.id]);
+
+  const rival=seeded[3][3];
+  await pool.query(
+    "INSERT INTO matches(league_id,category_number,pair_a_id,pair_b_id,winner_pair_id,result_type,played_at,resolution_source) VALUES($1,3,$2,$3,$3,'normal',CURRENT_TIMESTAMP-interval '1 day','test')",
+    [male.id,bottom.id,rival.id],
+  );
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const result=await completeWheelV3FormationIfReady(client,male.id);
+    assert.equal(result.completed,true);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const top2=seeded[2][0];
+  const promotion=(await pool.query('SELECT promotion_wins,awaiting_zone_first_match,awaiting_zone_kind FROM pair_wheel_state WHERE pair_id=$1',[top2.id])).rows[0];
+  assert.equal(Number(promotion.promotion_wins),0);
+  assert.equal(promotion.awaiting_zone_first_match,true);
+  assert.equal(promotion.awaiting_zone_kind,'promotion');
+
+  const bottomState=(await pool.query(
+    'SELECT pending_relegation_category_id,pending_relegation_losses,relegation_route_step,pending_relegation_started_at FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',
+    [male.id,u1.id,u2.id],
+  )).rows[0];
+  assert.equal(Number(bottomState.pending_relegation_category_id),Number((await category(3)).id));
+  assert.equal(Number(bottomState.pending_relegation_losses),0);
+  assert.equal(Number(bottomState.relegation_route_step),0);
+  assert.ok(bottomState.pending_relegation_started_at);
+});
+
+test('formation close marks zero-PJ bottom as awaiting relegation rather than opening duo period early',async()=>{
+  const male=await maleLeague();
+  const seeded={};
+  for(let categoryNumber=1;categoryNumber<=7;categoryNumber++){
+    seeded[categoryNumber]=[];
+    for(let position=1;position<=5;position++)seeded[categoryNumber].push(await seedPair(position,categoryNumber));
+  }
+  const bottom=seeded[4][4];
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await completeWheelV3FormationIfReady(client,male.id);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const state=(await pool.query('SELECT awaiting_zone_first_match,awaiting_zone_kind FROM pair_wheel_state WHERE pair_id=$1',[bottom.id])).rows[0];
+  assert.equal(state.awaiting_zone_first_match,true);
+  assert.equal(state.awaiting_zone_kind,'relegation');
+});
