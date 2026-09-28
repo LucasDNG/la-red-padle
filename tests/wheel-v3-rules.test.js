@@ -551,3 +551,36 @@ test('category planner normalizes roles and produces non-overlapping assignments
     assert.ok(attacker.position>defender.position);
   }
 });
+
+
+test('reaching #1 starts promotion at 0 and the match that got there does not count',()=>{
+  assert.deepEqual(
+    promotionStateAfterResult({
+      category:3,
+      position:1,
+      activeCount:8,
+      currentWins:0,
+      isRealMatch:true,
+      won:true,
+      threshold:3,
+      wasNumberOneBefore:false,
+    }),
+    {active:true,wins:0,promote:false,awaitingFirstMatch:false},
+  );
+});
+
+test('touching last starts relegation at 0 even when the same loss caused the move',()=>{
+  assert.deepEqual(
+    relegationStateAfterResult({
+      category:4,
+      wasInRelegation:false,
+      losses:0,
+      routeStep:0,
+      isRealMatch:true,
+      won:false,
+      isLast:true,
+      threshold:3,
+    }),
+    {active:true,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false},
+  );
+});
