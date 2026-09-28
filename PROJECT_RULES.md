@@ -292,4 +292,11 @@ No interviene en asignaciones, vencimientos, sanciones deterministas, auto-valid
 - La instalación activa de desarrollo usa una Neon nueva.
 - La Neon histórica fue eliminada accidentalmente y no debe asumirse disponible como backup.
 - El target de runtime es Node 22 aunque una parte de las pruebas locales se haya realizado con Node 24.
-- Antes de producción se debe normalizar Node 22, SSL, backups/PITR, TOTP y WhatsApp.
+- Antes de producción se debe normalizar Node 22, SSL, backups/PITR, TOTP y WhatsApp.## 21 ter. Tiempo autoritativo
+- Todos los plazos oficiales se calculan con hora de servidor/base, nunca con el reloj del dispositivo del jugador.
+- Persistencia y comparaciones en UTC; presentación localizable en Argentina.
+- PostgreSQL `CURRENT_TIMESTAMP/NOW()` es la referencia preferida para decisiones transaccionales de vencimiento.
+- El frontend recibe `deadline_at` y una referencia `server_now` (o equivalente) y solo presenta el tiempo restante.
+- Cambiar la hora de PC/teléfono no modifica ningún vencimiento ni consecuencia deportiva.
+
+
