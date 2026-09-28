@@ -1,5 +1,5 @@
 import {q} from './db.js';
-import {formationComplete,planCategoryWheel,shouldCancelAssignmentForStructure,resultAllowedAfterCancellation,resultCountsAsReal,roleAfterRealMatch,promotionStateAfterResult,relegationStateAfterResult,populationDirectionalThreshold,entryPositionPenultimate,descendedEntryPosition,individualCategoriesAfterDescent,failureStateAfterClosure,roleAfterOwnFailure,administrativeFailureMovement,fullCalendarMonthsBetween,inactivityReturnPosition} from './wheelV3Rules.js';
+import {formationComplete,planCategoryWheel,shouldCancelAssignmentForStructure,resultAllowedAfterCancellation,resultCountsAsReal,roleAfterRealMatch,promotionStateAfterResult,relegationStateAfterResult,populationDirectionalThreshold,entryPositionPenultimate,descendedEntryPosition,individualCategoriesAfterDescent,failureStateAfterClosure,roleAfterOwnFailure,administrativeFailureMovement,fullCalendarMonthsBetween,inactivityReturnPosition,simultaneousOnePlacePenalty} from './wheelV3Rules.js';
 import {scoreGames} from './core.js';
 
 export async function wheelV3FormationSnapshot(client,leagueId,{lock=false}={}){
@@ -1139,7 +1139,7 @@ export async function applyWheelV3OneSidedFailure(client,{
   const failingFailure=await wheelV3ApplyFailureStreak(client,failing,{ownFailure:true});
   await wheelV3ApplyFailureStreak(client,winner,{rivalOnlyFailure:true});
 
-  await wheelV3EnsurePromotionZoneAtCurrentTop(client,winner,{wasNumberOneBefore:Number(winnerBefore.position)===1});
+  await wheelV3SyncPromotionEdgeAfterAdministrativeMovement(client,assignment.category_id,Number(before[Number(assignment.pair_a_id)]?.position)===1?Number(assignment.pair_a_id):Number(before[Number(assignment.pair_b_id)]?.position)===1?Number(assignment.pair_b_id):null);
   const relegation=await wheelV3AdministrativeRelegationDecision(client,failing,{ownFailure:true});
 
   const movements=[];
@@ -1270,4 +1270,148 @@ export async function reactivateDueWheelV3Penalties(client){
   const reactivated=[];
   for(const row of due)reactivated.push(await reactivateWheelV3Pair(client,row.id));
   return reactivated;
+}
+
+
+async function wheelV3SyncPromotionEdgeAfterAdministrativeMovement(client,categoryId,previousLeaderId){
+  const category=await wheelV3CategoryRow(client,categoryId);
+  if(Number(category.number)<=1)return null;
+  const leader=await wheelV3Leader(client,categoryId);
+  if(!leader)return null;
+  await q(client,`
+    UPDATE pair_wheel_state pws
+    SET
+      promotion_wins=0,
+      awaiting_zone_first_match=CASE WHEN pws.awaiting_zone_kind='promotion' THEN false ELSE pws.awaiting_zone_first_match END,
+      awaiting_zone_kind=CASE WHEN pws.awaiting_zone_kind='promotion' THEN NULL ELSE pws.awaiting_zone_kind END,
+      updated_at=CURRENT_TIMESTAMP
+    FROM pairs p
+    WHERE pws.pair_id=p.id
+      AND p.category_id=$1
+      AND p.id<>$2
+      AND (pws.promotion_wins<>0 OR pws.awaiting_zone_kind='promotion')
+  `,[categoryId,leader]);
+  if(Number(previousLeaderId)!==Number(leader)){
+    await q(client,`
+      UPDATE pair_wheel_state
+      SET promotion_wins=0,awaiting_zone_first_match=false,awaiting_zone_kind=NULL,updated_at=CURRENT_TIMESTAMP
+      WHERE pair_id=$1
+    `,[leader]);
+  }
+  return Number(leader);
+}
+
+async function wheelV3ApplySimultaneousPositionPenalty(client,categoryId,pairIds){
+  const order=await wheelV3ActiveOrder(client,categoryId);
+  const debtRows=(await q(client,`
+    SELECT id,position_debt
+    FROM pairs
+    WHERE id=ANY($1::bigint[])
+    FOR UPDATE
+  `,[order])).rows;
+  const debt=Object.fromEntries(debtRows.map(r=>[Number(r.id),Number(r.position_debt||0)]));
+  const applied=simultaneousOnePlacePenalty(order,pairIds,debt);
+  for(const id of applied.order){
+    if(Number(applied.debt[id]||0)!==Number(debt[id]||0)){
+      await q(client,`UPDATE pairs SET position_debt=$2 WHERE id=$1`,[id,Number(applied.debt[id]||0)]);
+    }
+  }
+  await wheelV3SetCategoryOrder(client,categoryId,applied.order);
+  return applied;
+}
+
+export async function applyWheelV3BothFailure(client,{
+  assignmentId,
+  resolutionSource='both_failure',
+}){
+  const assignment=(await q(client,`
+    SELECT * FROM wheel_assignments
+    WHERE id=$1
+    FOR UPDATE
+  `,[assignmentId])).rows[0];
+  if(!assignment)throw new Error('Assignment inexistente');
+  if(!['open','result_pending','disputed'].includes(assignment.status))throw new Error('Assignment no disponible');
+
+  const pairIds=[Number(assignment.pair_a_id),Number(assignment.pair_b_id)];
+  const category=await wheelV3CategoryRow(client,assignment.category_id);
+  await q(client,`
+    SELECT id FROM categories
+    WHERE league_id=$1
+    ORDER BY number
+    FOR UPDATE
+  `,[category.league_id]);
+
+  const previousLeader=await wheelV3Leader(client,assignment.category_id);
+  const applied=await wheelV3ApplySimultaneousPositionPenalty(client,assignment.category_id,pairIds);
+  const activeCount=await wheelV3ActiveCount(client,assignment.category_id);
+
+  const failureResults=[];
+  const relegationDecisions=[];
+  for(const pairId of pairIds){
+    const beforeState=(await q(client,`
+      SELECT role FROM pair_wheel_state WHERE pair_id=$1 FOR UPDATE
+    `,[pairId])).rows[0];
+    const pair=await wheelV3CurrentPairRow(client,pairId);
+    const role=roleAfterOwnFailure({
+      previousRole:beforeState?.role,
+      position:Number(pair.position),
+      activeCount,
+    });
+    await q(client,`
+      UPDATE pair_wheel_state
+      SET
+        role=$2,
+        role_streak=CASE WHEN role=$2 THEN role_streak+1 ELSE 1 END,
+        defense_required_until_real=$3,
+        updated_at=CURRENT_TIMESTAMP
+      WHERE pair_id=$1
+    `,[pairId,role.role,role.defenseRequiredUntilReal]);
+    failureResults.push({pairId,...await wheelV3ApplyFailureStreak(client,pairId,{ownFailure:true})});
+    relegationDecisions.push({pairId,state:await wheelV3AdministrativeRelegationDecision(client,pairId,{ownFailure:true})});
+  }
+
+  await wheelV3SyncPromotionEdgeAfterAdministrativeMovement(client,assignment.category_id,previousLeader);
+  if(Number(category.number)===1){
+    await wheelV3SyncFirstPlaceReign(client,assignment.league_id,assignment.category_id);
+  }
+
+  const movements=[];
+  const affectedCategories=new Set([Number(assignment.category_id)]);
+  for(const decision of relegationDecisions){
+    if(!decision.state.descend||Number(category.number)>=7)continue;
+    const target=(await q(client,`
+      SELECT id FROM categories
+      WHERE league_id=$1 AND number=$2
+    `,[category.league_id,Number(category.number)+1])).rows[0];
+    const moved=await wheelV3MovePairCategory(client,decision.pairId,target.id,{mode:'relegation'});
+    movements.push({...moved,type:'relegation'});
+    affectedCategories.add(Number(target.id));
+  }
+
+  for(const result of failureResults){
+    if(result.penalty30Days){
+      await wheelV3ApplyThirtyDayPenalty(client,result.pairId,result.duoId);
+    }
+  }
+
+  await q(client,`
+    UPDATE wheel_assignments
+    SET status='confirmed',closed_at=CURRENT_TIMESTAMP,close_reason=$2
+    WHERE id=$1
+  `,[assignment.id,resolutionSource]);
+  await q(client,`DELETE FROM wheel_assignment_participants WHERE assignment_id=$1`,[assignment.id]);
+
+  const refresh=[];
+  for(const categoryId of [...affectedCategories].sort((a,b)=>a-b)){
+    refresh.push({categoryId,...await refreshWheelV3Category(client,categoryId)});
+  }
+
+  return {
+    pairIds,
+    order:applied.order,
+    debt:applied.debt,
+    movements,
+    penalties30Days:failureResults.filter(x=>x.penalty30Days).map(x=>x.pairId),
+    refresh,
+  };
 }
