@@ -253,7 +253,7 @@ test('three-failure penalty state is internally coherent and preserves the exact
   await pool.query('INSERT INTO pair_members(pair_id,user_id) VALUES($1,$2),($1,$3)',[p.id,u1.id,u2.id]);
 
   await pool.query("UPDATE pair_wheel_state SET inactive_since=CURRENT_TIMESTAMP,return_position_base=3,inactive_reason='three_failures',auto_reactivate_at=CURRENT_TIMESTAMP+interval '30 days' WHERE pair_id=$1",[p.id]);
-  await pool.query('UPDATE pair_duo_state SET failure_streak=3,penalty_until=CURRENT_TIMESTAMP+interval '30 days' WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[l.id,u1.id,u2.id]);
+  await pool.query("UPDATE pair_duo_state SET failure_streak=3,penalty_until=CURRENT_TIMESTAMP+interval '30 days' WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3",[l.id,u1.id,u2.id]);
 
   const pairState=(await pool.query('SELECT inactive_reason,EXTRACT(EPOCH FROM (auto_reactivate_at-inactive_since)) seconds FROM pair_wheel_state WHERE pair_id=$1',[p.id])).rows[0];
   const duoState=(await pool.query('SELECT failure_streak,penalty_until FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[l.id,u1.id,u2.id])).rows[0];
