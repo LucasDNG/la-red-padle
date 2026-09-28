@@ -1,6 +1,6 @@
 # LA RED Pádel — El camino hasta la versión final
 
-LA RED empezó como una liga con desafíos manuales y fue transformándose al detectar contradicciones reales: múltiples compromisos simultáneos, reglas 30/90, ELO mezclado con ranking, estados de disciplina y competencia superpuestos, resultados fuera de orden y demasiada intervención administrativa.
+LA RED empezó como una liga con desafíos manuales y fue transformándose al detectar contradicciones reales: múltiples compromisos simultáneos, reglas 30/90, una métrica numérica secundaria mezclada con el ranking, estados de disciplina y competencia superpuestos, resultados fuera de orden y demasiada intervención administrativa.
 
 La conclusión fue construir una liga **autónoma, explicable y continua**.
 
@@ -100,7 +100,7 @@ La primera válvula de equilibrio no se dio por buena solo por una corrida a 20 
 
 
 ## Cierre automatizado del corazón deportivo
-La estabilización dejó de depender de recorridas manuales largas. El ciclo pareja → rueda → programación → resultado → ranking → movimiento de categoría → vencimientos → pausa/disolución quedó cubierto por PostgreSQL real en CI, incluyendo concurrencia e idempotencia. Los tests automáticos encontraron y corrigieron problemas que una simulación pura no podía revelar: orden de locks, posiciones transitorias, atribución tardía, ventana de extensión, strikes de no-show y ELO stale al pausar.
+La estabilización dejó de depender de recorridas manuales largas. El ciclo pareja → rueda → programación → resultado → ranking → movimiento de categoría → vencimientos → pausa/disolución quedó cubierto por PostgreSQL real en CI, incluyendo concurrencia e idempotencia. Los tests automáticos encontraron y corrigieron problemas que una simulación pura no podía revelar: orden de locks, posiciones transitorias, atribución tardía, ventana de extensión, strikes de no-show y un valor posicional derivado desactualizado al pausar.
 
 El checkpoint alcanza 20/20 tests puros y 29/29 tests PostgreSQL en Node 22/PostgreSQL 16. Desde aquí el trabajo cambia de foco: hardening de módulos laterales y operación real, seguido por smoke UX en vez de años de liga manuales.
 
@@ -142,8 +142,18 @@ Los cambios conceptuales principales son:
 - fase de formación hasta 5 parejas activas por categoría;
 - equilibrio porcentual posterior usando solo parejas activas;
 - período de descenso persistente desde que una pareja toca el último puesto;
-- inactividad separada del ranking activo, con protección temporal de posición;
+- inactividad separada de la rueda activa, sin castigos periódicos por el mero paso del tiempo;
 - incumplimientos que no pueden bloquear la rueda;
 - eliminación del historial estadístico acumulado visible de pareja, dejando solo 5 movimientos recientes y auditoría interna.
 
 La decisión metodológica es importante: **no se toca el código todavía**. Primero se cerrarán las preguntas abiertas de la spec, luego se consolidarán las reglas definitivas, se escribirán simulaciones/tests y recién después se reemplazará `wheel-v2`.
+
+## Simplificación definitiva del ranking y la inactividad — 2026-09-28
+
+Antes de implementar Wheel v3 se tomó una decisión de simplificación fuerte: **la posición de la pareja en su categoría es todo el ranking que necesita el jugador**. Se descarta cualquier puntuación numérica paralela, actual o histórica.
+
+La antigua sección de récord numérico no desaparece visualmente: se reutiliza para algo directamente comprensible, el récord histórico de defensas exitosas del #1 de Primera. Es la única estadística histórica especial que se desea destacar.
+
+También se simplifica la inactividad. Una pareja resuelve primero el compromiso automático que ya tenga abierto y luego sale de la rueda. Desde ese momento no se la castiga periódicamente por no jugar, no pierde puestos por meses transcurridos y no baja de categoría por permanecer inactiva.
+
+La intención de producto queda resumida en una regla: **el motor puede ser complejo; la experiencia no**. Si LA RED sabe quién debe jugar, asigna el partido y le dice a la pareja qué hacer a continuación.
