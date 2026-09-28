@@ -2490,3 +2490,148 @@ export async function cancelWheelV3ScheduleProposal(client,{
   if(!row)throw new Error('Propuesta no disponible para cancelar');
   return row;
 }
+
+
+async function wheelV3AdminAudit(client,{adminUserId,action,targetType,targetId,data={}}){
+  return (await q(client,`
+    INSERT INTO admin_audit_events(admin_user_id,action,target_type,target_id,data)
+    VALUES($1,$2,$3,$4,$5::jsonb)
+    RETURNING *
+  `,[adminUserId,action,targetType,targetId,JSON.stringify(data)])).rows[0];
+}
+
+export async function resolveWheelV3ResultDispute(client,{
+  assignmentId,
+  versionId,
+  adminUserId,
+}){
+  const assignment=(await q(client,`
+    SELECT *
+    FROM wheel_assignments
+    WHERE id=$1
+    FOR UPDATE
+  `,[assignmentId])).rows[0];
+  if(!assignment||assignment.status!=='disputed')throw new Error('Assignment no está en disputa');
+
+  const version=(await q(client,`
+    SELECT *
+    FROM wheel_result_versions
+    WHERE id=$1 AND assignment_id=$2
+    FOR UPDATE
+  `,[versionId,assignmentId])).rows[0];
+  if(!version)throw new Error('Versión de resultado inválida');
+
+  const result=await applyWheelV3ConfirmedRealResult(client,{
+    assignmentId,
+    winnerPairId:version.winner_pair_id,
+    resultType:version.result_type,
+    score:version.score,
+    abandonedPairId:version.abandoned_pair_id,
+    playedAt:version.played_at,
+    resolutionSource:'admin_selected_version',
+  });
+  await wheelV3AdminAudit(client,{
+    adminUserId,
+    action:'wheel_v3_resolve_result_dispute',
+    targetType:'wheel_assignment',
+    targetId:assignmentId,
+    data:{versionId:Number(versionId),winnerPairId:Number(version.winner_pair_id)},
+  });
+  return result;
+}
+
+export async function dismissWheelV3NoShowByAdmin(client,{
+  assignmentId,
+  adminUserId,
+}){
+  const assignment=(await q(client,`
+    SELECT *
+    FROM wheel_assignments
+    WHERE id=$1
+    FOR UPDATE
+  `,[assignmentId])).rows[0];
+  if(!assignment||assignment.status!=='disputed')throw new Error('Assignment no está bloqueado por disputa');
+
+  const noShow=(await q(client,`
+    SELECT *
+    FROM wheel_no_shows
+    WHERE assignment_id=$1
+      AND status IN('contested','admin_review')
+    ORDER BY id DESC
+    LIMIT 1
+    FOR UPDATE
+  `,[assignmentId])).rows[0];
+  if(!noShow)throw new Error('No existe no-show pendiente de Administración');
+
+  await q(client,`
+    UPDATE wheel_no_shows
+    SET status='resolved',responded_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+  `,[noShow.id]);
+  const status=assignment.first_result_at?'result_pending':'open';
+  await q(client,`
+    UPDATE wheel_assignments
+    SET status=$2
+    WHERE id=$1
+  `,[assignmentId,status]);
+
+  await wheelV3AdminAudit(client,{
+    adminUserId,
+    action:'wheel_v3_dismiss_no_show',
+    targetType:'wheel_assignment',
+    targetId:assignmentId,
+    data:{noShowId:Number(noShow.id),restoredStatus:status},
+  });
+  return {assignmentId:Number(assignmentId),status};
+}
+
+export async function resolveWheelV3NoShowByAdmin(client,{
+  assignmentId,
+  failingPairId,
+  adminUserId,
+}){
+  const assignment=(await q(client,`
+    SELECT *
+    FROM wheel_assignments
+    WHERE id=$1
+    FOR UPDATE
+  `,[assignmentId])).rows[0];
+  if(!assignment||assignment.status!=='disputed')throw new Error('Assignment no está bloqueado por disputa');
+
+  const noShow=(await q(client,`
+    SELECT *
+    FROM wheel_no_shows
+    WHERE assignment_id=$1
+      AND status IN('contested','admin_review')
+    ORDER BY id DESC
+    LIMIT 1
+    FOR UPDATE
+  `,[assignmentId])).rows[0];
+  if(!noShow)throw new Error('No existe no-show pendiente de Administración');
+
+  const pairIds=[Number(assignment.pair_a_id),Number(assignment.pair_b_id)];
+  const failing=Number(failingPairId);
+  if(!pairIds.includes(failing))throw new Error('Pareja incumplidora inválida');
+
+  await q(client,`
+    UPDATE wheel_no_shows
+    SET status='accepted',responded_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+  `,[noShow.id]);
+  await q(client,`UPDATE wheel_assignments SET status='open' WHERE id=$1`,[assignmentId]);
+
+  const result=await applyWheelV3OneSidedFailure(client,{
+    assignmentId,
+    failingPairId:failing,
+    resolutionSource:'admin_no_show_resolution',
+    countsAsFirstPlaceDefense:true,
+  });
+  await wheelV3AdminAudit(client,{
+    adminUserId,
+    action:'wheel_v3_resolve_no_show',
+    targetType:'wheel_assignment',
+    targetId:assignmentId,
+    data:{noShowId:Number(noShow.id),failingPairId:failing},
+  });
+  return result;
+}
