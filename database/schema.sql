@@ -182,6 +182,43 @@ CREATE TABLE pair_duo_state(
   FOREIGN KEY(pending_relegation_category_id,league_id) REFERENCES categories(id,league_id)
 );
 
+
+CREATE OR REPLACE FUNCTION ensure_pair_wheel_v3_state() RETURNS trigger LANGUAGE plpgsql AS $
+BEGIN
+  INSERT INTO pair_wheel_state(pair_id) VALUES(NEW.id)
+  ON CONFLICT(pair_id) DO NOTHING;
+  RETURN NEW;
+END $;
+DROP TRIGGER IF EXISTS trg_pair_wheel_v3_state ON pairs;
+CREATE TRIGGER trg_pair_wheel_v3_state
+AFTER INSERT ON pairs
+FOR EACH ROW EXECUTE FUNCTION ensure_pair_wheel_v3_state();
+
+CREATE OR REPLACE FUNCTION ensure_pair_duo_v3_state() RETURNS trigger LANGUAGE plpgsql AS $
+DECLARE
+  v_league_id bigint;
+  v_low bigint;
+  v_high bigint;
+  v_count int;
+BEGIN
+  SELECT p.league_id,count(pm.user_id),min(pm.user_id),max(pm.user_id)
+  INTO v_league_id,v_count,v_low,v_high
+  FROM pairs p
+  JOIN pair_members pm ON pm.pair_id=p.id
+  WHERE p.id=NEW.pair_id
+  GROUP BY p.league_id;
+  IF v_count=2 THEN
+    INSERT INTO pair_duo_state(league_id,member_low_id,member_high_id)
+    VALUES(v_league_id,v_low,v_high)
+    ON CONFLICT(league_id,member_low_id,member_high_id) DO NOTHING;
+  END IF;
+  RETURN NEW;
+END $;
+DROP TRIGGER IF EXISTS trg_pair_duo_v3_state ON pair_members;
+CREATE TRIGGER trg_pair_duo_v3_state
+AFTER INSERT ON pair_members
+FOR EACH ROW EXECUTE FUNCTION ensure_pair_duo_v3_state();
+
 CREATE TABLE pair_invitations(
   id bigserial PRIMARY KEY,
   inviter_user_id bigint NOT NULL REFERENCES users(id),
