@@ -411,3 +411,70 @@ export function simultaneousOnePlacePenalty(order,penalizedIds,debt={}){
   }
   return {order:out,debt:nextDebt};
 }
+
+
+export function normalizeRolesForPlanning(pairs){
+  const eligible=[...pairs].filter(p=>p.active!==false&&p.free!==false).sort((a,b)=>Number(a.position)-Number(b.position));
+  if(eligible.length===0)return [];
+  if(eligible.length===1)return [{...eligible[0],role:null,roleStreak:0}];
+
+  const output=eligible.map(p=>({...p}));
+  output[0].role='defense';
+  output[0].roleStreak=eligible[0].role==='defense'?Math.max(1,Number(eligible[0].roleStreak)||0):1;
+  output.at(-1).role='attack';
+  output.at(-1).roleStreak=eligible.at(-1).role==='attack'?Math.max(1,Number(eligible.at(-1).roleStreak)||0):1;
+
+  const middle=output.slice(1,-1);
+  let attackCount=output.filter(p=>p.role==='attack').length;
+  let defenseCount=output.filter(p=>p.role==='defense').length;
+
+  const unresolved=[];
+  for(const pair of middle){
+    if(pair.defenseRequiredUntilReal){
+      pair.role='defense';
+      pair.roleStreak=eligible.find(x=>Number(x.id)===Number(pair.id))?.role==='defense'
+        ?Math.max(1,Number(pair.roleStreak)||0)
+        :1;
+      defenseCount++;
+      continue;
+    }
+    if(pair.role==='attack'){attackCount++;continue;}
+    if(pair.role==='defense'){defenseCount++;continue;}
+    unresolved.push(pair);
+  }
+
+  for(const pair of unresolved){
+    pair.role=attackCount<=defenseCount?'attack':'defense';
+    pair.roleStreak=1;
+    if(pair.role==='attack')attackCount++;else defenseCount++;
+  }
+
+  for(let guard=0;guard<middle.length*2;guard++){
+    if(Math.abs(attackCount-defenseCount)<=1)break;
+    const excess=attackCount>defenseCount?'attack':'defense';
+    const target=excess==='attack'?'defense':'attack';
+    const candidates=middle
+      .filter(p=>!p.defenseRequiredUntilReal&&p.role===excess)
+      .sort((a,b)=>{
+        const astreak=Number(a.roleStreak)||0,bstr=Number(b.roleStreak)||0;
+        if(astreak!==bstr)return bstr-astreak;
+        const aw=new Date(a.realWaitingSince).getTime(),bw=new Date(b.realWaitingSince).getTime();
+        if(aw!==bw)return aw-bw;
+        return Number(a.id)-Number(b.id);
+      });
+    if(!candidates.length)break;
+    const chosen=candidates[0];
+    chosen.role=target;
+    chosen.roleStreak=1;
+    if(excess==='attack'){attackCount--;defenseCount++;}else{defenseCount--;attackCount++;}
+  }
+  return output;
+}
+
+export function planCategoryWheel(pairs,{lastOpponentByPair={}}={}){
+  const normalized=normalizeRolesForPlanning(pairs);
+  return {
+    pairs:normalized,
+    assignments:assignAttackersToDefenders(normalized,{lastOpponentByPair}),
+  };
+}
