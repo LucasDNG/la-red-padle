@@ -46,7 +46,7 @@ El panel `/admin` muestra:
 Admin no:
 - elige rivales;
 - ordena el ranking;
-- escribe ELO manualmente;
+- modifica manualmente el ranking;
 - decide ascensos/descensos ordinarios;
 - acepta una invitación de pareja en nombre de un jugador;
 - aprueba una pareja deportiva.
