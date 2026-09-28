@@ -237,3 +237,17 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - Se reordenó `PATCH_WHEEL_V3_STATE_2026-09-28.sql` para crear `pair_duo_state` antes de alterarla.
 - Se corrigieron delimitadores `DO $$` y funciones PL/pgSQL.
 - El patch conserva idempotencia y puede evolucionar instalaciones que recibieron una versión preparatoria anterior.
+
+### Núcleo puro Wheel v3 — 2026-09-28
+- Se agregó lógica pura para cierre de formación por circuito (7 categorías con >=5 activas).
+- Se fijaron roles estructurales: #1 defensa, último ataque, una sola activa sin rol efectivo.
+- Se agregó transición post partido real atacante->defensa / defensor->ataque con respeto de extremos.
+- Se agregó prioridad absoluta por `real_waiting_since`.
+- Se agregó selección de defensor solo hacia arriba, ventanas dinámicas de 3, prioridad por espera y expansión inmediata.
+- Se agregó evitación blanda de rival inmediato: se evita si hay alternativa, nunca bloquea la rueda.
+- Se agregó resolución de colisiones: el atacante con mayor espera toma primero el defensor y el otro continúa buscando.
+- Se agregó rebalance inicial de roles con extremos forzados.
+- La matemática de población 3/2/1 y mejora conjunta quedó centralizada en `wheel-v3-rule-model.js`; la simulación reutiliza esa misma fuente.
+- Se agregó `entryPositionPenultimate`; el alias legacy `entryPositionAntepenultimate` se conserva solo para no romper tests/simulaciones existentes.
+- `delayedResultMovement` también quedó centralizado en el modelo puro.
+- Todo este bloque sigue aislado: todavía no se conectó al runtime productivo ni se cambió `engine=wheel-v2`.
