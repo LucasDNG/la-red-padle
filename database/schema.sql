@@ -356,7 +356,7 @@ CREATE TABLE wheel_extension_votes(
 
 CREATE TABLE wheel_no_shows(
   id bigserial PRIMARY KEY,
-  assignment_id bigint NOT NULL UNIQUE REFERENCES wheel_assignments(id) ON DELETE CASCADE,
+  assignment_id bigint NOT NULL REFERENCES wheel_assignments(id) ON DELETE CASCADE,
   reported_by_pair_id bigint NOT NULL REFERENCES pairs(id),
   reported_pair_id bigint NOT NULL REFERENCES pairs(id),
   status varchar(12) NOT NULL DEFAULT 'pending' CHECK(status IN('pending','accepted','contested','admin_review','resolved')),
@@ -365,6 +365,8 @@ CREATE TABLE wheel_no_shows(
   responded_at timestamptz,
   CHECK(reported_by_pair_id<>reported_pair_id)
 );
+
+CREATE UNIQUE INDEX uq_wheel_no_show_live ON wheel_no_shows(assignment_id) WHERE status IN('pending','contested','admin_review','accepted');
 
 CREATE TABLE wheel_result_versions(
   id bigserial PRIMARY KEY,
