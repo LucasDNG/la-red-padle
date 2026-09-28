@@ -639,3 +639,27 @@ test('relegation route avoids immediate repeat when another reasonable target ex
   ],{lastOpponentId:7});
   assert.equal(defender.id,6);
 });
+
+
+test('structural extremes are based on the full active ladder, not only free pairs',()=>{
+  const rows=normalizeRolesForPlanning([
+    {id:1,position:1,role:'defense',roleStreak:1,active:true,free:false,realWaitingSince:'2026-09-01T00:00:00Z'},
+    {id:2,position:2,role:'attack',roleStreak:1,active:true,free:true,realWaitingSince:'2026-09-02T00:00:00Z'},
+    {id:3,position:3,role:'defense',roleStreak:1,active:true,free:true,realWaitingSince:'2026-09-03T00:00:00Z'},
+    {id:4,position:4,role:'attack',roleStreak:1,active:true,free:false,realWaitingSince:'2026-09-04T00:00:00Z'},
+  ]);
+  assert.equal(rows.find(x=>x.id===2).role,'attack');
+  assert.equal(rows.find(x=>x.id===3).role,'defense');
+  assert.equal(rows.find(x=>x.id===1).role,'defense');
+  assert.equal(rows.find(x=>x.id===4).role,'attack');
+});
+
+test('occupied real leader does not turn free #2 into a fake structural defender',()=>{
+  const plan=planCategoryWheel([
+    {id:1,position:1,role:'defense',roleStreak:1,active:true,free:false,realWaitingSince:'2026-09-01T00:00:00Z'},
+    {id:2,position:2,role:'attack',roleStreak:1,active:true,free:true,realWaitingSince:'2026-09-02T00:00:00Z'},
+    {id:3,position:3,role:'defense',roleStreak:1,active:true,free:true,realWaitingSince:'2026-09-03T00:00:00Z'},
+    {id:4,position:4,role:'attack',roleStreak:1,active:true,free:true,realWaitingSince:'2026-09-04T00:00:00Z'},
+  ]);
+  assert.equal(plan.pairs.find(x=>x.id===2).role,'attack');
+});
