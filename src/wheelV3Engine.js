@@ -410,6 +410,46 @@ export async function refreshWheelV3Category(client,categoryId){
 }
 
 
+async function wheelV3MovementEvent(client,{
+  sourceKey,
+  pairId,
+  assignmentId=null,
+  reason,
+  fromPosition=null,
+  toPosition=null,
+  fromCategory=null,
+  toCategory=null,
+}){
+  return (await q(client,`
+    INSERT INTO competitive_events(source_key,event_type,pair_id,assignment_id,data)
+    VALUES($1,'wheel_v3_movement',$2,$3,$4::jsonb)
+    ON CONFLICT(source_key) DO NOTHING
+    RETURNING *
+  `,[
+    sourceKey,
+    pairId,
+    assignmentId,
+    JSON.stringify({
+      reason,
+      fromPosition,
+      toPosition,
+      fromCategory,
+      toCategory,
+    }),
+  ])).rows[0]||null;
+}
+
+export async function wheelV3RecentMovements(client,pairId){
+  return (await q(client,`
+    SELECT event_type,data,created_at
+    FROM competitive_events
+    WHERE pair_id=$1
+      AND event_type='wheel_v3_movement'
+    ORDER BY created_at DESC,id DESC
+    LIMIT 5
+  `,[pairId])).rows;
+}
+
 async function wheelV3CategoryRow(client,categoryId){
   const row=(await q(client,`
     SELECT c.id,c.league_id,c.number
@@ -500,7 +540,7 @@ async function wheelV3ConsumePositionDebt(client,pairIds){
   `,[ids]);
 }
 
-async function wheelV3MovePairCategory(client,pairId,targetCategoryId,{mode}){
+async function wheelV3MovePairCategory(client,pairId,targetCategoryId,{mode,assignmentId=null,sourceKey=null}={}){
   const pair=(await q(client,`
     SELECT p.*,c.number source_number
     FROM pairs p
@@ -574,6 +614,16 @@ async function wheelV3MovePairCategory(client,pairId,targetCategoryId,{mode}){
     `,[duoStateId]);
   }
 
+  if(sourceKey){
+    await wheelV3MovementEvent(client,{
+      sourceKey,
+      pairId:Number(pairId),
+      assignmentId,
+      reason:mode==='promotion'?'promotion':'relegation',
+      fromCategory:Number(pair.source_number),
+      toCategory:Number(target.number),
+    });
+  }
   return {
     pairId:Number(pairId),
     fromCategoryId:sourceCategoryId,
@@ -834,6 +884,24 @@ export async function applyWheelV3ConfirmedRealResult(client,{
   ])).rows[0];
 
   const swapped=await wheelV3SwapPairPositions(client,winner,loser);
+  if(swapped){
+    await wheelV3MovementEvent(client,{
+      sourceKey:`v3:assignment:${assignment.id}:swap:${winner}`,
+      pairId:winner,
+      assignmentId:assignment.id,
+      reason:'victory_over_higher_rival',
+      fromPosition:Number(before[winner].position),
+      toPosition:Number(before[loser].position),
+    });
+    await wheelV3MovementEvent(client,{
+      sourceKey:`v3:assignment:${assignment.id}:swap:${loser}`,
+      pairId:loser,
+      assignmentId:assignment.id,
+      reason:'loss_to_lower_rival',
+      fromPosition:Number(before[loser].position),
+      toPosition:Number(before[winner].position),
+    });
+  }
   const leaderAfterSwap=await wheelV3Leader(client,assignment.category_id);
 
   await wheelV3ApplyRealRoles(client,assignment,before,assignment.category_id);
@@ -945,7 +1013,7 @@ export async function applyWheelV3ConfirmedRealResult(client,{
         SELECT id FROM categories
         WHERE league_id=$1 AND number=$2
       `,[category.league_id,Number(category.number)-1])).rows[0];
-      const movement=await wheelV3MovePairCategory(client,winner,target.id,{mode:'promotion'});
+      const movement=await wheelV3MovePairCategory(client,winner,target.id,{mode:'promotion',assignmentId:assignment.id,sourceKey:`v3:assignment:${assignment.id}:promotion:${winner}`});
       movements.push({...movement,type:'promotion'});
       affectedCategories.add(Number(target.id));
     }
@@ -955,7 +1023,7 @@ export async function applyWheelV3ConfirmedRealResult(client,{
         SELECT id FROM categories
         WHERE league_id=$1 AND number=$2
       `,[category.league_id,Number(category.number)+1])).rows[0];
-      const movement=await wheelV3MovePairCategory(client,loser,target.id,{mode:'relegation'});
+      const movement=await wheelV3MovePairCategory(client,loser,target.id,{mode:'relegation',assignmentId:assignment.id,sourceKey:`v3:assignment:${assignment.id}:relegation:${loser}`});
       movements.push({...movement,type:'relegation'});
       affectedCategories.add(Number(target.id));
     }
@@ -1193,6 +1261,24 @@ export async function applyWheelV3OneSidedFailure(client,{
   let swapped=false;
   if(movement.moved){
     swapped=await wheelV3SwapPairPositions(client,winner,failing);
+    if(swapped){
+      await wheelV3MovementEvent(client,{
+        sourceKey:`v3:assignment:${assignment.id}:admin-swap:${failing}`,
+        pairId:failing,
+        assignmentId:assignment.id,
+        reason:'administrative_failure',
+        fromPosition:Number(failingBefore.position),
+        toPosition:Number(winnerBefore.position),
+      });
+      await wheelV3MovementEvent(client,{
+        sourceKey:`v3:assignment:${assignment.id}:admin-swap:${winner}`,
+        pairId:winner,
+        assignmentId:assignment.id,
+        reason:'rival_administrative_failure',
+        fromPosition:Number(winnerBefore.position),
+        toPosition:Number(failingBefore.position),
+      });
+    }
   }
 
   const activeCount=await wheelV3ActiveCount(client,assignment.category_id);
@@ -1225,7 +1311,7 @@ export async function applyWheelV3OneSidedFailure(client,{
       SELECT id FROM categories
       WHERE league_id=$1 AND number=$2
     `,[category.league_id,Number(category.number)+1])).rows[0];
-    const moved=await wheelV3MovePairCategory(client,failing,target.id,{mode:'relegation'});
+    const moved=await wheelV3MovePairCategory(client,failing,target.id,{mode:'relegation',assignmentId:assignment.id,sourceKey:`v3:assignment:${assignment.id}:admin-relegation:${failing}`});
     movements.push({...moved,type:'relegation'});
     affectedCategories.add(Number(target.id));
   }
@@ -1326,6 +1412,12 @@ export async function reactivateWheelV3Pair(client,pairId){
   }
 
   const leagueId=(await q(client,`SELECT league_id FROM categories WHERE id=$1`,[row.category_id])).rows[0].league_id;
+  await wheelV3MovementEvent(client,{
+    sourceKey:`v3:reactivation:${pairId}:${new Date(row.server_now).toISOString()}`,
+    pairId:Number(pairId),
+    reason:'inactivity_return',
+    toPosition:desired,
+  });
   const formation=await completeWheelV3FormationIfReady(client,leagueId);
   const refresh=await refreshWheelV3Category(client,row.category_id);
   return {
@@ -1384,8 +1476,9 @@ async function wheelV3SyncPromotionEdgeAfterAdministrativeMovement(client,catego
   return Number(leader);
 }
 
-async function wheelV3ApplySimultaneousPositionPenalty(client,categoryId,pairIds){
+async function wheelV3ApplySimultaneousPositionPenalty(client,categoryId,pairIds,{assignmentId=null}={}){
   const order=await wheelV3ActiveOrder(client,categoryId);
+  const beforePosition=Object.fromEntries(order.map((id,index)=>[id,index+1]));
   const debtRows=(await q(client,`
     SELECT id,position_debt
     FROM pairs
@@ -1400,6 +1493,20 @@ async function wheelV3ApplySimultaneousPositionPenalty(client,categoryId,pairIds
     }
   }
   await wheelV3SetCategoryOrder(client,categoryId,applied.order);
+  for(const pairId of pairIds.map(Number)){
+    const to=applied.order.indexOf(pairId)+1;
+    const from=beforePosition[pairId];
+    if(to>0&&from!==to){
+      await wheelV3MovementEvent(client,{
+        sourceKey:`v3:assignment:${assignmentId??'none'}:simultaneous-penalty:${pairId}`,
+        pairId,
+        assignmentId,
+        reason:'simultaneous_failure_penalty',
+        fromPosition:from,
+        toPosition:to,
+      });
+    }
+  }
   return applied;
 }
 
@@ -1425,7 +1532,7 @@ export async function applyWheelV3BothFailure(client,{
   `,[category.league_id]);
 
   const previousLeader=await wheelV3Leader(client,assignment.category_id);
-  const applied=await wheelV3ApplySimultaneousPositionPenalty(client,assignment.category_id,pairIds);
+  const applied=await wheelV3ApplySimultaneousPositionPenalty(client,assignment.category_id,pairIds,{assignmentId:assignment.id});
   const activeCount=await wheelV3ActiveCount(client,assignment.category_id);
 
   const failureResults=[];
@@ -1466,7 +1573,7 @@ export async function applyWheelV3BothFailure(client,{
       SELECT id FROM categories
       WHERE league_id=$1 AND number=$2
     `,[category.league_id,Number(category.number)+1])).rows[0];
-    const moved=await wheelV3MovePairCategory(client,decision.pairId,target.id,{mode:'relegation'});
+    const moved=await wheelV3MovePairCategory(client,decision.pairId,target.id,{mode:'relegation',assignmentId:assignment.id,sourceKey:`v3:assignment:${assignment.id}:both-failure-relegation:${decision.pairId}`});
     movements.push({...moved,type:'relegation'});
     affectedCategories.add(Number(target.id));
   }
