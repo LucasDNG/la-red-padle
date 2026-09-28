@@ -1,5 +1,5 @@
 import {q} from './db.js';
-import {formationComplete,planCategoryWheel,shouldCancelAssignmentForStructure,resultAllowedAfterCancellation,resultCountsAsReal,roleAfterRealMatch,promotionStateAfterResult,relegationStateAfterResult,populationDirectionalThreshold,entryPositionPenultimate,descendedEntryPosition,individualCategoriesAfterDescent} from './wheelV3Rules.js';
+import {formationComplete,planCategoryWheel,shouldCancelAssignmentForStructure,resultAllowedAfterCancellation,resultCountsAsReal,roleAfterRealMatch,promotionStateAfterResult,relegationStateAfterResult,populationDirectionalThreshold,entryPositionPenultimate,descendedEntryPosition,individualCategoriesAfterDescent,failureStateAfterClosure,roleAfterOwnFailure,administrativeFailureMovement} from './wheelV3Rules.js';
 import {scoreGames} from './core.js';
 
 export async function wheelV3FormationSnapshot(client,leagueId,{lock=false}={}){
@@ -927,5 +927,250 @@ export async function applyWheelV3ConfirmedRealResult(client,{
     refresh,
     leaderBefore:leaderBefore==null?null:Number(leaderBefore),
     leaderAfter:leaderAfterSwap==null?null:Number(leaderAfterSwap),
+  };
+}
+
+
+async function wheelV3CurrentPairRow(client,pairId){
+  return (await q(client,`
+    SELECT p.id,p.league_id,p.category_id,p.position,p.competition_state,c.number category_number
+    FROM pairs p
+    JOIN categories c ON c.id=p.category_id
+    WHERE p.id=$1
+    FOR UPDATE OF p
+  `,[pairId])).rows[0];
+}
+
+async function wheelV3ApplyFailureStreak(client,pairId,{ownFailure=false,rivalOnlyFailure=false}={}){
+  const duo=await wheelV3DuoStateForPair(client,pairId,{lock:true});
+  const next=failureStateAfterClosure({
+    failureStreak:Number(duo.failure_streak||0),
+    ownFailure,
+    rivalOnlyFailure,
+  });
+  await q(client,`
+    UPDATE pair_duo_state
+    SET failure_streak=$2,updated_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+  `,[duo.id,next.failureStreak]);
+  return {...next,duoId:Number(duo.id)};
+}
+
+async function wheelV3ApplyThirtyDayPenalty(client,pairId,duoId){
+  const pair=await wheelV3CurrentPairRow(client,pairId);
+  await q(client,`
+    UPDATE pairs
+    SET competition_state='paused',updated_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+  `,[pairId]);
+  await q(client,`
+    UPDATE pair_wheel_state
+    SET
+      inactive_since=CURRENT_TIMESTAMP,
+      return_position_base=$2,
+      inactive_reason='three_failures',
+      auto_reactivate_at=CURRENT_TIMESTAMP+interval '30 days',
+      updated_at=CURRENT_TIMESTAMP
+    WHERE pair_id=$1
+  `,[pairId,pair.position]);
+  await q(client,`
+    UPDATE pair_duo_state
+    SET penalty_until=CURRENT_TIMESTAMP+interval '30 days',updated_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+  `,[duoId]);
+}
+
+async function wheelV3EnsurePromotionZoneAtCurrentTop(client,pairId){
+  const pair=await wheelV3CurrentPairRow(client,pairId);
+  if(Number(pair.category_number)<=1)return;
+  if(Number(pair.position)!==1)return;
+  await q(client,`
+    UPDATE pair_wheel_state
+    SET promotion_wins=0,awaiting_zone_first_match=false,awaiting_zone_kind=NULL,updated_at=CURRENT_TIMESTAMP
+    WHERE pair_id=$1
+  `,[pairId]);
+}
+
+async function wheelV3AdministrativeRelegationDecision(client,pairId,{ownFailure}){
+  const pair=await wheelV3CurrentPairRow(client,pairId);
+  if(Number(pair.category_number)>=7)return {descend:false};
+  const formation=(await q(client,`
+    SELECT formation_completed_at FROM league_wheel_state
+    WHERE league_id=$1
+    FOR UPDATE
+  `,[pair.league_id])).rows[0];
+  if(!formation?.formation_completed_at)return {descend:false};
+
+  const activeCount=await wheelV3ActiveCount(client,pair.category_id);
+  const isLast=Number(pair.position)===activeCount;
+  const duo=await wheelV3DuoStateForPair(client,pairId,{lock:true});
+  const counts=await wheelV3LeagueCounts(client,pair.league_id);
+  const threshold=populationDirectionalThreshold(counts,Number(pair.category_number)-1,Number(pair.category_number));
+  const state=relegationStateAfterResult({
+    category:Number(pair.category_number),
+    wasInRelegation:Number(duo.pending_relegation_category_id)===Number(pair.category_id),
+    losses:Number(duo.pending_relegation_losses||0),
+    routeStep:Number(duo.relegation_route_step||0),
+    isRealMatch:false,
+    won:false,
+    ownFailure,
+    isLast,
+    threshold,
+    awaitingFirstMatch:false,
+  });
+  await wheelV3PersistRelegationState(client,pairId,pair.category_id,state);
+  return state;
+}
+
+async function wheelV3CountAdministrativeFirstPlaceDefense(client,{assignment,winnerPairId,countsAsFirstPlaceDefense}){
+  if(!countsAsFirstPlaceDefense)return null;
+  const pair=await wheelV3CurrentPairRow(client,winnerPairId);
+  if(Number(pair.category_number)!==1||Number(pair.position)!==1)return null;
+  if(Number(assignment.defender_pair_id)!==Number(winnerPairId))return null;
+  const reign=await wheelV3OpenReign(client,pair.league_id,winnerPairId);
+  return (await q(client,`
+    UPDATE first_place_reigns
+    SET defenses=defenses+1,updated_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+    RETURNING *
+  `,[reign.id])).rows[0];
+}
+
+export async function applyWheelV3OneSidedFailure(client,{
+  assignmentId,
+  failingPairId,
+  reportedByUserId=null,
+  resolutionSource='self_failure',
+  countsAsFirstPlaceDefense=false,
+}){
+  const assignment=(await q(client,`
+    SELECT * FROM wheel_assignments
+    WHERE id=$1
+    FOR UPDATE
+  `,[assignmentId])).rows[0];
+  if(!assignment)throw new Error('Assignment inexistente');
+  if(!['open','result_pending','disputed'].includes(assignment.status))throw new Error('Assignment no disponible');
+
+  const pairIds=[Number(assignment.pair_a_id),Number(assignment.pair_b_id)];
+  const failing=Number(failingPairId);
+  if(!pairIds.includes(failing))throw new Error('Pareja incumplidora inválida');
+  const winner=pairIds.find(id=>id!==failing);
+
+  const category=await wheelV3CategoryRow(client,assignment.category_id);
+  await q(client,`
+    SELECT id FROM categories
+    WHERE league_id=$1
+    ORDER BY number
+    FOR UPDATE
+  `,[category.league_id]);
+
+  const before=await wheelV3PairSnapshot(client,pairIds);
+  const failingBefore=before[failing];
+  const winnerBefore=before[winner];
+
+  const gamesA=Number(assignment.pair_a_id)===winner?12:0;
+  const gamesB=Number(assignment.pair_b_id)===winner?12:0;
+  const match=(await q(client,`
+    INSERT INTO matches(
+      assignment_id,league_id,category_number,pair_a_id,pair_b_id,
+      winner_pair_id,result_type,score,abandoned_pair_id,
+      pair_a_games,pair_b_games,played_at,resolution_source
+    )
+    VALUES(
+      $1,$2,$3,$4,$5,$6,'administrative_forfeit',
+      $7::jsonb,NULL,$8,$9,CURRENT_TIMESTAMP,$10
+    )
+    RETURNING *
+  `,[
+    assignment.id,
+    assignment.league_id,
+    Number(category.number),
+    assignment.pair_a_id,
+    assignment.pair_b_id,
+    winner,
+    JSON.stringify({sets:[
+      {kind:'set',pairA:Number(assignment.pair_a_id)===winner?6:0,pairB:Number(assignment.pair_b_id)===winner?6:0},
+      {kind:'set',pairA:Number(assignment.pair_a_id)===winner?6:0,pairB:Number(assignment.pair_b_id)===winner?6:0},
+    ]}),
+    gamesA,
+    gamesB,
+    resolutionSource,
+  ])).rows[0];
+
+  const movement=administrativeFailureMovement({
+    failingPosition:Number(failingBefore.position),
+    rivalPosition:Number(winnerBefore.position),
+  });
+  let swapped=false;
+  if(movement.moved){
+    swapped=await wheelV3SwapPairPositions(client,winner,failing);
+  }
+
+  const activeCount=await wheelV3ActiveCount(client,assignment.category_id);
+  const failingNow=await wheelV3CurrentPairRow(client,failing);
+  const role=roleAfterOwnFailure({
+    previousRole:failingBefore.role,
+    position:Number(failingNow.position),
+    activeCount,
+  });
+  await q(client,`
+    UPDATE pair_wheel_state
+    SET
+      role=$2,
+      role_streak=CASE WHEN role=$2 THEN role_streak+1 ELSE 1 END,
+      defense_required_until_real=$3,
+      updated_at=CURRENT_TIMESTAMP
+    WHERE pair_id=$1
+  `,[failing,role.role,role.defenseRequiredUntilReal]);
+
+  const failingFailure=await wheelV3ApplyFailureStreak(client,failing,{ownFailure:true});
+  await wheelV3ApplyFailureStreak(client,winner,{rivalOnlyFailure:true});
+
+  await wheelV3EnsurePromotionZoneAtCurrentTop(client,winner);
+  const relegation=await wheelV3AdministrativeRelegationDecision(client,failing,{ownFailure:true});
+
+  const movements=[];
+  const affectedCategories=new Set([Number(assignment.category_id)]);
+  if(relegation.descend&&Number(category.number)<7){
+    const target=(await q(client,`
+      SELECT id FROM categories
+      WHERE league_id=$1 AND number=$2
+    `,[category.league_id,Number(category.number)+1])).rows[0];
+    const moved=await wheelV3MovePairCategory(client,failing,target.id,{mode:'relegation'});
+    movements.push({...moved,type:'relegation'});
+    affectedCategories.add(Number(target.id));
+  }
+
+  if(failingFailure.penalty30Days){
+    await wheelV3ApplyThirtyDayPenalty(client,failing,failingFailure.duoId);
+  }
+
+  await wheelV3CountAdministrativeFirstPlaceDefense(client,{
+    assignment,
+    winnerPairId:winner,
+    countsAsFirstPlaceDefense,
+  });
+
+  await q(client,`
+    UPDATE wheel_assignments
+    SET status='confirmed',closed_at=CURRENT_TIMESTAMP,close_reason=$2
+    WHERE id=$1
+  `,[assignment.id,resolutionSource]);
+  await q(client,`DELETE FROM wheel_assignment_participants WHERE assignment_id=$1`,[assignment.id]);
+
+  const refresh=[];
+  for(const categoryId of [...affectedCategories].sort((a,b)=>a-b)){
+    refresh.push({categoryId,...await refreshWheelV3Category(client,categoryId)});
+  }
+
+  return {
+    match,
+    failingPairId:failing,
+    winnerPairId:winner,
+    swapped,
+    movements,
+    penalty30Days:failingFailure.penalty30Days,
+    reportedByUserId,
+    refresh,
   };
 }
