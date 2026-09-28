@@ -1718,7 +1718,7 @@ async function wheelV3ValidateFirstResultWindow(client,assignment,playedAt){
   if(played>new Date(now))throw new Error('La fecha jugada no puede estar en el futuro');
   if(played>new Date(assignment.deadline_at))throw new Error('El partido fue jugado fuera del plazo de 30 días');
   if(!assignment.first_result_at&&new Date(now)>new Date(assignment.deadline_at))throw new Error('Venció el plazo de 30 días para cargar el primer resultado');
-  if(assignment.status==='cancelled'){
+  if(assignment.cancelled_at){
     const eligibility=resultAllowedAfterCancellation({playedAt,cancelledAt:assignment.cancelled_at});
     if(!eligibility)throw new Error('El partido fue jugado después de la cancelación');
   }
