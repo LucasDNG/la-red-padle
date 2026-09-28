@@ -1,5 +1,5 @@
 import {q} from './db.js';
-import {formationComplete,planCategoryWheel,shouldCancelAssignmentForStructure,resultAllowedAfterCancellation,resultCountsAsReal,roleAfterRealMatch,promotionStateAfterResult,relegationStateAfterResult,populationDirectionalThreshold,entryPositionPenultimate,descendedEntryPosition,individualCategoriesAfterDescent,failureStateAfterClosure,roleAfterOwnFailure,administrativeFailureMovement,fullCalendarMonthsBetween,inactivityReturnPosition,simultaneousOnePlacePenalty} from './wheelV3Rules.js';
+import {formationComplete,planCategoryWheel,shouldCancelAssignmentForStructure,resultAllowedAfterCancellation,resultCountsAsReal,roleAfterRealMatch,promotionStateAfterResult,relegationStateAfterResult,populationDirectionalThreshold,entryPositionPenultimate,descendedEntryPosition,individualCategoriesAfterDescent,failureStateAfterClosure,roleAfterOwnFailure,administrativeFailureMovement,fullCalendarMonthsBetween,inactivityReturnPosition,simultaneousOnePlacePenalty,categoryForReformedPair} from './wheelV3Rules.js';
 import {scoreGames,resultEquals,normalizeScore} from './core.js';
 
 export async function wheelV3FormationSnapshot(client,leagueId,{lock=false}={}){
@@ -1978,4 +1978,230 @@ export async function runWheelV3Maintenance(client){
     assignmentsExpired:assignmentsExpired.length,
     refresh,
   };
+}
+
+
+async function wheelV3CanonicalDuoState(client,leagueId,userIds,{lock=false}={}){
+  const ids=[...userIds].map(Number).sort((a,b)=>a-b);
+  if(ids.length!==2||ids[0]===ids[1])throw new Error('Dupla inválida');
+  return (await q(client,`
+    SELECT *
+    FROM pair_duo_state
+    WHERE league_id=$1
+      AND member_low_id=$2
+      AND member_high_id=$3
+    ${lock?'FOR UPDATE':''}
+  `,[leagueId,ids[0],ids[1]])).rows[0]||null;
+}
+
+export async function resolveWheelV3FormationCategory(client,{userIds,requestedCategoryNumber=null}){
+  const ids=[...userIds].map(Number).sort((a,b)=>a-b);
+  if(ids.length!==2||ids[0]===ids[1])throw new Error('Dupla inválida');
+  const users=(await q(client,`
+    SELECT id,gender,current_category_number
+    FROM users
+    WHERE id=ANY($1::bigint[])
+    ORDER BY id
+    FOR UPDATE
+  `,[ids])).rows;
+  if(users.length!==2)throw new Error('Jugadores inexistentes');
+  if(users[0].gender!==users[1].gender)throw new Error('La pareja debe pertenecer al mismo circuito');
+
+  const league=(await q(client,`
+    SELECT * FROM leagues
+    WHERE gender=$1 AND active=true
+    FOR UPDATE
+  `,[users[0].gender])).rows[0];
+  if(!league)throw new Error('Circuito inexistente');
+
+  const duo=await wheelV3CanonicalDuoState(client,league.id,ids,{lock:true});
+  const known=users.map(u=>u.current_category_number==null?null:Number(u.current_category_number)).filter(Number.isInteger);
+  let normalCategory;
+  if(known.length)normalCategory=Math.min(...known);
+  else{
+    normalCategory=Number(requestedCategoryNumber);
+    if(!Number.isInteger(normalCategory)||normalCategory<1||normalCategory>7)throw new Error('Elegí una categoría inicial');
+  }
+  const categoryNumber=categoryForReformedPair({
+    memberCategories:known.length?known:[normalCategory,normalCategory],
+    pendingDescentCategory:duo?.pending_relegation_category_id
+      ?Number((await q(client,`SELECT number FROM categories WHERE id=$1`,[duo.pending_relegation_category_id])).rows[0].number)
+      :null,
+  });
+  const category=(await q(client,`
+    SELECT * FROM categories
+    WHERE league_id=$1 AND number=$2
+    FOR UPDATE
+  `,[league.id,categoryNumber])).rows[0];
+  return {users,league,duo,category,categoryNumber};
+}
+
+export async function formWheelV3Pair(client,{userIds,requestedCategoryNumber=null}){
+  const ids=[...userIds].map(Number).sort((a,b)=>a-b);
+  const resolved=await resolveWheelV3FormationCategory(client,{userIds:ids,requestedCategoryNumber});
+  const occupied=(await q(client,`
+    SELECT user_id FROM active_pair_memberships
+    WHERE user_id=ANY($1::bigint[])
+    FOR UPDATE
+  `,[ids])).rows;
+  if(occupied.length)throw new Error('Uno de los jugadores ya integra una pareja vigente');
+
+  let pair=(await q(client,`
+    SELECT p.*
+    FROM pairs p
+    WHERE p.competition_state='inactive'
+      AND p.league_id=$1
+      AND (
+        SELECT array_agg(pm.user_id ORDER BY pm.user_id)
+        FROM pair_members pm
+        WHERE pm.pair_id=p.id
+      )=$2::bigint[]
+    ORDER BY p.id DESC
+    LIMIT 1
+    FOR UPDATE
+  `,[resolved.league.id,ids])).rows[0];
+
+  const activeOrder=await wheelV3ActiveOrder(client,resolved.category.id);
+  const entryPosition=entryPositionPenultimate(activeOrder.length);
+  const penaltyUntil=resolved.duo?.penalty_until?new Date(resolved.duo.penalty_until):null;
+  const serverNow=(await q(client,`SELECT CURRENT_TIMESTAMP now`)).rows[0].now;
+  const underPenalty=Boolean(penaltyUntil&&penaltyUntil>new Date(serverNow));
+
+  if(pair){
+    await q(client,`
+      UPDATE pairs
+      SET
+        category_id=$2,
+        position=999996,
+        competition_state=$3,
+        archived_at=NULL,
+        pause_after_current=false,
+        updated_at=CURRENT_TIMESTAMP
+      WHERE id=$1
+    `,[pair.id,resolved.category.id,underPenalty?'paused':'active']);
+    await q(client,`
+      UPDATE pair_wheel_state
+      SET
+        role=NULL,
+        role_streak=0,
+        defense_required_until_real=false,
+        promotion_wins=0,
+        awaiting_zone_first_match=false,
+        awaiting_zone_kind=NULL,
+        inactive_since=CASE WHEN $2 THEN $3::timestamptz-interval '30 days' ELSE NULL END,
+        return_position_base=CASE WHEN $2 THEN $4 ELSE NULL END,
+        inactive_reason=CASE WHEN $2 THEN 'three_failures' ELSE NULL END,
+        auto_reactivate_at=CASE WHEN $2 THEN $3::timestamptz ELSE NULL END,
+        real_waiting_since=CURRENT_TIMESTAMP,
+        updated_at=CURRENT_TIMESTAMP
+      WHERE pair_id=$1
+    `,[pair.id,underPenalty,penaltyUntil,entryPosition]);
+  }else{
+    pair=(await q(client,`
+      INSERT INTO pairs(league_id,category_id,position,competition_state)
+      VALUES($1,$2,999996,$3)
+      RETURNING *
+    `,[resolved.league.id,resolved.category.id,underPenalty?'paused':'active'])).rows[0];
+    for(const userId of ids){
+      await q(client,`INSERT INTO pair_members(pair_id,user_id) VALUES($1,$2)`,[pair.id,userId]);
+    }
+    await q(client,`
+      UPDATE pair_wheel_state
+      SET
+        inactive_since=CASE WHEN $2 THEN $3::timestamptz-interval '30 days' ELSE NULL END,
+        return_position_base=CASE WHEN $2 THEN $4 ELSE NULL END,
+        inactive_reason=CASE WHEN $2 THEN 'three_failures' ELSE NULL END,
+        auto_reactivate_at=CASE WHEN $2 THEN $3::timestamptz ELSE NULL END,
+        real_waiting_since=CURRENT_TIMESTAMP,
+        updated_at=CURRENT_TIMESTAMP
+      WHERE pair_id=$1
+    `,[pair.id,underPenalty,penaltyUntil,entryPosition]);
+  }
+
+  for(const userId of ids){
+    await q(client,`
+      INSERT INTO active_pair_memberships(user_id,pair_id)
+      VALUES($1,$2)
+    `,[userId,pair.id]);
+    await q(client,`
+      UPDATE users
+      SET current_category_number=COALESCE(current_category_number,$2),updated_at=CURRENT_TIMESTAMP
+      WHERE id=$1
+    `,[userId,resolved.categoryNumber]);
+  }
+
+  if(underPenalty){
+    const currentActive=await wheelV3ActiveOrder(client,resolved.category.id,{excludePairId:pair.id});
+    await wheelV3SetCategoryOrder(client,resolved.category.id,currentActive);
+  }else{
+    const shiftedByInsertion=activeOrder.slice(entryPosition-1);
+    activeOrder.splice(entryPosition-1,0,Number(pair.id));
+    await wheelV3SetCategoryOrder(client,resolved.category.id,activeOrder);
+    await wheelV3ConsumePositionDebt(client,shiftedByInsertion);
+  }
+
+  const refresh=await refreshWheelV3Category(client,resolved.category.id);
+  return {
+    pairId:Number(pair.id),
+    categoryId:Number(resolved.category.id),
+    categoryNumber:Number(resolved.categoryNumber),
+    entryPosition,
+    pendingRelegation:Boolean(resolved.duo?.pending_relegation_category_id),
+    underPenalty,
+    penaltyUntil:underPenalty?penaltyUntil:null,
+    refresh,
+  };
+}
+
+export async function archiveWheelV3Pair(client,pairId){
+  const pair=await wheelV3CurrentPairRow(client,pairId);
+  const occupied=(await q(client,`
+    SELECT assignment_id
+    FROM wheel_assignment_participants
+    WHERE pair_id=$1
+  `,[pairId])).rows[0];
+  if(occupied)throw new Error('La pareja debe resolver su compromiso antes de disolverse');
+
+  const previousLeader=await wheelV3Leader(client,pair.category_id);
+  await q(client,`DELETE FROM active_pair_memberships WHERE pair_id=$1`,[pairId]);
+  await q(client,`
+    UPDATE pairs
+    SET
+      competition_state='inactive',
+      archived_at=CURRENT_TIMESTAMP,
+      pause_after_current=false,
+      updated_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+  `,[pairId]);
+  await q(client,`
+    UPDATE pair_wheel_state
+    SET
+      role=NULL,
+      role_streak=0,
+      defense_required_until_real=false,
+      promotion_wins=0,
+      awaiting_zone_first_match=false,
+      awaiting_zone_kind=NULL,
+      inactive_since=NULL,
+      return_position_base=NULL,
+      inactive_reason=NULL,
+      auto_reactivate_at=NULL,
+      updated_at=CURRENT_TIMESTAMP
+    WHERE pair_id=$1
+  `,[pairId]);
+
+  const activeOrder=await wheelV3ActiveOrder(client,pair.category_id);
+  await wheelV3SetCategoryOrder(client,pair.category_id,activeOrder);
+  await wheelV3SyncPromotionEdgeAfterAdministrativeMovement(client,pair.category_id,previousLeader);
+  if(Number(pair.category_number)===1){
+    const leader=await wheelV3Leader(client,pair.category_id);
+    if(leader)await wheelV3OpenReign(client,pair.league_id,leader);
+    else await q(client,`
+      UPDATE first_place_reigns
+      SET ended_at=COALESCE(ended_at,CURRENT_TIMESTAMP),updated_at=CURRENT_TIMESTAMP
+      WHERE league_id=$1 AND ended_at IS NULL
+    `,[pair.league_id]);
+  }
+  const refresh=await refreshWheelV3Category(client,pair.category_id);
+  return {pairId:Number(pairId),categoryId:Number(pair.category_id),refresh};
 }
