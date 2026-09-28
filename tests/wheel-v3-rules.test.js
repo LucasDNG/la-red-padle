@@ -29,6 +29,15 @@ import {
   administrativeFailureMovement,
   relegationAttackTarget,
   shouldCancelAssignmentForStructure,
+  descendedEntryPosition,
+  firstPlaceReignAfterResult,
+  inactivityStateOnPause,
+  canAutoReactivate,
+  reviewDeadlineFromFirstResult,
+  assignmentDeadlineFromServerTime,
+  noShowReconsiderationDeadline,
+  resultCountsAsReal,
+  simultaneousOnePlacePenalty,
 } from '../scripts/wheel-v3-rule-model.js';
 
 test('pair anti-abuse state follows the exact two people regardless of order',()=>{
@@ -401,4 +410,89 @@ test('assignment cancels only before first result when attacker is no longer bel
   assert.equal(shouldCancelAssignmentForStructure({
     hasFirstResult:true,attackerCategory:4,defenderCategory:3,attackerPosition:3,defenderPosition:4,
   }),false);
+});
+
+
+test('descended pair enters #2 unless the destination has no active leader',()=>{
+  assert.equal(descendedEntryPosition(0),1);
+  assert.equal(descendedEntryPosition(1),2);
+  assert.equal(descendedEntryPosition(12),2);
+});
+
+test('first place record is counted per reign and only by real defenses',()=>{
+  assert.deepEqual(
+    firstPlaceReignAfterResult({category:1,wasNumberOne:false,remainsNumberOne:true,isRealMatch:true,currentDefenses:9}),
+    {open:true,defenses:0,ended:false,defended:false},
+  );
+  assert.deepEqual(
+    firstPlaceReignAfterResult({category:1,wasNumberOne:true,remainsNumberOne:true,isRealMatch:true,currentDefenses:2}),
+    {open:true,defenses:3,ended:false,defended:true},
+  );
+  assert.deepEqual(
+    firstPlaceReignAfterResult({category:1,wasNumberOne:true,remainsNumberOne:true,isRealMatch:false,currentDefenses:2}),
+    {open:true,defenses:2,ended:false,defended:false},
+  );
+  assert.deepEqual(
+    firstPlaceReignAfterResult({category:1,wasNumberOne:true,remainsNumberOne:false,isRealMatch:true,currentDefenses:4}),
+    {open:false,defenses:4,ended:true,defended:false},
+  );
+});
+
+test('three-failure inactivity gets exact 30-day server deadline while voluntary pause does not',()=>{
+  const sanction=inactivityStateOnPause({
+    position:5,
+    nowValue:'2026-09-28T12:00:00Z',
+    reason:'three_failures',
+  });
+  assert.equal(sanction.returnPositionBase,5);
+  assert.equal(sanction.autoReactivateAt.toISOString(),'2026-10-28T12:00:00.000Z');
+  const voluntary=inactivityStateOnPause({
+    position:1,
+    nowValue:'2026-09-28T12:00:00Z',
+    reason:'voluntary',
+  });
+  assert.equal(voluntary.returnPositionBase,1);
+  assert.equal(voluntary.autoReactivateAt,null);
+});
+
+test('automatic reactivation happens exactly when server time reaches penalty deadline',()=>{
+  assert.equal(canAutoReactivate({
+    inactiveReason:'three_failures',
+    autoReactivateAt:'2026-10-28T12:00:00Z',
+    serverNow:'2026-10-28T11:59:59Z',
+  }),false);
+  assert.equal(canAutoReactivate({
+    inactiveReason:'three_failures',
+    autoReactivateAt:'2026-10-28T12:00:00Z',
+    serverNow:'2026-10-28T12:00:00Z',
+  }),true);
+  assert.equal(canAutoReactivate({
+    inactiveReason:'voluntary',
+    autoReactivateAt:null,
+    serverNow:'2026-12-01T12:00:00Z',
+  }),false);
+});
+
+test('official operational deadlines derive from server time',()=>{
+  assert.equal(assignmentDeadlineFromServerTime('2026-09-28T10:00:00Z').toISOString(),'2026-10-28T10:00:00.000Z');
+  assert.equal(reviewDeadlineFromFirstResult('2026-09-28T10:00:00Z').toISOString(),'2026-10-05T10:00:00.000Z');
+  assert.equal(noShowReconsiderationDeadline('2026-09-28T10:00:00Z').toISOString(),'2026-09-30T10:00:00.000Z');
+});
+
+test('injury after match start is real while administrative forfeit is not',()=>{
+  assert.equal(resultCountsAsReal('normal'),true);
+  assert.equal(resultCountsAsReal('injury_abandonment'),true);
+  assert.equal(resultCountsAsReal('dissolution_forfeit'),false);
+  assert.equal(resultCountsAsReal('administrative_forfeit'),false);
+});
+
+test('simultaneous ordinary penalty makes each pair lose exactly one effective place',()=>{
+  assert.deepEqual(
+    simultaneousOnePlacePenalty([1,2,3,4,5,6,7,8],[5,6]),
+    {order:[1,2,3,4,7,5,6,8],debt:{}},
+  );
+  assert.deepEqual(
+    simultaneousOnePlacePenalty([1,2,3,4,5,6],[5,6]),
+    {order:[1,2,3,4,5,6],debt:{5:1,6:1}},
+  );
 });
