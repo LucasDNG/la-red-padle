@@ -230,6 +230,13 @@ La implementación puede usar deuda de posición para materializar este principi
 - Si la pareja reportada reconoce expresamente que no pudo presentarse, se resuelve **inmediatamente** como incumplimiento/6-0 6-0; no se espera a que termine la ventana de arrepentimiento del denunciante.
 - Mientras existe una disputa real de no-show, el assignment permanece bloqueado hasta resolución.
 
+### Lesión / abandono como partido real
+- Si el partido comenzó y luego existe lesión/abandono, se considera **partido real**.
+- La victoria cuenta como victoria real para ascenso y para salir de período de descenso.
+- La derrota cuenta como derrota real para descenso.
+- Si el #1 de Primera conserva la punta mediante ese partido, cuenta como defensa exitosa.
+- No se inventan games parciales ni se agrega una sanción administrativa extra por el abandono deportivo.
+
 ## 13. Ascenso
 Después de la fase de formación:
 
