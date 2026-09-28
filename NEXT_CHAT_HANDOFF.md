@@ -36,15 +36,15 @@ Después leer, como mínimo:
 - Si dos inactivas vuelven al mismo puesto objetivo, la que reactiva más tarde se inserta allí y desplaza hacia abajo a la anterior.
 - Si había período de descenso, queda congelado y se retoma al volver.
 - Tres incumplimientos atribuibles consecutivos provocan 30 días sin assignments y paso automático a inactiva; falta cerrar si la reactivación al día 30 es automática y qué reinicia la racha.
-- Nuevas/ascendidas entran a mitad de tabla, no al fondo; falta definir la fórmula exacta de mitad.
+- Nuevas/ascendidas entran **anteúltimas**, no a mitad ni al fondo. No activan descenso solo por ingresar.
 - Una dupla disuelta y re-formada se trata competitivamente como pareja nueva.
 - Formación y porcentajes son independientes por circuito.
-- Nuevas/ascendidas entran con `floor(N/2)+1`; queda solo el borde N=1.
+- La antigua fórmula de mitad queda reemplazada. Falta confirmar el borde anteúltima con N=1.
 - 3 incumplimientos => 30 días inactiva; reactivación automática; cualquier assignment sin incumplimiento atribuible resetea la racha.
 - Resultado cargado abre inmediatamente 7 días de revisión y luego auto-valida por silencio.
 - Todos los cambios operativos relevantes se notifican por WhatsApp.
 - El récord del #1 de Primera es por reinado, no acumulativo entre reinados; empate = récord compartido.
-- Wheel v3 quedó funcionalmente cerrado: el primer partido de una pareja 0 PJ al activarse la zona no cuenta y luego entra en 0/3; con N=1, una nueva/ascendida entra #2.
+- El primer partido de una pareja 0 PJ al activarse la zona no cuenta y luego entra en 0/3. La entrada nueva/ascendida ahora es anteúltima; el viejo caso N=1 debe reconfirmarse.
 - No quedan preguntas funcionales abiertas. Próximo paso obligatorio: simulaciones/tests del diseño antes de tocar el motor.
 
 - El propietario redefinió la rueda automática en una conversación extensa el 2026-09-28.
@@ -55,14 +55,10 @@ Después leer, como mínimo:
 - Después: consolidar `PROJECT_RULES.md` + `DECISIONS.md`, escribir tests/simulación y recién entonces implementar.
 
 ### Auditoría Wheel v3 — 2026-09-28
-- `WHEEL_V3_AUDIT_2026-09-28.md` contiene simulación poblacional preliminar, prueba sintética de ataque/defensa, invariantes y matriz de tests.
-- No apareció deriva poblacional obvia ni deadlock básico en los modelos simplificados.
-- Antes de tests/código quedan 4 decisiones anti-abuso/consistencia:
-  1. disolver/re-formar durante período de descenso;
-  2. categoría individual después de un descenso real;
-  3. protección de un resultado ya cargado frente a cancelación posterior por ranking;
-  4. una cancelación automática no debería limpiar la racha de incumplimientos.
-- No implementar Wheel v3 hasta cerrar esas cuatro y volcarlas a la spec.
+- `WHEEL_V3_AUDIT_2026-09-28.md` contiene la auditoría y debe leerse antes de tocar el motor.
+- Los hallazgos anti-abuso A–D quedaron resueltos: descenso pendiente de la dupla, categoría individual tras descenso, resultado cargado protegido y cancelación automática sin reset de incumplimientos.
+- La entrada nueva/ascendida cambió a **anteúltima**, por lo que hay que rehacer las simulaciones de posición/población antes del código.
+- Quedan cuatro bordes concretos en la spec: N=1, descenso pendiente si la dupla reaparece en otra categoría, strikes al cambiar de compañero y partido jugado pero no cargado antes de cancelación.
 
 ### Código todavía contradictorio que NO representa la regla vigente
 - `frontend/src/App.jsx` todavía muestra la puntuación numérica legacy y estadísticas acumuladas en varias superficies.
