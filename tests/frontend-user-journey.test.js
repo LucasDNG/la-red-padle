@@ -36,7 +36,7 @@ test('journey visible cubre lugar libre, confirmaciones y acciones temporales',(
   assert.match(frontSource,/Quitar foto del frente del DNI/);
   assert.match(frontSource,/Quitar foto del dorso del DNI/);
   assert.match(frontSource,/Elegir archivo/);
-  assert.match(frontSource,/Ningún archivo/);
+  assert.match(frontSource,/Sin archivo/);
   assert.match(frontSource,/dniFront:null/);
   assert.match(frontSource,/dniBack:null/);
 });
