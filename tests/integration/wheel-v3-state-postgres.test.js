@@ -1675,3 +1675,89 @@ test('archiving the First-place pair closes its reign and opens a fresh reign fo
   assert.equal(Number(reigns[1].defenses),0);
   assert.equal(reigns[1].ended_at,null);
 });
+
+
+test('Primera assignment is linked to the reign being defended and a late defense credits that historical reign',async()=>{
+  const c=await category(1);
+  const leader=await seedPairWithMembers(1,1,{tag:116});
+  const attacker=await seedPairWithMembers(2,1,{tag:117});
+  await pool.query("UPDATE pair_wheel_state SET role='defense',role_streak=1 WHERE pair_id=$1",[leader.id]);
+  await pool.query("UPDATE pair_wheel_state SET role='attack',role_streak=1 WHERE pair_id=$1",[attacker.id]);
+
+  const client=await pool.connect();
+  let created;
+  try{
+    await client.query('BEGIN');
+    created=await createWheelV3AssignmentsForCategory(client,c.id);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const assignment=created.created.find(x=>Number(x.defender_pair_id)===Number(leader.id));
+  assert.ok(assignment);
+  assert.ok(assignment.first_place_reign_id);
+  const historicalReignId=Number(assignment.first_place_reign_id);
+
+  await pool.query("UPDATE wheel_assignments SET status='cancelled',cancelled_at=CURRENT_TIMESTAMP,closed_at=CURRENT_TIMESTAMP,close_reason='system_ranking_cancel' WHERE id=$1",[assignment.id]);
+  await pool.query('DELETE FROM wheel_assignment_participants WHERE assignment_id=$1',[assignment.id]);
+  await pool.query('UPDATE first_place_reigns SET ended_at=CURRENT_TIMESTAMP WHERE id=$1',[historicalReignId]);
+  await pool.query('UPDATE pairs SET position=999999 WHERE id=$1',[leader.id]);
+  await pool.query('UPDATE pairs SET position=1 WHERE id=$1',[attacker.id]);
+  await pool.query('UPDATE pairs SET position=2 WHERE id=$1',[leader.id]);
+  await pool.query('INSERT INTO first_place_reigns(league_id,pair_id) VALUES($1,$2)',[leader.league_id,attacker.id]);
+
+  const cancelledAt=(await pool.query('SELECT cancelled_at FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0].cancelled_at;
+  const playedAt=new Date(new Date(cancelledAt).getTime()-1000);
+  const client2=await pool.connect();
+  try{
+    await client2.query('BEGIN');
+    await applyWheelV3ConfirmedRealResult(client2,{
+      assignmentId:assignment.id,
+      winnerPairId:leader.id,
+      resultType:'normal',
+      score:{sets:[{pairA:0,pairB:6},{pairA:0,pairB:6}]},
+      playedAt,
+      resolutionSource:'late-historical-test',
+    });
+    await client2.query('COMMIT');
+  }catch(e){await client2.query('ROLLBACK');throw e;}finally{client2.release();}
+
+  const oldReign=(await pool.query('SELECT defenses,ended_at FROM first_place_reigns WHERE id=$1',[historicalReignId])).rows[0];
+  assert.equal(Number(oldReign.defenses),1);
+  assert.ok(oldReign.ended_at);
+  const currentReign=(await pool.query('SELECT defenses FROM first_place_reigns WHERE league_id=$1 AND ended_at IS NULL',[leader.league_id])).rows[0];
+  assert.equal(Number(currentReign.defenses),0);
+});
+
+test('late result after category change does not mutate promotion or relegation state of the new category',async()=>{
+  const c4=await category(4);
+  const c3=await category(3);
+  const defender=await seedPairWithMembers(1,4,{tag:118});
+  const attacker=await seedPairWithMembers(2,4,{tag:119});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,assigned_at,deadline_at,status,cancelled_at,closed_at,close_reason) VALUES($1,$2,$3,$4,$4,$3,CURRENT_TIMESTAMP-interval '2 hours',CURRENT_TIMESTAMP+interval '29 days','cancelled',CURRENT_TIMESTAMP-interval '30 minutes',CURRENT_TIMESTAMP-interval '30 minutes','system_category_cancel') RETURNING *",
+    [defender.league_id,c4.id,defender.id,attacker.id],
+  )).rows[0];
+
+  await pool.query('UPDATE pairs SET category_id=$2,position=1 WHERE id=$1',[attacker.id,c3.id]);
+  await pool.query("UPDATE pair_wheel_state SET promotion_wins=2,awaiting_zone_first_match=false,awaiting_zone_kind=NULL WHERE pair_id=$1",[attacker.id]);
+  const playedAt=new Date(new Date(assignment.cancelled_at).getTime()-1000);
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await applyWheelV3ConfirmedRealResult(client,{
+      assignmentId:assignment.id,
+      winnerPairId:attacker.id,
+      resultType:'normal',
+      score:{sets:[{pairA:2,pairB:6},{pairA:3,pairB:6}]},
+      playedAt,
+      resolutionSource:'late-category-test',
+    });
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const state=(await pool.query('SELECT promotion_wins FROM pair_wheel_state WHERE pair_id=$1',[attacker.id])).rows[0];
+  assert.equal(Number(state.promotion_wins),2);
+  const location=(await pool.query('SELECT category_id FROM pairs WHERE id=$1',[attacker.id])).rows[0];
+  assert.equal(Number(location.category_id),Number(c3.id));
+});
