@@ -2,6 +2,12 @@
 
 Este archivo es la **fuente de verdad funcional**. Código, base, frontend, tests y documentación deben coincidir con estas reglas.
 
+
+> **Diseño Wheel v3 pendiente de implementación — 2026-09-28**
+>
+> Para asignación automática, ataque/defensa, fase de formación, equilibrio poblacional, inactividad, ascenso/descenso, incumplimientos, no-show y movimientos visibles, leer primero `WHEEL_V3_SPEC.md`.
+> Ese archivo contiene las decisiones nuevas acordadas y **prevalece sobre las secciones antiguas que entren en conflicto**. El runtime productivo continúa en `wheel-v2` hasta implementar y probar Wheel v3. Las preguntas abiertas del final de la spec deben resolverse antes de cambiar el motor.
+
 ## 1. Alcance
 - Liga continua de pádel por parejas en San Pedro, Buenos Aires.
 - Circuitos masculino y femenino.
