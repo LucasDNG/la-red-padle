@@ -345,3 +345,22 @@ No se recomienda tocar todavía `wheel-v2` directamente. El siguiente bloque deb
 1. convertir el resto de invariantes funcionales en tests puros;
 2. diseñar la migración de estado/DB;
 3. recién después implementar Wheel v3.
+
+
+## Modelo ejecutable de reglas agregado — 2026-09-28
+
+Además de la simulación longitudinal se agregó un modelo puro de reglas, separado del runtime:
+
+- `scripts/wheel-v3-rule-model.js`
+- regresiones: `tests/wheel-v3-rules.test.js`
+
+Cubre actualmente:
+- identidad estable de la dupla exacta para estados anti-abuso;
+- categoría individual después de un descenso;
+- prioridad de categoría pendiente al re-formar una dupla en descenso;
+- qué cierres reinician o no la racha de incumplimientos;
+- primer partido habilitante al finalizar formación;
+- cálculo de posición de retorno por inactividad;
+- récord de Primera por reinado y empate compartido.
+
+Estos tests, junto con `tests/wheel-v3-simulation.test.js`, constituyen el primer contrato ejecutable de Wheel v3 sin modificar todavía `src/core.js`, `src/wheel.js`, `src/competitionEngine.js` ni la base productiva.
