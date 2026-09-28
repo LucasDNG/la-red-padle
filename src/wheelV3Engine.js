@@ -903,7 +903,8 @@ export async function applyWheelV3ConfirmedRealResult(client,{
 
   const before=await wheelV3PairSnapshot(client,pairIds);
   const leaderBefore=await wheelV3Leader(client,assignment.category_id);
-  const games=scoreGames(score);
+  const normalizedScore=resultType==='normal'?normalizeScore(score):score;
+  const games=scoreGames(normalizedScore);
 
   const match=(await q(client,`
     INSERT INTO matches(
