@@ -307,6 +307,7 @@ CREATE TABLE wheel_assignments(
   defender_pair_id bigint REFERENCES pairs(id),
   cancelled_at timestamptz,
   first_result_at timestamptz,
+  first_place_reign_id bigint,
   closed_at timestamptz,
   close_reason varchar(80),
   created_at timestamptz NOT NULL DEFAULT now(),
@@ -435,6 +436,7 @@ CREATE TABLE first_place_reigns(
   updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CHECK(ended_at IS NULL OR ended_at>=started_at)
 );
+ALTER TABLE wheel_assignments ADD CONSTRAINT wheel_assignments_first_place_reign_fk FOREIGN KEY(first_place_reign_id) REFERENCES first_place_reigns(id);
 CREATE UNIQUE INDEX uq_first_place_open_reign ON first_place_reigns(league_id) WHERE ended_at IS NULL;
 CREATE INDEX idx_first_place_record ON first_place_reigns(league_id,defenses DESC,started_at);
 
