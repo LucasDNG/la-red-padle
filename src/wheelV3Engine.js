@@ -241,6 +241,7 @@ export async function cancelInvalidWheelV3AssignmentsForCategory(client,category
     if(!closed)continue;
 
     await q(client,`DELETE FROM wheel_assignment_participants WHERE assignment_id=$1`,[row.id]);
+    await wheelV3ResolveNoShowOnAssignmentClose(client,row.id);
     cancelled.push(closed);
   }
   return cancelled;
