@@ -116,7 +116,7 @@ Las preguntas de borde que faltan cerrar antes de tocar Wheel v3 están en `WHEE
 71. Cualquier assignment cerrado sin incumplimiento atribuible reinicia la racha de incumplimientos a 0.
 72. La revisión de un resultado dura 7 días desde el momento exacto en que una de las parejas lo carga; silencio al vencer auto-valida.
 73. Todo movimiento operativo relevante debe notificarse por WhatsApp a los integrantes afectados.
-74. Al terminar la formación, #1 y último de 1ª–6ª entran en 0/3 si ya tienen al menos un partido real previo; con 0 partidos deben disputar uno antes de activar la zona.
+74. Al terminar la formación, los #1 de 2ª–7ª y los últimos de 1ª–6ª entran en 0/3 si ya tienen al menos un partido real previo; con 0 partidos deben disputar uno antes de activar la zona.
 75. El umbral poblacional 1/2/3 se recalcula al confirmar cada nuevo resultado.
 76. El récord de defensas del #1 de Primera mide un reinado individual: al perder la punta el contador corriente termina; si la dupla vuelve a #1 empieza de 0.
 77. Solo los reinados que superan o igualan el máximo quedan en el cuadro histórico; los empates se muestran como récord compartido.
