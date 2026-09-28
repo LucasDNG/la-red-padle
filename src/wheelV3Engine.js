@@ -98,3 +98,91 @@ export async function planWheelV3Category(client,categoryId,{lock=false}={}){
   const lastOpponentByPair=await wheelV3LastOpponentMap(client,pairs.map(p=>p.id));
   return planCategoryWheel(pairs,{lastOpponentByPair});
 }
+
+
+export async function completeWheelV3FormationIfReady(client,leagueId){
+  const state=(await q(client,`
+    SELECT *
+    FROM league_wheel_state
+    WHERE league_id=$1
+    FOR UPDATE
+  `,[leagueId])).rows[0];
+  if(!state)throw new Error('Falta league_wheel_state');
+  if(state.formation_completed_at)return {completed:false,alreadyCompleted:true,completedAt:state.formation_completed_at};
+
+  const snapshot=await wheelV3FormationSnapshot(client,leagueId);
+  if(!snapshot.complete)return {completed:false,alreadyCompleted:false,completedAt:null};
+
+  const row=(await q(client,`
+    UPDATE league_wheel_state
+    SET formation_completed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP
+    WHERE league_id=$1 AND formation_completed_at IS NULL
+    RETURNING formation_completed_at
+  `,[leagueId])).rows[0];
+  return {
+    completed:Boolean(row),
+    alreadyCompleted:false,
+    completedAt:row?.formation_completed_at??null,
+  };
+}
+
+export async function persistWheelV3PlannedRoles(client,pairs){
+  for(const pair of pairs){
+    await q(client,`
+      UPDATE pair_wheel_state
+      SET role=$2,role_streak=$3,updated_at=CURRENT_TIMESTAMP
+      WHERE pair_id=$1
+    `,[
+      pair.id,
+      pair.role,
+      Number(pair.roleStreak)||0,
+    ]);
+  }
+}
+
+export async function createWheelV3AssignmentsForCategory(client,categoryId){
+  const category=(await q(client,`
+    SELECT id,league_id
+    FROM categories
+    WHERE id=$1
+    FOR UPDATE
+  `,[categoryId])).rows[0];
+  if(!category)throw new Error('Categoría inexistente');
+
+  const plan=await planWheelV3Category(client,categoryId,{lock:true});
+  await persistWheelV3PlannedRoles(client,plan.pairs);
+
+  const created=[];
+  for(const item of plan.assignments){
+    const attacker=plan.pairs.find(p=>p.id===item.attackerId);
+    const defender=plan.pairs.find(p=>p.id===item.defenderId);
+    if(!attacker||!defender)continue;
+    if(!attacker.free||!defender.free)continue;
+
+    const assignment=(await q(client,`
+      INSERT INTO wheel_assignments(
+        league_id,
+        category_id,
+        pair_a_id,
+        pair_b_id,
+        attacker_pair_id,
+        defender_pair_id
+      )
+      VALUES($1,$2,$3,$4,$3,$4)
+      RETURNING *
+    `,[
+      category.league_id,
+      category.id,
+      attacker.id,
+      defender.id,
+    ])).rows[0];
+
+    await q(client,`
+      INSERT INTO wheel_assignment_participants(assignment_id,pair_id)
+      VALUES($1,$2),($1,$3)
+    `,[assignment.id,attacker.id,defender.id]);
+
+    created.push(assignment);
+  }
+  return {plan,created};
+}
