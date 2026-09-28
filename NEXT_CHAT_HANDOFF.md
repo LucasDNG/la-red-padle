@@ -8,19 +8,29 @@ Primera acción en un chat nuevo: obtener el HEAD real de `main` y comprobar Git
 
 Después leer, como mínimo:
 
-1. `CHECKPOINT_2026-09-20.md`
-2. `PROJECT_RULES.md`
-3. `DECISIONS.md`
-4. `SIMULATION_AUDIT_2026-09-20.md`
-5. `AUDIT_2026-09-20.md`
-6. `TEST_SCENARIOS.md`
-7. `ARCHITECTURE.md`
-8. `PROJECT_JOURNEY.md`
-9. `RELEASE_MANIFEST.md`
-10. `RELEASE_CHECKLIST.md`
-11. `FINALIZATION_PLAN.md`
-12. `PRODUCTION_ENVIRONMENT_SETUP.md`
-13. `PRODUCTION_RECOVERY.md`
+1. `WHEEL_V3_SPEC.md`
+2. `CHECKPOINT_2026-09-20.md`
+3. `PROJECT_RULES.md`
+4. `DECISIONS.md`
+5. `SIMULATION_AUDIT_2026-09-20.md`
+6. `AUDIT_2026-09-20.md`
+7. `TEST_SCENARIOS.md`
+8. `ARCHITECTURE.md`
+9. `PROJECT_JOURNEY.md`
+10. `RELEASE_MANIFEST.md`
+11. `RELEASE_CHECKLIST.md`
+12. `FINALIZATION_PLAN.md`
+13. `PRODUCTION_ENVIRONMENT_SETUP.md`
+14. `PRODUCTION_RECOVERY.md`
+
+## Diseño competitivo nuevo — PRIORIDAD ANTES DE TOCAR CÓDIGO
+
+- El propietario redefinió la rueda automática en una conversación extensa el 2026-09-28.
+- Todo quedó consolidado en `WHEEL_V3_SPEC.md`.
+- El código sigue en `wheel-v2`; **no implementar parcialmente desde memoria del chat**.
+- La spec nueva sustituye, cuando haya conflicto, la selección de rival anterior, la válvula poblacional anterior, la pausa/inactividad anterior y partes de no-show/asignación.
+- Hay preguntas abiertas finales al final de `WHEEL_V3_SPEC.md`. Resolverlas con el propietario antes de migración/código.
+- Después: consolidar `PROJECT_RULES.md` + `DECISIONS.md`, escribir tests/simulación y recién entonces implementar.
 
 ## Estado consolidado
 
@@ -42,17 +52,19 @@ Después leer, como mínimo:
 
 El último commit de código/higiene verificado antes de esta normalización documental fue `5ad90c16f2e000d3ceb2f6bfed4d7e737563402b` (`Limpia cache generada de Vite`): GitHub Actions y Vercel terminaron `success`. Si `main` está más adelante, verificar el HEAD nuevo en lugar de reutilizar ese estado.
 
-## Regla deportiva congelada de equilibrio
+## Equilibrio competitivo: diseño anterior reemplazado
 
-No reabrir por intuición.
+La válvula `gap >= 5 => descenso con 2` pertenece a Wheel v2 y **no debe usarse como regla funcional futura**.
 
-- ascenso: #1 + 3 victorias consecutivas;
-- descenso: última + 3 derrotas consecutivas;
-- válvula: si la categoría tiene al menos 5 parejas activas más que la inferior, el umbral de descenso baja a 2;
-- el cambio de población por sí solo no mueve parejas;
-- R5 fue descartado matemática y longitudinalmente.
+Wheel v3 define:
+- fase de formación hasta 5 parejas activas en cada una de las 7 categorías;
+- luego distribución objetivo porcentual sobre activas;
+- zona normal 10–19 %;
+- umbrales 3/2/1 según desvío normal/moderado/fuerte;
+- la población nunca mueve parejas sin un resultado;
+- `WHEEL_V3_SPEC.md` es la referencia vigente de diseño.
 
-La evidencia está en `SIMULATION_AUDIT_2026-09-20.md`.
+`SIMULATION_AUDIT_2026-09-20.md` sigue siendo evidencia histórica de por qué se descartaron alternativas anteriores, no la definición final del nuevo motor.
 
 ## Metodología
 
