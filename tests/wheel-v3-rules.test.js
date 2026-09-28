@@ -11,6 +11,13 @@ import {
   fullCalendarMonthsBetween,
   resultAllowedAfterCancellation,
   deadlineFromServerTime,
+  formationComplete,
+  forcedRoleForPosition,
+  roleAfterRealMatch,
+  sortByLongestRealWait,
+  chooseDefenderForAttacker,
+  assignAttackersToDefenders,
+  rebalanceInitialRoles,
 } from '../scripts/wheel-v3-rule-model.js';
 
 test('pair anti-abuse state follows the exact two people regardless of order',()=>{
@@ -101,4 +108,120 @@ test('authoritative deadline contracts are absolute durations from server time',
     deadlineFromServerTime('2026-09-28T06:00:00Z',30).toISOString(),
     '2026-10-28T06:00:00.000Z',
   );
+});
+
+
+test('formation completes only when all seven categories have at least five active pairs',()=>{
+  assert.equal(formationComplete([5,5,5,5,5,5,5]),true);
+  assert.equal(formationComplete([5,5,4,12,5,8,7]),false);
+  assert.throws(()=>formationComplete([5,5,5]));
+});
+
+test('ladder extremes force defense for #1 and attack for the bottom',()=>{
+  assert.equal(forcedRoleForPosition({position:1,activeCount:8}),'defense');
+  assert.equal(forcedRoleForPosition({position:8,activeCount:8}),'attack');
+  assert.equal(forcedRoleForPosition({position:4,activeCount:8}),null);
+  assert.equal(forcedRoleForPosition({position:1,activeCount:1}),null);
+});
+
+test('real match normally flips attacker to defense and defender to attack',()=>{
+  assert.deepEqual(
+    roleAfterRealMatch({previousRole:'attack',wasAttacker:true,roleStreak:2,position:4,activeCount:8}),
+    {role:'defense',roleStreak:1,defenseRequiredUntilReal:false},
+  );
+  assert.deepEqual(
+    roleAfterRealMatch({previousRole:'defense',wasAttacker:false,roleStreak:1,position:4,activeCount:8}),
+    {role:'attack',roleStreak:1,defenseRequiredUntilReal:false},
+  );
+});
+
+test('extreme position overrides the normal post-match role',()=>{
+  assert.deepEqual(
+    roleAfterRealMatch({previousRole:'attack',wasAttacker:true,roleStreak:1,position:8,activeCount:8,defenseRequiredUntilReal:true}),
+    {role:'attack',roleStreak:2,defenseRequiredUntilReal:false},
+  );
+  assert.deepEqual(
+    roleAfterRealMatch({previousRole:'attack',wasAttacker:false,roleStreak:1,position:1,activeCount:8}),
+    {role:'defense',roleStreak:1,defenseRequiredUntilReal:false},
+  );
+});
+
+test('longest real wait is the primary ordering key',()=>{
+  const ordered=sortByLongestRealWait([
+    {id:3,position:5,realWaitingSince:'2026-09-20T00:00:00Z'},
+    {id:2,position:7,realWaitingSince:'2026-09-10T00:00:00Z'},
+    {id:1,position:6,realWaitingSince:'2026-09-10T00:00:00Z'},
+  ]);
+  assert.deepEqual(ordered.map(x=>x.id),[1,2,3]);
+});
+
+test('attacker searches only upward and prefers longest-waiting defender inside first 3-position window',()=>{
+  const attacker={id:8,position:8,role:'attack',active:true,free:true,realWaitingSince:'2026-09-01T00:00:00Z'};
+  const defender=chooseDefenderForAttacker(attacker,[
+    {id:7,position:7,role:'defense',active:true,free:true,realWaitingSince:'2026-09-27T00:00:00Z'},
+    {id:6,position:6,role:'defense',active:true,free:true,realWaitingSince:'2026-09-16T00:00:00Z'},
+    {id:5,position:5,role:'defense',active:true,free:true,realWaitingSince:'2026-09-08T00:00:00Z'},
+    {id:9,position:9,role:'defense',active:true,free:true,realWaitingSince:'2026-08-01T00:00:00Z'},
+  ]);
+  assert.equal(defender.id,5);
+});
+
+test('attacker expands the search immediately in blocks of three when needed',()=>{
+  const attacker={id:9,position:9,role:'attack',active:true,free:true,realWaitingSince:'2026-09-01T00:00:00Z'};
+  const defender=chooseDefenderForAttacker(attacker,[
+    {id:8,position:8,role:'attack',active:true,free:true,realWaitingSince:'2026-09-01T00:00:00Z'},
+    {id:7,position:7,role:'attack',active:true,free:true,realWaitingSince:'2026-09-01T00:00:00Z'},
+    {id:6,position:6,role:'attack',active:true,free:true,realWaitingSince:'2026-09-01T00:00:00Z'},
+    {id:5,position:5,role:'defense',active:true,free:true,realWaitingSince:'2026-09-02T00:00:00Z'},
+  ]);
+  assert.equal(defender.id,5);
+});
+
+test('immediate opponent repeat is avoided when a reasonable alternative exists',()=>{
+  const attacker={id:8,position:8,role:'attack',active:true,free:true,realWaitingSince:'2026-09-01T00:00:00Z'};
+  const defender=chooseDefenderForAttacker(attacker,[
+    {id:7,position:7,role:'defense',active:true,free:true,realWaitingSince:'2026-09-01T00:00:00Z'},
+    {id:6,position:6,role:'defense',active:true,free:true,realWaitingSince:'2026-09-10T00:00:00Z'},
+  ],{lastOpponentId:7});
+  assert.equal(defender.id,6);
+});
+
+test('repeat opponent never blocks the wheel if there is no alternative',()=>{
+  const attacker={id:8,position:8,role:'attack',active:true,free:true,realWaitingSince:'2026-09-01T00:00:00Z'};
+  const defender=chooseDefenderForAttacker(attacker,[
+    {id:7,position:7,role:'defense',active:true,free:true,realWaitingSince:'2026-09-01T00:00:00Z'},
+  ],{lastOpponentId:7});
+  assert.equal(defender.id,7);
+});
+
+test('collision for the same defender is won by the attacker with the longest wait',()=>{
+  const assignments=assignAttackersToDefenders([
+    {id:10,position:10,role:'attack',active:true,free:true,realWaitingSince:'2026-09-01T00:00:00Z'},
+    {id:9,position:9,role:'attack',active:true,free:true,realWaitingSince:'2026-09-05T00:00:00Z'},
+    {id:8,position:8,role:'defense',active:true,free:true,realWaitingSince:'2026-09-20T00:00:00Z'},
+    {id:7,position:7,role:'defense',active:true,free:true,realWaitingSince:'2026-09-10T00:00:00Z'},
+  ]);
+  assert.deepEqual(assignments[0],{attackerId:10,defenderId:8});
+  assert.deepEqual(assignments[1],{attackerId:9,defenderId:7});
+});
+
+test('initial role rebalance keeps extremes forced and roughly balances the middle',()=>{
+  const rows=rebalanceInitialRoles([
+    {id:1,position:1,role:null,roleStreak:0},
+    {id:2,position:2,role:null,roleStreak:0},
+    {id:3,position:3,role:null,roleStreak:0},
+    {id:4,position:4,role:null,roleStreak:0},
+    {id:5,position:5,role:null,roleStreak:0},
+    {id:6,position:6,role:null,roleStreak:0},
+  ]);
+  assert.equal(rows[0].role,'defense');
+  assert.equal(rows.at(-1).role,'attack');
+  const attack=rows.filter(x=>x.role==='attack').length;
+  const defense=rows.filter(x=>x.role==='defense').length;
+  assert.ok(Math.abs(attack-defense)<=1);
+});
+
+test('one active pair has no effective role',()=>{
+  const rows=rebalanceInitialRoles([{id:1,position:1,role:'defense',roleStreak:2}]);
+  assert.deepEqual(rows,[{id:1,position:1,role:null,roleStreak:0}]);
 });
