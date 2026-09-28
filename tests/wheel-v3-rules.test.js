@@ -584,3 +584,18 @@ test('touching last starts relegation at 0 even when the same loss caused the mo
     {active:true,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false},
   );
 });
+
+
+test('a resolved no-show can count as a First-place defense without being a real match',()=>{
+  assert.deepEqual(
+    firstPlaceReignAfterResult({
+      category:1,
+      wasNumberOne:true,
+      remainsNumberOne:true,
+      isRealMatch:false,
+      countsAsDefense:true,
+      currentDefenses:4,
+    }),
+    {open:true,defenses:5,ended:false,defended:true},
+  );
+});
