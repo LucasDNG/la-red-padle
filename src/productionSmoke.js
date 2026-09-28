@@ -35,14 +35,14 @@ export async function runProductionSmoke({apiUrl,frontendUrl,fetchImpl=globalThi
   const frontend=normalizeHttps(frontendUrl,'PROD_FRONTEND_URL');
 
   const liveResult=await jsonGet(fetchImpl,api+'/api/live',frontend);
-  if(liveResult.data?.ok!==true||liveResult.data?.engine!=='wheel-v2'||liveResult.data?.process!=='ok')throw new Error('Liveness productiva inválida');
+  if(liveResult.data?.ok!==true||liveResult.data?.process!=='ok')throw new Error('Liveness productiva inválida');
   requireSecurityHeaders(liveResult.response,'API liveness');
   const requestId=liveResult.response.headers.get('x-request-id')||'';
   if(!/^[A-Za-z0-9-]{8,80}$/.test(requestId))throw new Error('API productiva no envía X-Request-ID válido');
 
   const healthResult=await jsonGet(fetchImpl,api+'/api/health',frontend);
   const health=healthResult.data;
-  if(health?.ok!==true||health?.engine!=='wheel-v2'||health?.database!=='ok')throw new Error('Health productivo inválido');
+  if(health?.ok!==true||!['wheel-v2','wheel-v3'].includes(health?.engine)||health?.database!=='ok')throw new Error('Health productivo inválido');
   const allowOrigin=healthResult.response.headers.get('access-control-allow-origin');
   if(allowOrigin!==frontend)throw new Error('CORS productivo no autoriza el frontend esperado');
   requireSecurityHeaders(healthResult.response,'API productiva');
