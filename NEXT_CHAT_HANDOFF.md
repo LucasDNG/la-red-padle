@@ -269,3 +269,15 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - Se agregó `refreshWheelV3Category` para cancelar inválidos y reevaluar asignación inmediatamente.
 - Todo lo anterior sigue AISLADO: `wheel.js` productivo no llama a `wheelV3Engine.js` y `app_settings.engine` continúa en `wheel-v2`.
 - Se ampliaron regresiones puras y PostgreSQL para formación, assignments concurrentes, cancelación, primera carga y zonas.
+
+
+### Wheel v3 aislado — checkpoint ampliado 2026-09-28
+- Fuente pura productiva: `src/wheelV3Rules.js`; el script histórico solo reexporta.
+- Motor PostgreSQL aislado: `src/wheelV3Engine.js`.
+- Ya están implementados en aislamiento: formación, matching, assignments, resultados, 7d, 30d, ascenso/descenso, población, incumplimientos, deuda, inactividad, disolución/reforma exacta, no-show, programación, resolución admin, reinados de Primera, historial de 5 movimientos y notificaciones.
+- Se agregó vínculo assignment -> reinado de Primera para acreditar correctamente defensas tardías.
+- Se corrigió el planificador para calcular #1/último sobre toda la tabla activa aunque alguna pareja esté ocupada/bloqueada.
+- Se limpió `DECISIONS.md` de reglas supersedidas de mitad de tabla/bordes pendientes.
+- Auditoría detallada de cobertura: `WHEEL_V3_IMPLEMENTATION_AUDIT_2026-09-28.md`.
+- **No activar todavía:** producción sigue en `wheel-v2`.
+- Próximo bloque: fachada/API y routing por engine, después frontend/background/health, ejecución real de suites y cutover.
