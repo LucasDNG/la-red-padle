@@ -124,3 +124,26 @@ La auditoría confirmó que LA RED **no usa desafíos manuales**: la pareja se f
 En paralelo se separó definitivamente la coordinación deportiva del negocio de canchas. El jugador escribe el lugar que acordó; eso no transforma al club mencionado en socio de LA RED. Las futuras sedes comerciales viven en un catálogo administrado aparte y solo aparecen públicamente si el propietario de LA RED las marca de forma explícita como adheridas.
 
 Desde este punto existe además una regresión automática de paridad backend/frontend: salvo endpoints técnicos de salud, una capacidad ordinaria expuesta por API no puede quedar nuevamente sin una superficie de uso en el frontend.
+
+
+## Rediseño de la rueda automática — 2026-09-28
+
+Al revisar la experiencia real de la liga se detectó que `wheel-v2` había evolucionado hacia un emparejamiento demasiado general: priorizaba espera e historial de cruces, pero podía enfrentar parejas a cualquier distancia sin una ruta deportiva clara hacia arriba.
+
+El propietario redefinió el objetivo: la rueda debe ayudar a que las parejas **jueguen sin quedar estancadas**, pero manteniendo una lógica de escalera comprensible. De esa conversación surgió el diseño `Wheel v3`, documentado en `WHEEL_V3_SPEC.md`.
+
+Los cambios conceptuales principales son:
+- roles de ataque y defensa;
+- el ataque siempre busca hacia arriba;
+- la defensa queda disponible para recibir ataques;
+- prioridad por tiempo real sin jugar;
+- ventanas de 3 puestos que se amplían inmediatamente si no hay rival;
+- cancelación automática de cruces que pierden sentido por cambios de ranking/categoría;
+- fase de formación hasta 5 parejas activas por categoría;
+- equilibrio porcentual posterior usando solo parejas activas;
+- período de descenso persistente desde que una pareja toca el último puesto;
+- inactividad separada del ranking activo, con protección temporal de posición;
+- incumplimientos que no pueden bloquear la rueda;
+- eliminación del historial estadístico acumulado visible de pareja, dejando solo 5 movimientos recientes y auditoría interna.
+
+La decisión metodológica es importante: **no se toca el código todavía**. Primero se cerrarán las preguntas abiertas de la spec, luego se consolidarán las reglas definitivas, se escribirán simulaciones/tests y recién después se reemplazará `wheel-v2`.
