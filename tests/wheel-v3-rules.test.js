@@ -8,6 +8,9 @@ import {
   zoneAfterFormation,
   inactivityReturnPosition,
   recordReign,
+  fullCalendarMonthsBetween,
+  resultAllowedAfterCancellation,
+  deadlineFromServerTime,
 } from '../scripts/wheel-v3-rule-model.js';
 
 test('pair anti-abuse state follows the exact two people regardless of order',()=>{
@@ -64,4 +67,38 @@ test('First-place historical record is per reign and can be shared',()=>{
   assert.deepEqual(recordReign({currentDefenses:8,historicalMax:7}),{historicalMax:8,status:'new_record'});
   assert.deepEqual(recordReign({currentDefenses:8,historicalMax:8}),{historicalMax:8,status:'shared_record'});
   assert.deepEqual(recordReign({currentDefenses:3,historicalMax:8}),{historicalMax:8,status:'below_record'});
+});
+
+
+test('inactivity uses complete calendar months instead of fixed 30-day blocks',()=>{
+  assert.equal(fullCalendarMonthsBetween('2026-01-31T15:00:00Z','2026-02-28T14:59:59Z'),0);
+  assert.equal(fullCalendarMonthsBetween('2026-01-31T15:00:00Z','2026-02-28T15:00:00Z'),1);
+  assert.equal(fullCalendarMonthsBetween('2026-01-31T15:00:00Z','2026-04-30T15:00:00Z'),3);
+  assert.equal(fullCalendarMonthsBetween('2026-01-31T15:00:00Z','2026-05-31T15:00:00Z'),4);
+});
+
+test('late result is admissible only when the match was played before cancellation',()=>{
+  assert.equal(resultAllowedAfterCancellation({
+    playedAt:'2026-09-20T18:00:00Z',
+    cancelledAt:'2026-09-21T18:00:00Z',
+  }),true);
+  assert.equal(resultAllowedAfterCancellation({
+    playedAt:'2026-09-22T18:00:00Z',
+    cancelledAt:'2026-09-21T18:00:00Z',
+  }),false);
+  assert.equal(resultAllowedAfterCancellation({
+    playedAt:'2026-09-22T18:00:00Z',
+    cancelledAt:null,
+  }),true);
+});
+
+test('authoritative deadline contracts are absolute durations from server time',()=>{
+  assert.equal(
+    deadlineFromServerTime('2026-09-28T06:00:00Z',7).toISOString(),
+    '2026-10-05T06:00:00.000Z',
+  );
+  assert.equal(
+    deadlineFromServerTime('2026-09-28T06:00:00Z',30).toISOString(),
+    '2026-10-28T06:00:00.000Z',
+  );
 });
