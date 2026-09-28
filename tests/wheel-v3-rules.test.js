@@ -22,6 +22,13 @@ import {
   populationMoveImprovesBalance,
   populationDirectionalThreshold,
   delayedResultMovement,
+  promotionStateAfterResult,
+  relegationStateAfterResult,
+  failureStateAfterClosure,
+  roleAfterOwnFailure,
+  administrativeFailureMovement,
+  relegationAttackTarget,
+  shouldCancelAssignmentForStructure,
 } from '../scripts/wheel-v3-rule-model.js';
 
 test('pair anti-abuse state follows the exact two people regardless of order',()=>{
@@ -260,4 +267,138 @@ test('delayed confirmed result never moves the winner downward',()=>{
     delayedResultMovement({winnerPosition:3,loserPosition:7}),
     {winnerPosition:3,loserPosition:7,moved:false},
   );
+});
+
+
+test('promotion zone counts only real wins and resets when #1 is lost',()=>{
+  assert.deepEqual(
+    promotionStateAfterResult({category:3,position:1,activeCount:8,currentWins:1,isRealMatch:true,won:true,threshold:3}),
+    {active:true,wins:2,promote:false,awaitingFirstMatch:false},
+  );
+  assert.deepEqual(
+    promotionStateAfterResult({category:3,position:1,activeCount:8,currentWins:2,isRealMatch:true,won:true,threshold:3}),
+    {active:true,wins:3,promote:true,awaitingFirstMatch:false},
+  );
+  assert.deepEqual(
+    promotionStateAfterResult({category:3,position:1,activeCount:8,currentWins:2,isRealMatch:false,won:true,threshold:3}),
+    {active:true,wins:2,promote:false,awaitingFirstMatch:false},
+  );
+  assert.deepEqual(
+    promotionStateAfterResult({category:3,position:2,activeCount:8,currentWins:2,isRealMatch:true,won:false,threshold:3}),
+    {active:false,wins:0,promote:false,awaitingFirstMatch:false},
+  );
+});
+
+test('formation enabling match opens zone at zero without counting that result',()=>{
+  assert.deepEqual(
+    promotionStateAfterResult({category:4,position:1,activeCount:8,currentWins:0,isRealMatch:true,won:true,threshold:3,awaitingFirstMatch:true}),
+    {active:true,wins:0,promote:false,awaitingFirstMatch:false},
+  );
+  assert.deepEqual(
+    relegationStateAfterResult({category:4,wasInRelegation:false,losses:0,routeStep:0,isRealMatch:true,won:false,isLast:true,threshold:3,awaitingFirstMatch:true}),
+    {active:true,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false},
+  );
+});
+
+test('relegation survives movement away from last and exits only on a real win',()=>{
+  assert.deepEqual(
+    relegationStateAfterResult({category:4,wasInRelegation:true,losses:1,routeStep:1,isRealMatch:false,won:true,isLast:false,threshold:3}),
+    {active:true,losses:1,routeStep:1,descend:false,awaitingFirstMatch:false},
+  );
+  assert.deepEqual(
+    relegationStateAfterResult({category:4,wasInRelegation:true,losses:1,routeStep:1,isRealMatch:true,won:true,isLast:false,threshold:3}),
+    {active:false,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false},
+  );
+});
+
+test('real relegation losses advance both count and difficulty route',()=>{
+  assert.deepEqual(
+    relegationStateAfterResult({category:5,wasInRelegation:true,losses:1,routeStep:1,isRealMatch:true,won:false,isLast:false,threshold:3}),
+    {active:true,losses:2,routeStep:2,descend:false,awaitingFirstMatch:false},
+  );
+  assert.deepEqual(
+    relegationStateAfterResult({category:5,wasInRelegation:true,losses:2,routeStep:2,isRealMatch:true,won:false,isLast:false,threshold:3}),
+    {active:true,losses:3,routeStep:3,descend:true,awaitingFirstMatch:false},
+  );
+});
+
+test('last active pair own failure causes direct relegation except in seventh',()=>{
+  assert.equal(
+    relegationStateAfterResult({category:3,wasInRelegation:true,losses:0,routeStep:0,isRealMatch:false,won:false,ownFailure:true,isLast:true,threshold:3}).descend,
+    true,
+  );
+  assert.deepEqual(
+    relegationStateAfterResult({category:7,wasInRelegation:false,losses:0,routeStep:0,isRealMatch:false,won:false,ownFailure:true,isLast:true,threshold:3}),
+    {active:false,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false},
+  );
+});
+
+test('population threshold reduction never descends without a new result',()=>{
+  assert.deepEqual(
+    relegationStateAfterResult({category:4,wasInRelegation:true,losses:2,routeStep:2,isRealMatch:false,won:false,isLast:false,threshold:1}),
+    {active:true,losses:2,routeStep:2,descend:false,awaitingFirstMatch:false},
+  );
+});
+
+test('failure streak belongs to the duo and penalizes on the third attributable failure',()=>{
+  assert.deepEqual(
+    failureStateAfterClosure({failureStreak:2,ownFailure:true}),
+    {failureStreak:3,penalty30Days:true},
+  );
+  assert.deepEqual(
+    failureStateAfterClosure({failureStreak:2,automaticCancellation:true}),
+    {failureStreak:2,penalty30Days:false},
+  );
+  assert.deepEqual(
+    failureStateAfterClosure({failureStreak:2,rivalOnlyFailure:true}),
+    {failureStreak:0,penalty30Days:false},
+  );
+  assert.deepEqual(
+    failureStateAfterClosure({failureStreak:2,realMatch:true}),
+    {failureStreak:0,penalty30Days:false},
+  );
+});
+
+test('own failure imposes defense unless the pair is structurally forced to attack',()=>{
+  assert.deepEqual(
+    roleAfterOwnFailure({previousRole:'attack',position:4,activeCount:8}),
+    {role:'defense',defenseRequiredUntilReal:true},
+  );
+  assert.deepEqual(
+    roleAfterOwnFailure({previousRole:'defense',position:8,activeCount:8}),
+    {role:'attack',defenseRequiredUntilReal:false},
+  );
+});
+
+test('administrative failure can only move the violator downward',()=>{
+  assert.deepEqual(
+    administrativeFailureMovement({failingPosition:3,rivalPosition:6}),
+    {failingPosition:6,rivalPosition:3,moved:true},
+  );
+  assert.deepEqual(
+    administrativeFailureMovement({failingPosition:7,rivalPosition:4}),
+    {failingPosition:7,rivalPosition:4,moved:false},
+  );
+});
+
+test('relegation attack route starts low and climbs one step after each real loss',()=>{
+  assert.equal(relegationAttackTarget({attackerPosition:8,defenderPositions:[7,6,5,4],routeStep:0}),7);
+  assert.equal(relegationAttackTarget({attackerPosition:8,defenderPositions:[7,6,5,4],routeStep:1}),6);
+  assert.equal(relegationAttackTarget({attackerPosition:8,defenderPositions:[7,6,5,4],routeStep:3}),4);
+  assert.equal(relegationAttackTarget({attackerPosition:8,defenderPositions:[7],routeStep:9}),7);
+});
+
+test('assignment cancels only before first result when attacker is no longer below or category changes',()=>{
+  assert.equal(shouldCancelAssignmentForStructure({
+    hasFirstResult:false,attackerCategory:4,defenderCategory:4,attackerPosition:5,defenderPosition:4,
+  }),false);
+  assert.equal(shouldCancelAssignmentForStructure({
+    hasFirstResult:false,attackerCategory:4,defenderCategory:4,attackerPosition:3,defenderPosition:4,
+  }),true);
+  assert.equal(shouldCancelAssignmentForStructure({
+    hasFirstResult:false,attackerCategory:4,defenderCategory:3,attackerPosition:5,defenderPosition:4,
+  }),true);
+  assert.equal(shouldCancelAssignmentForStructure({
+    hasFirstResult:true,attackerCategory:4,defenderCategory:3,attackerPosition:3,defenderPosition:4,
+  }),false);
 });
