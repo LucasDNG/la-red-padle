@@ -81,6 +81,7 @@ export async function pairHubV3(userId){
       ORDER BY id DESC LIMIT 1
     `,[pair.id])).rows[0]||null:null;
     return {
+      engine:'wheel-v3',
       user,
       pair:cleanPair,
       incoming,
