@@ -162,19 +162,19 @@ CREATE TRIGGER trg_pair_duo_v3_state
 AFTER INSERT ON pair_members
 FOR EACH ROW EXECUTE FUNCTION ensure_pair_duo_v3_state();
 
-CREATE OR REPLACE FUNCTION sync_pair_v3_reactivation_wait() RETURNS trigger LANGUAGE plpgsql AS $
+CREATE OR REPLACE FUNCTION sync_pair_v3_reactivation_wait() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   IF OLD.competition_state IN('paused','inactive') AND NEW.competition_state='active' THEN
     UPDATE pair_wheel_state SET real_waiting_since=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE pair_id=NEW.id;
   END IF;
   RETURN NEW;
-END $;
+END $$;
 DROP TRIGGER IF EXISTS trg_pair_v3_reactivation_wait ON pairs;
 CREATE TRIGGER trg_pair_v3_reactivation_wait
 AFTER UPDATE OF competition_state ON pairs
 FOR EACH ROW EXECUTE FUNCTION sync_pair_v3_reactivation_wait();
 
-CREATE OR REPLACE FUNCTION sync_pair_v3_real_match_wait() RETURNS trigger LANGUAGE plpgsql AS $
+CREATE OR REPLACE FUNCTION sync_pair_v3_real_match_wait() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
   IF NEW.result_type IN('normal','injury_abandonment') THEN
     UPDATE pair_wheel_state
@@ -182,7 +182,7 @@ BEGIN
     WHERE pair_id IN(NEW.pair_a_id,NEW.pair_b_id);
   END IF;
   RETURN NEW;
-END $;
+END $$;
 DROP TRIGGER IF EXISTS trg_pair_v3_real_match_wait ON matches;
 CREATE TRIGGER trg_pair_v3_real_match_wait
 AFTER INSERT ON matches
