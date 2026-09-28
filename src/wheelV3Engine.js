@@ -1622,6 +1622,9 @@ export async function cancelWheelV3NoShow(client,{assignmentId,reportedByPairId}
     SELECT *
     FROM wheel_no_shows
     WHERE assignment_id=$1
+      AND status IN('pending','contested','admin_review','accepted')
+    ORDER BY id DESC
+    LIMIT 1
     FOR UPDATE
   `,[assignmentId])).rows[0];
   if(!row)throw new Error('No existe reporte de no-show');
@@ -1642,6 +1645,9 @@ export async function contestWheelV3NoShow(client,{assignmentId,reportedPairId})
     SELECT *
     FROM wheel_no_shows
     WHERE assignment_id=$1
+      AND status IN('pending','contested','admin_review','accepted')
+    ORDER BY id DESC
+    LIMIT 1
     FOR UPDATE
   `,[assignmentId])).rows[0];
   if(!row)throw new Error('No existe reporte de no-show');
@@ -1666,6 +1672,9 @@ export async function acceptWheelV3NoShow(client,{assignmentId,reportedPairId,re
     SELECT *
     FROM wheel_no_shows
     WHERE assignment_id=$1
+      AND status IN('pending','contested','admin_review','accepted')
+    ORDER BY id DESC
+    LIMIT 1
     FOR UPDATE
   `,[assignmentId])).rows[0];
   if(!row)throw new Error('No existe reporte de no-show');
@@ -1797,7 +1806,7 @@ export async function submitWheelV3ResultVersion(client,{
     winner,
     resultType,
     playedAt,
-    JSON.stringify(score??null),
+    JSON.stringify(normalizedScore??null),
     abandonedPairId,
   ])).rows[0];
 
@@ -2066,6 +2075,13 @@ export async function formWheelV3Pair(client,{userIds,requestedCategoryNumber=nu
   const penaltyUntil=resolved.duo?.penalty_until?new Date(resolved.duo.penalty_until):null;
   const serverNow=(await q(client,`SELECT CURRENT_TIMESTAMP now`)).rows[0].now;
   const underPenalty=Boolean(penaltyUntil&&penaltyUntil>new Date(serverNow));
+  if(resolved.duo?.penalty_until&&!underPenalty){
+    await q(client,`
+      UPDATE pair_duo_state
+      SET penalty_until=NULL,updated_at=CURRENT_TIMESTAMP
+      WHERE id=$1
+    `,[resolved.duo.id]);
+  }
 
   if(pair){
     await q(client,`
