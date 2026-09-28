@@ -240,7 +240,7 @@ CREATE INDEX IF NOT EXISTS idx_first_place_record
   ON first_place_reigns(league_id,defenses DESC,started_at);
 
 
-DO $
+DO $$
 BEGIN
   IF NOT EXISTS(
     SELECT 1 FROM pg_constraint
@@ -251,7 +251,7 @@ BEGIN
       ADD CONSTRAINT wheel_assignments_first_place_reign_fk
       FOREIGN KEY(first_place_reign_id) REFERENCES first_place_reigns(id);
   END IF;
-END $;
+END $$;
 
 
 ALTER TABLE wheel_result_versions DROP CONSTRAINT IF EXISTS wheel_result_versions_result_type_check;
