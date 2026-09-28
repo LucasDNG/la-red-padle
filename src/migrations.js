@@ -47,9 +47,9 @@ export async function applyProductionMigrations(client){
       FROM information_schema.columns
       WHERE table_schema='public'
         AND table_name='wheel_assignments'
-        AND column_name IN('attacker_pair_id','defender_pair_id','cancelled_at','first_result_at')
+        AND column_name IN('attacker_pair_id','defender_pair_id','cancelled_at','first_result_at','first_place_reign_id')
     `)).rows[0]?.n;
-    if(wheelV3Columns!==4)throw new Error('Migración incompleta: faltan columnas Wheel v3 en wheel_assignments');
+    if(wheelV3Columns!==5)throw new Error('Migración incompleta: faltan columnas Wheel v3 en wheel_assignments');
 
     return {ok:true,applied:PRODUCTION_MIGRATIONS.map(file=>path.basename(file))};
   }finally{
