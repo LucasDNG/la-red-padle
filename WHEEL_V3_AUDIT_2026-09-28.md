@@ -234,3 +234,29 @@ Esto evita acelerar una promoción desde una categoría ya vacía o hacia una ya
 Wheel v3 sigue sin implementarse. La estructura general no muestra una deriva poblacional obvia ni un deadlock básico bajo modelos simplificados.
 
 Antes de código conviene cerrar A–D y luego convertir esta auditoría en tests ejecutables.
+
+## Resolución de hallazgos A–D — 2026-09-28
+
+### A. Disolver/re-formar durante descenso — CERRADO
+El período de descenso queda vinculado a la combinación exacta de dos personas. Sobrevive a la disolución aunque ambos formen y disuelvan otras parejas antes de volver a juntarse.
+
+### B. Descenso y categoría individual — CERRADO
+Un descenso real empeora la categoría individual únicamente de quien estaba individualmente por encima de la nueva categoría. Ejemplo: 2ª + 5ª descienden a 3ª => 3ª + 5ª.
+
+### C. Resultado cargado vs. cambios posteriores — CERRADO
+Una primera versión de resultado protege el partido de cancelaciones posteriores por ranking. Al aplicar el resultado nunca se baja al ganador: si ya está arriba del perdedor no hay swap adicional; si está abajo, intercambian.
+
+### D. Cancelación automática y racha de incumplimientos — CERRADO
+Una cancelación automática del sistema no reinicia la racha. La limpia un cierre real sin incumplimiento propio.
+
+### Cambio estructural que invalida una parte de esta auditoría
+Nuevas y ascendidas ya no ingresan a mitad de tabla: ahora ingresan **anteúltimas**. Por lo tanto:
+- los tests y simulaciones de posición deben rehacerse con esta entrada;
+- el Monte Carlo poblacional anterior se conserva solo como señal preliminar de la lógica 3/2/1, no como validación completa de Wheel v3;
+- antes de implementar hay que volver a simular el ciclo ascenso -> entrada anteúltima -> posible caída a último -> descenso.
+
+### Bordes nuevos detectados
+1. Inserción anteúltima con N=1.
+2. Descenso pendiente si la misma dupla reaparece en otra categoría.
+3. Evasión de 3 incumplimientos mediante cambio de compañero.
+4. Partido jugado válidamente pero no cargado antes de una cancelación por ranking.
