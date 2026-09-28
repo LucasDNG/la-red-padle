@@ -178,7 +178,7 @@ CREATE OR REPLACE FUNCTION sync_pair_v3_real_match_wait() RETURNS trigger LANGUA
 BEGIN
   IF NEW.result_type IN('normal','injury_abandonment') THEN
     UPDATE pair_wheel_state
-    SET real_waiting_since=NEW.played_at,updated_at=CURRENT_TIMESTAMP
+    SET real_waiting_since=GREATEST(COALESCE(real_waiting_since,NEW.played_at),NEW.played_at),updated_at=CURRENT_TIMESTAMP
     WHERE pair_id IN(NEW.pair_a_id,NEW.pair_b_id);
   END IF;
   RETURN NEW;
