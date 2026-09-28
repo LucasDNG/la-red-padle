@@ -115,6 +115,7 @@ export async function completeWheelV3FormationIfReady(client,leagueId){
   const snapshot=await wheelV3FormationSnapshot(client,leagueId);
   if(!snapshot.complete)return {completed:false,alreadyCompleted:false,completedAt:null};
 
+  const initializedZones=await initializeWheelV3FormationZones(client,leagueId);
   const row=(await q(client,`
     UPDATE league_wheel_state
     SET formation_completed_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP
@@ -125,6 +126,7 @@ export async function completeWheelV3FormationIfReady(client,leagueId){
     completed:Boolean(row),
     alreadyCompleted:false,
     completedAt:row?.formation_completed_at??null,
+    initializedZones,
   };
 }
 
@@ -270,4 +272,109 @@ export async function wheelV3CancelledResultEligibility(client,assignmentId,play
     eligible:resultAllowedAfterCancellation({playedAt,cancelledAt:row.cancelled_at}),
     cancelledAt:row.cancelled_at,
   };
+}
+
+
+async function wheelV3RealMatchCountForPair(client,pairId){
+  const row=(await q(client,`
+    SELECT count(*)::int n
+    FROM matches
+    WHERE (pair_a_id=$1 OR pair_b_id=$1)
+      AND result_type IN('normal','injury_abandonment')
+  `,[pairId])).rows[0];
+  return Number(row?.n||0);
+}
+
+async function wheelV3DuoStateIdForPair(client,pairId){
+  const row=(await q(client,`
+    SELECT pds.id
+    FROM pairs p
+    JOIN LATERAL (
+      SELECT min(pm.user_id) member_low_id,max(pm.user_id) member_high_id,count(*) member_count
+      FROM pair_members pm
+      WHERE pm.pair_id=p.id
+    ) members ON true
+    JOIN pair_duo_state pds
+      ON pds.league_id=p.league_id
+     AND pds.member_low_id=members.member_low_id
+     AND pds.member_high_id=members.member_high_id
+    WHERE p.id=$1
+      AND members.member_count=2
+  `,[pairId])).rows[0];
+  if(!row)throw new Error('Falta pair_duo_state para pareja');
+  return Number(row.id);
+}
+
+export async function initializeWheelV3FormationZones(client,leagueId){
+  const categories=(await q(client,`
+    SELECT id,number
+    FROM categories
+    WHERE league_id=$1
+    ORDER BY number
+    FOR UPDATE
+  `,[leagueId])).rows;
+  const initialized=[];
+
+  for(const category of categories){
+    const active=(await q(client,`
+      SELECT id,position
+      FROM pairs
+      WHERE category_id=$1 AND competition_state='active'
+      ORDER BY position,id
+      FOR UPDATE
+    `,[category.id])).rows;
+    if(!active.length)continue;
+
+    const top=active[0];
+    const bottom=active.at(-1);
+
+    if(Number(category.number)>=2){
+      const realMatches=await wheelV3RealMatchCountForPair(client,top.id);
+      await q(client,`
+        UPDATE pair_wheel_state
+        SET
+          promotion_wins=0,
+          awaiting_zone_first_match=$2,
+          awaiting_zone_kind=CASE WHEN $2 THEN 'promotion' ELSE NULL END,
+          updated_at=CURRENT_TIMESTAMP
+        WHERE pair_id=$1
+      `,[top.id,realMatches===0]);
+      initialized.push({pairId:Number(top.id),zone:'promotion',awaitingFirstMatch:realMatches===0});
+    }
+
+    if(Number(category.number)<=6){
+      const realMatches=await wheelV3RealMatchCountForPair(client,bottom.id);
+      if(realMatches===0){
+        await q(client,`
+          UPDATE pair_wheel_state
+          SET
+            awaiting_zone_first_match=true,
+            awaiting_zone_kind='relegation',
+            updated_at=CURRENT_TIMESTAMP
+          WHERE pair_id=$1
+        `,[bottom.id]);
+      }else{
+        const duoStateId=await wheelV3DuoStateIdForPair(client,bottom.id);
+        await q(client,`
+          UPDATE pair_duo_state
+          SET
+            pending_relegation_category_id=$2,
+            pending_relegation_losses=0,
+            relegation_route_step=0,
+            pending_relegation_started_at=COALESCE(pending_relegation_started_at,CURRENT_TIMESTAMP),
+            updated_at=CURRENT_TIMESTAMP
+          WHERE id=$1
+            AND pending_relegation_category_id IS NULL
+        `,[duoStateId,category.id]);
+      }
+      initialized.push({pairId:Number(bottom.id),zone:'relegation',awaitingFirstMatch:realMatches===0});
+    }
+  }
+  return initialized;
+}
+
+export async function refreshWheelV3Category(client,categoryId){
+  const cancelled=await cancelInvalidWheelV3AssignmentsForCategory(client,categoryId);
+  const assignmentResult=await createWheelV3AssignmentsForCategory(client,categoryId);
+  return {cancelled,created:assignmentResult.created,plan:assignmentResult.plan};
 }
