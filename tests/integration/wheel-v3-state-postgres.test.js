@@ -2165,3 +2165,46 @@ test('competitive runtime selector keeps wheel-v2 by default and exposes wheel-v
   await pool.query("UPDATE app_settings SET value='"wheel-v2"'::jsonb WHERE key='engine'");
   assert.equal(await competitiveEngine(),'wheel-v2');
 });
+
+
+test('confirmed dissolution waiting on an assignment archives pair automatically when commitment closes',async()=>{
+  const c=await category(5);
+  const a=await seedPairWithMembers(1,5,{tag:220});
+  const b=await seedPairWithMembers(2,5,{tag:221});
+  for(const pair of [a,b]){
+    for(const member of pair.members){
+      await pool.query('INSERT INTO active_pair_memberships(user_id,pair_id) VALUES($1,$2)',[member.id,pair.id]);
+    }
+  }
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,status,first_result_at,confirmation_deadline_at) VALUES($1,$2,$3,$4,$4,$3,'result_pending',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP+interval '7 days') RETURNING id",
+    [a.league_id,c.id,a.id,b.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[assignment.id,a.id,b.id]);
+  await pool.query(
+    "INSERT INTO pair_dissolution_requests(pair_id,requested_by_user_id,status) VALUES($1,$2,'awaiting_result')",
+    [b.id,b.members[0].id],
+  );
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await applyWheelV3ConfirmedRealResult(client,{
+      assignmentId:assignment.id,
+      winnerPairId:a.id,
+      resultType:'normal',
+      score:{sets:[{pairA:6,pairB:2},{pairA:6,pairB:3}]},
+      playedAt:(await client.query('SELECT CURRENT_TIMESTAMP t')).rows[0].t,
+      resolutionSource:'dissolution-test',
+    });
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const pair=(await pool.query('SELECT competition_state,archived_at FROM pairs WHERE id=$1',[b.id])).rows[0];
+  assert.equal(pair.competition_state,'inactive');
+  assert.ok(pair.archived_at);
+  assert.equal(Number((await pool.query('SELECT count(*) n FROM active_pair_memberships WHERE pair_id=$1',[b.id])).rows[0].n),0);
+  const req=(await pool.query('SELECT status,resolved_at FROM pair_dissolution_requests WHERE pair_id=$1 ORDER BY id DESC LIMIT 1',[b.id])).rows[0];
+  assert.equal(req.status,'applied');
+  assert.ok(req.resolved_at);
+});
