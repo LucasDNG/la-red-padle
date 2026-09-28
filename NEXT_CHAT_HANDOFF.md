@@ -43,8 +43,8 @@ Después leer, como mínimo:
 - Resultado cargado abre inmediatamente 7 días de revisión y luego auto-valida por silencio.
 - Todos los cambios operativos relevantes se notifican por WhatsApp.
 - El récord del #1 de Primera es por reinado, no acumulativo entre reinados; empate = récord compartido.
-- Quedan solo dos preguntas abiertas en `WHEEL_V3_SPEC.md`: primer partido al activar zonas y caso N=1 de la fórmula de mitad.
-- Resolver esas dos preguntas antes de tocar el motor.
+- Wheel v3 quedó funcionalmente cerrado: el primer partido de una pareja 0 PJ al activarse la zona no cuenta y luego entra en 0/3; con N=1, una nueva/ascendida entra #2.
+- No quedan preguntas funcionales abiertas. Próximo paso obligatorio: simulaciones/tests del diseño antes de tocar el motor.
 
 - El propietario redefinió la rueda automática en una conversación extensa el 2026-09-28.
 - Todo quedó consolidado en `WHEEL_V3_SPEC.md`.
