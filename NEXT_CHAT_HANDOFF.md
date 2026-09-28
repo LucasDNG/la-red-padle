@@ -40,6 +40,14 @@ Después leer, como mínimo:
 - Hay preguntas abiertas finales al final de `WHEEL_V3_SPEC.md`. Resolverlas con el propietario antes de migración/código.
 - Después: consolidar `PROJECT_RULES.md` + `DECISIONS.md`, escribir tests/simulación y recién entonces implementar.
 
+### Código todavía contradictorio que NO representa la regla vigente
+- `frontend/src/App.jsx` todavía muestra la puntuación numérica legacy y estadísticas acumuladas en varias superficies.
+- `src/core.js` y `src/competitionEngine.js` todavía calculan/persisten esa métrica y el récord antiguo.
+- `src/pairs.js` todavía la recalcula al pausar/reactivar/formar.
+- `database/schema.sql` todavía contiene columnas/tablas legacy relacionadas.
+- tests existentes todavía validan esa lógica.
+- **No corregir parcialmente** antes de cerrar las preguntas de `WHEEL_V3_SPEC.md`; luego eliminarla de forma transversal en código, DB, API, frontend y tests.
+
 ## Estado consolidado
 
 - package: `5.0.9`.
