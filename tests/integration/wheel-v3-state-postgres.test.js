@@ -10,7 +10,7 @@ if(!connectionString)throw new Error('TEST_DATABASE_URL es obligatorio para los 
 process.env.DATABASE_URL=connectionString;
 const {Pool}=pg;
 const pool=new Pool({connectionString});
-const {planWheelV3Category,wheelV3FormationSnapshot}=await import('../../src/wheelV3Engine.js');
+const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
@@ -390,4 +390,93 @@ test('PostgreSQL category planner uses v3 wait, roles and last real opponent wit
   }
   const engine=(await pool.query("SELECT value#>>'{}' value FROM app_settings WHERE key='engine'")).rows[0].value;
   assert.equal(engine,'wheel-v2');
+});
+
+
+test('formation completion persists once and never reopens',async()=>{
+  const male=await maleLeague();
+  for(let categoryNumber=1;categoryNumber<=7;categoryNumber++){
+    for(let position=1;position<=5;position++)await seedPair(position,categoryNumber);
+  }
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const first=await completeWheelV3FormationIfReady(client,male.id);
+    assert.equal(first.completed,true);
+    assert.ok(first.completedAt);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  await pool.query("UPDATE pairs SET competition_state='paused' WHERE category_id=(SELECT c.id FROM categories c JOIN leagues l ON l.id=c.league_id WHERE l.slug='masculino' AND c.number=7) AND position=5");
+
+  const client2=await pool.connect();
+  try{
+    await client2.query('BEGIN');
+    const second=await completeWheelV3FormationIfReady(client2,male.id);
+    assert.equal(second.completed,false);
+    assert.equal(second.alreadyCompleted,true);
+    assert.ok(second.completedAt);
+    await client2.query('COMMIT');
+  }catch(e){await client2.query('ROLLBACK');throw e;}finally{client2.release();}
+});
+
+test('isolated Wheel v3 assignment writer persists roles and 30-day DB-authored commitments',async()=>{
+  const c=await category(6);
+  const pairs=[];
+  for(let position=1;position<=6;position++)pairs.push(await seedPair(position,6));
+  for(let i=0;i<pairs.length;i++){
+    await pool.query('UPDATE pair_wheel_state SET real_waiting_since=$2,role=NULL,role_streak=0 WHERE pair_id=$1',[
+      pairs[i].id,
+      new Date(Date.UTC(2026,8,1+i)).toISOString(),
+    ]);
+  }
+
+  const client=await pool.connect();
+  let result;
+  try{
+    await client.query('BEGIN');
+    result=await createWheelV3AssignmentsForCategory(client,c.id);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  assert.ok(result.created.length>=1);
+  const participants=(await pool.query('SELECT pair_id,count(*)::int n FROM wheel_assignment_participants GROUP BY pair_id')).rows;
+  assert.ok(participants.every(r=>Number(r.n)===1));
+
+  for(const a of result.created){
+    assert.equal(Number(a.attacker_pair_id),Number(a.pair_a_id));
+    assert.equal(Number(a.defender_pair_id),Number(a.pair_b_id));
+    const seconds=Number((await pool.query(
+      'SELECT EXTRACT(EPOCH FROM ($1::timestamptz-$2::timestamptz)) seconds',
+      [a.deadline_at,a.assigned_at],
+    )).rows[0].seconds);
+    assert.equal(seconds,30*24*60*60);
+  }
+
+  const roles=(await pool.query('SELECT p.position,pws.role FROM pairs p JOIN pair_wheel_state pws ON pws.pair_id=p.id WHERE p.category_id=$1 ORDER BY p.position',[c.id])).rows;
+  assert.equal(roles[0].role,'defense');
+  assert.equal(roles.at(-1).role,'attack');
+
+  const engine=(await pool.query("SELECT value#>>'{}' value FROM app_settings WHERE key='engine'")).rows[0].value;
+  assert.equal(engine,'wheel-v2');
+});
+
+test('isolated Wheel v3 assignment writer is serialized by category and does not double-assign pairs',async()=>{
+  const c=await category(2);
+  for(let position=1;position<=6;position++)await seedPair(position,2);
+
+  const run=async()=>{
+    const client=await pool.connect();
+    try{
+      await client.query('BEGIN');
+      const result=await createWheelV3AssignmentsForCategory(client,c.id);
+      await client.query('COMMIT');
+      return result.created.length;
+    }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+  };
+
+  const [a,b]=await Promise.all([run(),run()]);
+  assert.ok(a+b>=1);
+  const duplicates=(await pool.query('SELECT pair_id,count(*) n FROM wheel_assignment_participants GROUP BY pair_id HAVING count(*)>1')).rows;
+  assert.deepEqual(duplicates,[]);
 });
