@@ -307,3 +307,10 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - Se corrigieron errores de sintaxis en tests PostgreSQL v3 que antes impedían ejecutar esa suite.
 - Run de confirmación en curso al escribir este checkpoint: 36497136449, SHA 6b8e7108745252197baafcba0ec3c4711706affd.
 - No declarar la suite PostgreSQL completa verde hasta que ese run termine.
+
+### CI PostgreSQL — diagnóstico de cuelgue 2026-09-28
+- Los runs viejos no fallaban solo por assertions: `test:integration` quedaba colgado ~20 minutos y GitHub lo cancelaba.
+- El log permitió localizar el self-deadlock exacto en el test `cancelled no-show can be reported again...`: una transacción con `client` retenía el lock del assignment y luego `pool.query` intentaba actualizar ese mismo assignment desde otra conexión.
+- Ese UPDATE ahora usa el mismo `client` transaccional.
+- También se corrigió en `wheelV3Engine.js` la persistencia de roles usando `$2::varchar` para evitar `inconsistent types deduced for parameter $2`.
+- Próximo bloque: releer el nuevo run de Actions y corregir los fallos funcionales restantes (sanction deadline, migración pre-v3, inactividad/posición/deuda) uno por uno.
