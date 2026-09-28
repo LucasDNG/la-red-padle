@@ -19,23 +19,23 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - La posición estructural manda.
 - Si una pareja ubicada más abajo vence a una ubicada más arriba, intercambian posiciones.
 - Si gana la que ya estaba arriba, no hay intercambio.
-- No existe reordenamiento global por ELO, victorias o games.
+- No existe reordenamiento global por estadísticas, victorias o games. La posición real dentro de la categoría es el ranking.
 - Principio: **Las estadísticas desempatan; no gobiernan el ranking. El ranking se conquista en cancha mediante intercambio de posiciones.**
 
-## 3. Estadísticas y ELO
-- Pareja con cero partidos oficiales: ELO 0.
-- Pausada: ELO visible 0.
-- Pareja activa con actividad: ELO posicional proporcional entre 2000 (#1) y 0 (última): `2000 × (N-pos)/(N-1)`. Si N=1, ELO base 2000.
-- Solo #1 de Primera puede superar 2000: +1 por cada victoria oficial obtenida mientras ya era #1 y conserva la punta.
-- Conquistar #1 deja base 2000 y no cuenta como defensa.
-- Hay dos récords históricos independientes: Primera Masculina y Primera Femenina.
+## 3. Ranking y récord especial de Primera
+- No existe una métrica numérica paralela al ranking.
+- La posición estructural de la pareja dentro de su categoría es su ranking real.
+- No se muestran valores actuales, máximos ni históricos alternativos al puesto.
+- El único récord deportivo histórico especial es el de **defensas exitosas del puesto #1 de Primera**, separado por circuito.
+- Cada defensa real en la que la pareja ya ocupa el #1 de Primera y conserva la punta suma 1.
+- La sección pública que antes representaba otro récord se reutiliza exclusivamente para mostrar este dato.
 
 ## 4. Ascenso y descenso
 - #1 + 3 victorias consecutivas => asciende una categoría, salvo Primera.
 - Ascendido entra al fondo del bloque activo de la categoría superior.
 - Regla base: última pareja + 3 derrotas consecutivas => desciende, salvo 7ª.
 - Válvula de equilibrio: si esa categoría tiene **5 o más parejas activas que la categoría inmediatamente inferior**, la última desciende con 2 derrotas consecutivas. Cuando la diferencia vuelve a ser menor a 5, el requisito vuelve automáticamente a 3.
-- La válvula solo modifica el umbral de descenso; no altera ranking, ELO, rival, ascenso ni posición de entrada. No usa un tamaño objetivo fijo de categoría: compara únicamente categorías adyacentes.
+- La regla poblacional solo modifica el umbral deportivo aplicable; no sustituye el ranking ni mueve parejas por sí sola. El diseño poblacional vigente está en `WHEEL_V3_SPEC.md`.
 - Descenso entra base #2 en la categoría inferior; la deuda empuja posiciones hacia abajo.
 - Si la categoría inferior no tiene activos, entra #1.
 - Deuda que no puede materializarse se conserva.
@@ -66,7 +66,7 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Expira a los 10 días y puede cancelarse.
 - La invitación muestra la categoría resultante.
 - La base impide pertenecer a dos parejas competitivamente vigentes.
-- La misma dupla reactivada reutiliza su identidad histórica; vuelve al fondo activo y conserva historial/deuda, pero no rachas corrientes.
+- La misma dupla puede reutilizar su identidad técnica al reactivarse o re-formarse; el efecto competitivo exacto de una re-formación está pendiente de cierre en `WHEEL_V3_SPEC.md`. No se expone un historial estadístico acumulado de la pareja.
 
 ## 8. Estados
 ### Competencia de pareja
@@ -79,16 +79,16 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Disciplina abierta bloquea nuevas asignaciones.
 - Disciplina individual acompaña a la persona al cambiar de compañero.
 
-## 9. Pausa
-- Requiere confirmación de ambos integrantes.
-- Sin compromiso abierto puede aplicarse al confirmarse.
-- Con compromiso abierto existe `pausar al terminar este partido`.
-- Pausa no cancela la obligación actual.
-- Sale de la rueda, queda debajo del bloque activo y ELO visible 0.
-- Conserva historial, categoría, deuda y rachas deportivas.
-- Pausa voluntaria conserva `monthly_miss_streak`.
-- Pausa automática tras dos incumplimientos atribuibles consecutivos inicia un ciclo nuevo al reactivar.
-- Reactivación entra al fondo activo.
+## 9. Inactividad temporal
+- La pareja puede avisar que quiere pasar a inactiva.
+- Si tiene un compromiso abierto, primero debe resolver la situación de ese compromiso.
+- No se la obliga físicamente a jugar: si decide no disputarlo, se aplica la consecuencia deportiva correspondiente antes de quedar inactiva.
+- Una vez inactiva, sale de la rueda y no recibe nuevos partidos.
+- No participa del balance ataque/defensa ni del cálculo poblacional activo.
+- La inactividad por sí sola **no hace perder puestos periódicamente ni categoría**.
+- No existen castigos por el mero paso del tiempo sin jugar mientras el estado inactivo esté correctamente aplicado.
+- La posición exacta de retorno y el tratamiento de un período de descenso previo están pendientes de cierre en `WHEEL_V3_SPEC.md`.
+- Técnicamente puede conservarse `paused` para representar esta inactividad temporal y `inactive` para disolución/archivo, aunque la interfaz del jugador debe hablar de “inactiva”.
 
 ## 10. Disolución
 - Puede iniciarla cualquiera.
@@ -101,6 +101,9 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 
 ## 11. Rueda automática
 - Máximo un partido abierto por pareja.
+- El sistema asigna automáticamente el rival cuando las reglas permiten determinarlo.
+- No existe un flujo ordinario de buscar rival → desafiar → esperar aceptación.
+- La UX debe comunicar qué le toca hacer a la pareja, no obligarla a ejecutar manualmente la lógica del motor.
 - El sistema asigna rival automáticamente.
 - Solo misma categoría y parejas habilitadas.
 - Prioridad de rival: nunca enfrentado; luego cruce más antiguo.
@@ -191,7 +194,7 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 
 ## 21. Público
 - Ranking, resultados, próximos partidos confirmados, perfiles deportivos y récords de Primera.
-- Perfil: jugadores, categoría, posición, ELO, partidos, victorias, resultados e historia deportiva.
+- Perfil deportivo simple: jugadores, categoría, posición actual, estado y hasta los últimos 5 movimientos reales con fecha. No se muestran acumulados de partidos, victorias, derrotas ni una métrica numérica paralela al puesto.
 - No se publican DNI, teléfono, mensajes, reportes, disciplina ni datos médicos.
 - Pausa puede mostrarse como estado neutro; nunca su motivo.
 
