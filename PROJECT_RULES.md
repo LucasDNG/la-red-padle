@@ -36,9 +36,9 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - El requisito puede bajar a 2 o 1 según desvío poblacional de parejas activas, usando el esquema vigente de `WHEEL_V3_SPEC.md`, y se recalcula al confirmar cada nuevo resultado.
 - La población por sí sola nunca mueve una pareja: siempre hace falta un resultado posterior que materialice el movimiento.
 - En 7ª no existe período de descenso.
-- Una pareja que asciende entra en la **mitad de la tabla activa** de la categoría superior y desplaza hacia abajo desde ese punto: con N activas existentes, posición = `floor(N/2)+1`; excepción N=1 => entra #2.
-- Por entrar mediante ascenso no queda automáticamente en período de descenso.
-- Una pareja nueva también entra en la mitad de la tabla activa de su categoría con la misma fórmula `floor(N/2)+1` y desplaza hacia abajo; excepción N=1 => entra #2.
+- Una pareja que asciende entra **anteúltima** en la categoría superior y desplaza hacia abajo desde ese punto. No entra en período de descenso solo por ingresar: debe llegar posteriormente al último puesto por movimiento deportivo.
+- Una pareja nueva también entra **anteúltima** y se rige por la misma protección inicial.
+- El caso de tabla con 0/1 activas queda como borde final en `WHEEL_V3_SPEC.md`.
 - Descenso entra base #2 en la categoría inferior; si no existe #1 material, entra #1.
 - Los movimientos entre categorías son siempre adyacentes.
 - Al terminar la formación, los #1 de 2ª–7ª y los últimos de 1ª–6ª que ya tienen al menos un partido real previo entran inmediatamente en 0/3 de ascenso/descenso. Si tienen 0 partidos, primero deben disputar uno; **ese primer resultado no cuenta** para la zona y, al cerrarlo, recién ingresan en 0/3.
@@ -48,7 +48,8 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Ejemplo: jugador de 2ª + jugador de 5ª => la pareja compite en 2ª.
 - Formar pareja con alguien más fuerte **no cambia automáticamente** la categoría individual del jugador arrastrado hacia arriba.
 - Un ascenso deportivo real de la pareja mejora la categoría individual de ambos integrantes al nivel alcanzado.
-- Al disolverse, cada jugador conserva/recupera su categoría individual propia, incluyendo las mejoras reales obtenidas por ascensos de la pareja.
+- Al disolverse, cada jugador conserva su categoría individual real.
+- Un descenso real también puede empeorar la categoría individual necesaria para impedir evasión: si 2ª + 5ª descienden a 3ª, quedan individualmente 3ª y 5ª.
 - La misma dupla que se disuelve y luego se vuelve a formar se trata competitivamente como una pareja nueva.
 
 ## 6. Identidad y acceso
@@ -69,7 +70,9 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Expira a los 10 días y puede cancelarse.
 - La invitación muestra la categoría resultante.
 - La base impide pertenecer a dos parejas competitivamente vigentes.
-- La misma dupla que se disuelve y después vuelve a formarse se considera competitivamente una pareja nueva, aunque la implementación pueda reutilizar una identidad técnica interna. No se expone un historial estadístico acumulado de la pareja.
+- La misma dupla que se disuelve y después vuelve a formarse se considera competitivamente una pareja nueva para ingreso/estadísticas, aunque la implementación pueda reutilizar una identidad técnica interna.
+- Un período de descenso pendiente de esa combinación exacta de dos personas **no se borra** por disolución ni por crear otras parejas en el medio; debe restaurarse si vuelven a juntarse.
+- No se expone un historial estadístico acumulado de la pareja.
 
 ## 8. Estados
 ### Competencia de pareja
@@ -150,7 +153,8 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Después de la fase de formación, última activa + incumplimiento propio implica descenso directo salvo 7ª.
 - En 7ª no hay descenso.
 - El incumplidor pasa a defensa obligatoria cuando sea materialmente posible; una defensa imposible por estar último no debe bloquear la rueda.
-- **Tres incumplimientos atribuibles consecutivos**, en cualquier categoría, provocan 30 días sin assignments y paso automático a inactiva. Al día 30 se reactiva automáticamente; un assignment cerrado sin incumplimiento atribuible reinicia la racha a 0.
+- **Tres incumplimientos atribuibles consecutivos**, en cualquier categoría, provocan 30 días sin assignments y paso automático a inactiva. Al día 30 se reactiva automáticamente.
+- La racha se reinicia solo con un cierre real sin incumplimiento propio; una cancelación automática del sistema no la reinicia.
 
 ## 15. No-show
 - Solo puede reportarse después de la fecha/hora oficial.
@@ -160,6 +164,8 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Una disputa real de no-show mantiene el compromiso bloqueado hasta resolución.
 
 ## 16. Resultados
+- Desde que existe una primera versión de resultado cargada, cambios posteriores del ranking no cancelan ese partido.
+- Al aplicar el resultado, el ganador nunca baja por movimientos posteriores: si actualmente está debajo del perdedor, intercambian; si ya está arriba, no hay intercambio adicional.
 - Cualquier integrante puede cargar una versión de resultado en nombre de su pareja, salvo que una acción específica quede definida como de doble confirmación en `WHEEL_V3_SPEC.md`.
 - Una pareja carga ganador, fecha real y resultado estructurado.
 - Si la primera versión se cargó dentro de los 30 días, desde ese instante la otra pareja dispone de 7 días para confirmar o discutir. El silencio al vencer auto-valida la versión.
