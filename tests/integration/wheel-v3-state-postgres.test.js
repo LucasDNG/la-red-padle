@@ -1460,3 +1460,26 @@ test('expired schedule proposal closes only the proposal and never resets assign
   const deadline=(await pool.query('SELECT deadline_at FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0].deadline_at;
   assert.equal(new Date(deadline).getTime(),new Date(assignment.deadline_at).getTime());
 });
+
+
+test('PostgreSQL planner honors relegation route step over normal defender wait priority',async()=>{
+  const c=await category(3);
+  const p1=await seedPair(1,3);
+  const p2=await seedPair(2,3);
+  const p3=await seedPair(3,3);
+  const attacker=await seedPairWithMembers(4,3,{tag:100});
+  await pool.query("UPDATE pair_wheel_state SET role='defense',role_streak=1,real_waiting_since='2026-09-20T00:00:00Z' WHERE pair_id=$1",[p1.id]);
+  await pool.query("UPDATE pair_wheel_state SET role='defense',role_streak=1,real_waiting_since='2026-09-27T00:00:00Z' WHERE pair_id=$1",[p2.id]);
+  await pool.query("UPDATE pair_wheel_state SET role='defense',role_streak=1,real_waiting_since='2026-08-01T00:00:00Z' WHERE pair_id=$1",[p3.id]);
+  await pool.query("UPDATE pair_wheel_state SET role='attack',role_streak=1,real_waiting_since='2026-09-01T00:00:00Z' WHERE pair_id=$1",[attacker.id]);
+  const duo=(await pool.query('SELECT id FROM pair_duo_state WHERE league_id=$1 ORDER BY id DESC LIMIT 1',[attacker.league_id])).rows[0];
+  await pool.query(
+    'UPDATE pair_duo_state SET pending_relegation_category_id=$1,pending_relegation_losses=1,relegation_route_step=1,pending_relegation_started_at=CURRENT_TIMESTAMP WHERE id=$2',
+    [c.id,duo.id],
+  );
+
+  const plan=await planWheelV3Category(pool,c.id);
+  const match=plan.assignments.find(x=>x.attackerId===Number(attacker.id));
+  assert.ok(match);
+  assert.equal(match.defenderId,Number(p2.id));
+});
