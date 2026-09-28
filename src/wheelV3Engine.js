@@ -2267,6 +2267,24 @@ export async function expireWheelV3ScheduleProposals(client){
 }
 
 export async function runWheelV3Maintenance(client){
+  const settings=(await q(client,`
+    SELECT key,value FROM app_settings
+    WHERE key IN('league_clock_paused')
+  `)).rows;
+  const settingMap=Object.fromEntries(settings.map(r=>[r.key,r.value]));
+  if(settingMap.league_clock_paused===true){
+    return {
+      paused:true,
+      formation:[],
+      scheduleExpired:0,
+      reactivated:0,
+      noShowsEscalated:0,
+      resultsAutoValidated:0,
+      assignmentsExpired:0,
+      refresh:[],
+    };
+  }
+
   const leagues=(await q(client,`
     SELECT id
     FROM leagues
