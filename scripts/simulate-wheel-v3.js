@@ -1,31 +1,14 @@
+import {
+  entryPositionPenultimate,
+  populationDirectionalThreshold,
+  delayedResultMovement as delayedResultMovementRule,
+} from './wheel-v3-rule-model.js';
+
 export const TARGET_SHARE=1/7;
+export const entryPositionAntepenultimate=entryPositionPenultimate;
+export const directionalThreshold=populationDirectionalThreshold;
+export const delayedResultMovement=delayedResultMovementRule;
 
-export function entryPositionAntepenultimate(activeCount){
-  const n=Number(activeCount);
-  if(!Number.isInteger(n)||n<0)throw new Error('activeCount must be a non-negative integer');
-  if(n===0)return 1;
-  if(n===1)return 2;
-  return n;
-}
-
-export function directionalThreshold(counts,srcIndex,dstIndex){
-  const total=counts.reduce((s,n)=>s+n,0);
-  if(total<=0||counts[srcIndex]<=0)return 3;
-  const dev=(a,b)=>Math.abs(a/total-TARGET_SHARE)+Math.abs(b/total-TARGET_SHARE);
-  const before=dev(counts[srcIndex],counts[dstIndex]);
-  const after=dev(counts[srcIndex]-1,counts[dstIndex]+1);
-  if(after>before+1e-12)return 3;
-  const src=counts[srcIndex]/total,dst=counts[dstIndex]/total;
-  let need=3;
-  if(src>0.22)need=1;else if(src>0.19)need=2;
-  if(dst<0.07)need=Math.min(need,1);else if(dst<0.10)need=Math.min(need,2);
-  return need;
-}
-
-export function delayedResultMovement({winnerPosition,loserPosition}){
-  if(winnerPosition>loserPosition)return {winnerPosition:loserPosition,loserPosition:winnerPosition,moved:true};
-  return {winnerPosition,loserPosition,moved:false};
-}
 
 function rng(seed=1){let x=seed>>>0;return()=>{x=(1664525*x+1013904223)>>>0;return x/2**32;};}
 function gaussian(random){let u=0,v=0;while(!u)u=random();while(!v)v=random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
@@ -95,10 +78,10 @@ function activateLast(league,c){
   const p=pair(league,league.ladders[c].at(-1));
   if(!p.relegActive){p.relegActive=true;p.relegLosses=0;}
 }
-function thresholdFor(league,src,dst){return directionalThreshold(counts(league),src-1,dst-1);}
+function thresholdFor(league,src,dst){return populationDirectionalThreshold(counts(league),src-1,dst-1);}
 
 function insertPromoted(league,id,dst){
-  const ids=league.ladders[dst],position=entryPositionAntepenultimate(ids.length);
+  const ids=league.ladders[dst],position=entryPositionPenultimate(ids.length);
   ids.splice(position-1,0,id);
   Object.assign(pair(league,id),{cat:dst,promo:0,relegActive:false,relegLosses:0,role:'A',roleStreak:1,wait:0});
   structuralRoles(league,dst);activateLast(league,dst);
