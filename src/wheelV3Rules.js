@@ -128,6 +128,17 @@ export function chooseDefenderForAttacker(attacker,candidates,{lastOpponentId=nu
     .sort((a,b)=>Number(b.position)-Number(a.position));
   if(!superior.length)return null;
 
+  if(attacker.relegationActive){
+    const ordered=[...superior].sort((a,b)=>Number(b.position)-Number(a.position));
+    const desiredIndex=Math.min(Math.max(0,Number(attacker.relegationRouteStep)||0),ordered.length-1);
+    const desired=ordered[desiredIndex];
+    if(lastOpponentId==null||Number(desired.id)!==Number(lastOpponentId)||ordered.length===1)return desired;
+    const harder=ordered.slice(desiredIndex+1).find(c=>Number(c.id)!==Number(lastOpponentId));
+    if(harder)return harder;
+    const anyOther=ordered.find(c=>Number(c.id)!==Number(lastOpponentId));
+    return anyOther||desired;
+  }
+
   const maxDistance=Number(attacker.position)-Math.min(...superior.map(c=>Number(c.position)));
   for(let limit=size;limit<=maxDistance+size;limit+=size){
     const window=superior.filter(c=>Number(attacker.position)-Number(c.position)<=limit);
