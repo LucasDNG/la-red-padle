@@ -453,25 +453,6 @@ export function normalizeRolesForPlanning(pairs){
     if(pair.role==='attack')attackCount++;else defenseCount++;
   }
 
-  for(let guard=0;guard<middle.length*2;guard++){
-    if(Math.abs(attackCount-defenseCount)<=1)break;
-    const excess=attackCount>defenseCount?'attack':'defense';
-    const target=excess==='attack'?'defense':'attack';
-    const candidates=middle
-      .filter(p=>!p.defenseRequiredUntilReal&&p.role===excess)
-      .sort((a,b)=>{
-        const astreak=Number(a.roleStreak)||0,bstr=Number(b.roleStreak)||0;
-        if(astreak!==bstr)return bstr-astreak;
-        const aw=new Date(a.realWaitingSince).getTime(),bw=new Date(b.realWaitingSince).getTime();
-        if(aw!==bw)return aw-bw;
-        return Number(a.id)-Number(b.id);
-      });
-    if(!candidates.length)break;
-    const chosen=candidates[0];
-    chosen.role=target;
-    chosen.roleStreak=1;
-    if(excess==='attack'){attackCount--;defenseCount++;}else{defenseCount--;attackCount++;}
-  }
   return output;
 }
 
