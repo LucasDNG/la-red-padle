@@ -1175,7 +1175,7 @@ test('first submitted result starts one fixed 7-day review and later edits do no
       pairId:a.id,
       winnerPairId:a.id,
       resultType:'normal',
-      playedAt:'2026-09-28T18:00:00Z',
+      playedAt:(await pool.query("SELECT CURRENT_TIMESTAMP-interval '1 hour' t")).rows[0].t,
       score:{sets:[{pairA:6,pairB:3},{pairA:6,pairB:4}]},
     });
     await client.query('COMMIT');
@@ -1191,7 +1191,7 @@ test('first submitted result starts one fixed 7-day review and later edits do no
       pairId:a.id,
       winnerPairId:a.id,
       resultType:'normal',
-      playedAt:'2026-09-28T18:00:00Z',
+      playedAt:(await pool.query("SELECT CURRENT_TIMESTAMP-interval '1 hour' t")).rows[0].t,
       score:{sets:[{pairA:6,pairB:2},{pairA:6,pairB:4}]},
     });
     await client2.query('COMMIT');
@@ -1210,11 +1210,12 @@ test('matching versions from both pairs confirm immediately',async()=>{
     [defender.league_id,c.id,defender.id,attacker.id],
   )).rows[0];
   await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[assignment.id,defender.id,attacker.id]);
+  const played=(await pool.query("SELECT CURRENT_TIMESTAMP-interval '1 hour' t")).rows[0].t;
   const payload={
     assignmentId:assignment.id,
     winnerPairId:attacker.id,
     resultType:'normal',
-    playedAt:'2026-09-28T18:30:00Z',
+    playedAt:played,
     score:{sets:[{pairA:3,pairB:6},{pairA:4,pairB:6}]},
   };
 
@@ -1247,11 +1248,11 @@ test('conflicting pair versions move assignment to disputed and never auto-valid
     await client.query('BEGIN');
     await submitWheelV3ResultVersion(client,{
       assignmentId:assignment.id,pairId:a.id,winnerPairId:a.id,resultType:'normal',
-      playedAt:'2026-09-28T19:00:00Z',score:{sets:[{pairA:6,pairB:3},{pairA:6,pairB:3}]},
+      playedAt:(await pool.query("SELECT CURRENT_TIMESTAMP-interval '1 hour' t")).rows[0].t,score:{sets:[{pairA:6,pairB:3},{pairA:6,pairB:3}]},
     });
     const conflict=await submitWheelV3ResultVersion(client,{
       assignmentId:assignment.id,pairId:b.id,winnerPairId:b.id,resultType:'normal',
-      playedAt:'2026-09-28T19:00:00Z',score:{sets:[{pairA:3,pairB:6},{pairA:3,pairB:6}]},
+      playedAt:(await pool.query("SELECT CURRENT_TIMESTAMP-interval '1 hour' t")).rows[0].t,score:{sets:[{pairA:3,pairB:6},{pairA:3,pairB:6}]},
     });
     assert.equal(conflict.status,'disputed');
     await client.query('COMMIT');
@@ -1284,7 +1285,7 @@ test('silence after seven days auto-validates the loaded result',async()=>{
     await client.query('BEGIN');
     await submitWheelV3ResultVersion(client,{
       assignmentId:assignment.id,pairId:attacker.id,winnerPairId:defender.id,resultType:'normal',
-      playedAt:'2026-09-28T19:30:00Z',score:{sets:[{pairA:6,pairB:4},{pairA:6,pairB:4}]},
+      playedAt:(await pool.query("SELECT CURRENT_TIMESTAMP-interval '1 hour' t")).rows[0].t,score:{sets:[{pairA:6,pairB:4},{pairA:6,pairB:4}]},
     });
     await client.query('COMMIT');
   }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
