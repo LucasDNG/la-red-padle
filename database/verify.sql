@@ -116,11 +116,26 @@ FROM pair_duo_state
 WHERE pending_relegation_category_id IS NULL
   AND relegation_route_step<>0;
 
-SELECT pair_id
-FROM pair_wheel_state
-WHERE awaiting_zone_first_match<>(awaiting_zone_kind IS NOT NULL);
+
+
+SELECT wa.id
+FROM wheel_assignments wa
+JOIN first_place_reigns r ON r.id=wa.first_place_reign_id
+WHERE wa.first_place_reign_id IS NOT NULL
+  AND (
+    r.league_id<>wa.league_id
+    OR r.pair_id<>wa.defender_pair_id
+    OR wa.attacker_pair_id IS NULL
+    OR wa.defender_pair_id IS NULL
+  );
 
 SELECT id
-FROM pair_duo_state
-WHERE pending_relegation_category_id IS NULL
-  AND relegation_route_step<>0;
+FROM wheel_no_shows
+WHERE status IN('pending','contested','admin_review','accepted')
+  AND assignment_id IN(
+    SELECT assignment_id
+    FROM wheel_no_shows
+    WHERE status IN('pending','contested','admin_review','accepted')
+    GROUP BY assignment_id
+    HAVING count(*)>1
+  );
