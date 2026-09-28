@@ -7,7 +7,7 @@ Este archivo contiene únicamente decisiones que siguen vigentes. Las decisiones
 
 1. El ranking es una escalera estructural: las estadísticas no gobiernan la posición.
 2. Si una pareja ubicada abajo vence a una ubicada arriba, intercambian posiciones; el resto no se reordena.
-3. ELO acompaña la posición pero no decide el ranking.
+3. La posición real dentro de la categoría es el ranking; no existe una métrica numérica paralela.
 4. La rueda es automática y cada pareja puede tener como máximo un compromiso abierto.
 5. Rival nunca enfrentado primero; después, cruce más antiguo; waiting time resuelve categorías impares.
 6. El assignment da 30 días corridos para jugar **y cargar** el resultado.
@@ -36,12 +36,12 @@ Este archivo contiene únicamente decisiones que siguen vigentes. Las decisiones
 29. La ruta privada Admin es discreción, no seguridad: siguen siendo obligatorios rol, contraseña y TOTP cuando esté configurado.
 30. El primer propietario se crea por promoción explícita de una cuenta existente; no existe alta pública de Admin.
 31. Admin es una cola de excepciones: identidad, disputas reales, disciplina, canchas, correcciones excepcionales, auditoría y contingencias globales.
-32. Admin no elige rivales, no ordena ranking, no escribe ELO, no resuelve coordinación ordinaria y no aprueba parejas.
+32. Admin no elige rivales ni ordena manualmente el ranking; tampoco resuelve coordinación ordinaria ni aprueba parejas.
 33. Toda acción Admin sensible queda auditada.
 34. WhatsApp es el canal operativo principal; la app conserva el estado oficial.
 35. Eventos relevantes de un compromiso se notifican a ambos integrantes de las parejas afectadas.
 36. Próximos partidos solo son públicos cuando fecha/hora/lugar fueron aceptados.
-37. Los récords de Primera son separados Masculino/Femenino.
+37. El único récord deportivo histórico especial es la cantidad de defensas exitosas del #1 de Primera, separado Masculino/Femenino.
 38. LA RED es una liga continua, sin temporadas ni resets.
 39. Canchas son administrables y archivables sin borrar historial.
 40. La primera versión competitiva es 18+ y usa aceptaciones legales versionadas.
@@ -72,3 +72,13 @@ Este archivo contiene únicamente decisiones que siguen vigentes. Las decisiones
 54. Extensión extraordinaria y no-show se ofrecen en pantalla únicamente cuando la ventana temporal correspondiente está habilitada.
 55. Un resultado propio todavía editable se vuelve a mostrar precargado para corregirlo; una disputa incompatible pasa a estado de espera de resolución administrativa.
 56. La ventana disciplinaria de 15 días posterior al cierre de un partido debe ser accesible desde Mi liga mediante partidos recientes reportables.
+
+## Decisiones prioritarias incorporadas — 2026-09-28
+57. La posición estructural es el único ranking competitivo; se elimina cualquier métrica numérica paralela del producto.
+58. La sección histórica de Primera muestra únicamente el récord de defensas exitosas del puesto #1.
+59. Los partidos ordinarios se asignan automáticamente; no se reintroduce un flujo manual de desafíos cuando el motor puede determinar el rival.
+60. Una pareja puede avisar que pasará a inactiva; un compromiso ya asignado debe resolverse deportivamente antes de aplicar la inactividad.
+61. Una vez inactiva, no recibe partidos ni sanciones por no jugar y no pierde puestos o categoría por el simple paso del tiempo.
+62. La experiencia del jugador debe priorizar la próxima acción concreta y ocultar complejidad interna innecesaria.
+63. Los últimos 5 movimientos reales con fecha sustituyen un historial estadístico acumulado de pareja.
+64. Las dudas de borde todavía abiertas están enumeradas en `WHEEL_V3_SPEC.md` y deben cerrarse antes de implementar Wheel v3.
