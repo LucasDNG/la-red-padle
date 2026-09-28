@@ -33,7 +33,7 @@ export async function databasePreflight(pool,{requireTls=true}={}){
     WHERE key IN('engine','timezone','league_clock_paused')
   `)).rows;
   const map=Object.fromEntries(settings.map(r=>[r.key,r.value]));
-  if(map.engine!=='wheel-v2')throw new Error('app_settings.engine no es wheel-v2');
+  if(!['wheel-v2','wheel-v3'].includes(map.engine))throw new Error('app_settings.engine inesperado');
   if(map.timezone!=='America/Argentina/Buenos_Aires')throw new Error('app_settings.timezone inesperada');
   if(map.league_clock_paused===true)throw new Error('El reloj global de la liga está pausado');
 
