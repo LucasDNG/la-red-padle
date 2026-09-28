@@ -158,6 +158,7 @@ CREATE TABLE pair_wheel_state(
   created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CHECK((role IS NULL AND role_streak=0) OR (role IS NOT NULL AND role_streak>=1)),
+  CONSTRAINT pair_wheel_zone_enabling_consistency CHECK(awaiting_zone_first_match=(awaiting_zone_kind IS NOT NULL)),
   CHECK(auto_reactivate_at IS NULL OR inactive_since IS NOT NULL),
   CHECK(inactive_since IS NOT NULL OR (return_position_base IS NULL AND inactive_reason IS NULL AND auto_reactivate_at IS NULL))
 );
