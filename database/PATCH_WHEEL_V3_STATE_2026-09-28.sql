@@ -238,4 +238,15 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_first_place_open_reign
 CREATE INDEX IF NOT EXISTS idx_first_place_record
   ON first_place_reigns(league_id,defenses DESC,started_at);
 
+
+ALTER TABLE wheel_result_versions DROP CONSTRAINT IF EXISTS wheel_result_versions_result_type_check;
+ALTER TABLE wheel_result_versions
+  ADD CONSTRAINT wheel_result_versions_result_type_check
+  CHECK(result_type IN('normal','injury_abandonment','dissolution_forfeit','administrative_forfeit'));
+
+ALTER TABLE matches DROP CONSTRAINT IF EXISTS matches_result_type_check;
+ALTER TABLE matches
+  ADD CONSTRAINT matches_result_type_check
+  CHECK(result_type IN('normal','injury_abandonment','dissolution_forfeit','administrative_forfeit'));
+
 COMMIT;
