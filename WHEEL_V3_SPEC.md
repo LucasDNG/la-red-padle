@@ -30,7 +30,10 @@ No se busca un emparejamiento aleatorio de toda la categoría.
 - Al aplicar un resultado ya cargado, **el ganador nunca puede bajar por culpa de movimientos ocurridos después del partido**:
   - si el ganador está actualmente debajo del perdedor, intercambian posiciones;
   - si el ganador ya está actualmente arriba del perdedor, no se lo vuelve a bajar y no hay intercambio adicional.
-- Un partido cancelado antes de tener resultado cargado no genera movimiento ni resultado oficial. Si los jugadores desean jugarlo igualmente, pueden hacerlo de forma amistosa, pero no se carga en LA RED.
+- Si el partido **ya se había jugado mientras el assignment era válido**, puede cargarse aunque el sistema haya cancelado el assignment antes de que se ingresara el resultado. La fecha/hora real jugada debe ser anterior a la cancelación; el resultado sigue el flujo normal de confirmación/disputa.
+- Si al aplicar ese resultado el ganador ya quedó por encima del perdedor por cambios intermedios del ranking, **no se aplica ningún intercambio adicional**: el ganador nunca baja.
+- En ese caso se informa en app y WhatsApp: `No se aplican cambios de posición porque el ganador pasaría a estar abajo por un cambio previo en el ranking.`
+- Si el partido no se había jugado antes de la cancelación, la cancelación sí es definitiva para efectos competitivos; pueden jugar luego solo de forma amistosa.
 - La cancelación conserva el rol ataque/defensa de cada pareja y su antigüedad de espera; la reasignación debe ejecutarse de inmediato con prioridad alta.
 
 ## 3. Fase de formación
@@ -219,7 +222,10 @@ Si vencen los 30 días sin resultado ni declaración:
 - Esta regla es general para todas las categorías, no solo 7ª.
 - Una pareja que acumula **3 incumplimientos atribuibles consecutivos** recibe una penalización de **30 días sin nuevas asignaciones** y pasa a estado inactivo durante esa penalización.
 - Al cumplirse exactamente los 30 días, la pareja se **reactiva automáticamente**.
-- La racha se reinicia a 0 cuando existe un cierre real sin incumplimiento propio: partido resuelto correctamente o cierre donde el incumplimiento fue atribuible únicamente al rival.
+- La racha de incumplimientos pertenece a la **dupla exacta**, no a cada jugador individualmente.
+- Disolver la pareja o formar otras parejas en el medio no borra esa racha: si los mismos dos vuelven a juntarse, recuperan el contador que tenían pendiente.
+- Al re-formarse, la UI/WhatsApp debe advertir el contador pendiente; por ejemplo: `Esta pareja tuvo 2 incumplimientos consecutivos. Un incumplimiento más aplicará 30 días sin asignaciones.`
+- La racha se reinicia a 0 cuando esa misma dupla tiene un cierre real sin incumplimiento propio: partido resuelto correctamente o cierre donde el incumplimiento fue atribuible únicamente al rival.
 - Una cancelación automática del sistema por ranking/categoría **no reinicia** la racha.
 - En 7ª esta regla resuelve especialmente el caso de la última pareja, que no puede descender ni perder más posición.
 
@@ -272,7 +278,8 @@ Después de la fase de formación:
 - Una pareja que **asciende** entra **anteúltima** de la tabla activa de la nueva categoría y desplaza hacia abajo desde ese punto.
 - No entra automáticamente en período de descenso solo por ese ingreso.
 - Para entrar en período de descenso debe llegar efectivamente al último puesto por un movimiento deportivo posterior; por ejemplo, si el último le gana y le intercambia la posición.
-- El caso con 0 o 1 pareja activa previa queda marcado como borde final de inserción porque “anteúltima” no se comporta igual con tablas tan pequeñas.
+- Si no hay activas, la ingresante ocupa #1 por imposibilidad material.
+- Si hay exactamente 1 activa, la nueva/ascendida entra #2: no desplaza al único #1 sin haber jugado.
 
 ## 14. Período de descenso
 Después de la fase de formación:
@@ -326,8 +333,11 @@ Mientras una pareja sigue en período de descenso:
   - quien ya tenía una categoría individual inferior no empeora adicionalmente.
   - ejemplo: 2ª + 5ª descienden a 3ª => las categorías individuales quedan 3ª y 5ª.
 - Una misma dupla que se disuelve y luego vuelve a formarse se trata **competitivamente como una pareja nueva** para estadísticas/ingreso, aunque pueda reutilizarse una identidad técnica interna.
-- **Excepción anti-abuso:** si esa combinación exacta de dos personas tenía un período de descenso abierto, ese estado y sus derrotas pendientes sobreviven a la disolución.
-- Ese período pendiente sigue vinculado a la combinación de esas dos personas aunque, entre medio, cualquiera de ellas forme y disuelva otras parejas. Volver a juntarse no borra el descenso pendiente.
+- **Excepción anti-abuso:** si esa combinación exacta de dos personas tenía un período de descenso abierto al disolverse, ese estado y sus derrotas pendientes sobreviven a la disolución.
+- El sistema recuerda también la **categoría en la que estaba abierto ese período de descenso**.
+- Si esas dos personas vuelven a formar pareja antes de resolver ese período, regresan excepcionalmente a esa misma categoría y retoman el mismo estado de descenso, aunque en el medio hayan formado otras parejas o sus categorías individuales hayan cambiado.
+- Esta excepción existe solo hasta resolver aquel período mediante victoria real o descenso efectivo.
+- Una vez resuelto el período, futuras formaciones vuelven a usar la regla normal de categoría individual más alta. Si después ambos mejoraron legítimamente sus categorías individuales, la nueva pareja entra donde corresponda por esas categorías.
 
 ## 16. Inactividad
 La inactividad es voluntaria y sale de la rueda; también puede ser aplicada automáticamente como sanción de 30 días por 3 incumplimientos consecutivos.
@@ -448,13 +458,13 @@ Administración debe conservar una auditoría técnica más completa de decision
   - se aplicó una penalización;
   - terminó la fase de formación.
 
-## 21. Bordes finales reabiertos por la auditoría
-La auditoría cerró los cuatro hallazgos principales, pero las nuevas decisiones dejan cuatro bordes concretos antes de los tests:
+## 21. Cierre de bordes de auditoría
+No quedan preguntas funcionales abiertas de esta tanda.
 
-1. **Anteúltima con tabla mínima:** si hay 0 activas, la primera pareja necesariamente entra #1. Si hay exactamente 1 activa y entra una nueva/ascendida, la tabla final tiene 2 posiciones y “anteúltima” sería #1, desplazando al #1 sin jugar. Confirmar si en N=1 se conserva la excepción anterior y entra #2.
-2. **Descenso pendiente + cambio de categoría intermedio:** si una dupla tenía, por ejemplo, 2/3 de descenso en 4ª, se disuelve, uno cambia legítimamente de categoría con otra pareja y después los dos vuelven a juntarse en una categoría distinta, falta definir si el 2/3 pendiente se retoma en esa nueva categoría o solo cuando vuelven a competir en la categoría donde nació.
-3. **Incumplimientos y cambio de pareja:** con 2 incumplimientos una dupla podría disolverse y formar parejas distintas antes del tercero. Falta decidir si la racha de incumplimientos es solo de la dupla exacta o si debe existir alguna consecuencia individual para impedir evasión por cambio de compañero.
-4. **Partido jugado pero todavía no cargado:** si el partido realmente se jugó cuando el assignment era válido, pero antes de que alguien cargue el resultado el ranking se invierte y el sistema lo cancela, falta decidir si ambos pueden acreditar que se jugó antes de la cancelación y conservar el resultado, o si la falta de carga previa hace definitiva la cancelación.
+- Anteúltima con tabla mínima: N=0 => entra #1; N=1 => entra #2.
+- Descenso pendiente: queda atado a la combinación exacta de dos personas **y a la categoría donde se abrió**; si vuelven a juntarse antes de resolverlo, regresan allí y lo retoman. Una vez resuelto, futuras formaciones siguen las categorías individuales vigentes.
+- Incumplimientos consecutivos: pertenecen a la dupla exacta, sobreviven a disoluciones y parejas intermedias, y se muestran/avisan al re-formarse.
+- Partido jugado antes de una cancelación: puede cargarse después; si el ganador ya está arriba por movimientos intermedios, no hay swap y se notifica expresamente que no se mueve para evitar bajar al ganador.
 ## 22. Plan de implementación después de cerrar preguntas
 1. Convertir este diseño en reglas definitivas dentro de `PROJECT_RULES.md` y `DECISIONS.md`.
 2. Diseñar estado/migración DB mínima.
