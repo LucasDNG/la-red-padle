@@ -7,15 +7,18 @@ import pg from 'pg';
 
 const connectionString=process.env.TEST_DATABASE_URL;
 if(!connectionString)throw new Error('TEST_DATABASE_URL es obligatorio para los tests PostgreSQL');
+process.env.DATABASE_URL=connectionString;
 const {Pool}=pg;
 const pool=new Pool({connectionString});
+const {planWheelV3Category,wheelV3FormationSnapshot}=await import('../../src/wheelV3Engine.js');
+const {pool:appPool}=await import('../../src/db.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
 const patch=fs.readFileSync(path.resolve(__dirname,'../../database/PATCH_WHEEL_V3_STATE_2026-09-28.sql'),'utf8');
 
 async function resetDb(){await pool.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public');await pool.query(schema);}
 beforeEach(resetDb);
-after(async()=>pool.end());
+after(async()=>{await pool.end();await appPool.end();});
 
 async function maleLeague(){return (await pool.query("SELECT id FROM leagues WHERE slug='masculino'")).rows[0];}
 async function category(number,slug='masculino'){return (await pool.query('SELECT c.* FROM categories c JOIN leagues l ON l.id=c.league_id WHERE l.slug=$1 AND c.number=$2',[slug,number])).rows[0];}
@@ -345,4 +348,46 @@ test('new and re-formed pairs start a fresh v3 wait clock',async()=>{
   await pool.query("UPDATE pairs SET competition_state='active' WHERE id=$1",[p.id]);
   const returned=(await pool.query('SELECT real_waiting_since FROM pair_wheel_state WHERE pair_id=$1',[p.id])).rows[0].real_waiting_since;
   assert.ok(new Date(returned).getTime()>=new Date(beforeReturn).getTime());
+});
+
+
+test('formation snapshot is separate per circuit and completes only at 5x7',async()=>{
+  const male=await maleLeague();
+  for(let categoryNumber=1;categoryNumber<=7;categoryNumber++){
+    for(let position=1;position<=5;position++)await seedPair(position,categoryNumber);
+  }
+  const snapshot=await wheelV3FormationSnapshot(pool,male.id);
+  assert.equal(snapshot.complete,true);
+  await pool.query("UPDATE pairs SET competition_state='paused' WHERE category_id=(SELECT c.id FROM categories c JOIN leagues l ON l.id=c.league_id WHERE l.slug='masculino' AND c.number=4) AND position=5");
+  const after=await wheelV3FormationSnapshot(pool,male.id);
+  assert.equal(after.complete,false);
+});
+
+test('PostgreSQL category planner uses v3 wait, roles and last real opponent without mutating runtime',async()=>{
+  const l=await maleLeague();const c=await category(5);
+  const pairs=[];
+  for(let position=1;position<=6;position++)pairs.push(await seedPair(position,5));
+  const waits=[
+    '2026-09-01T00:00:00Z',
+    '2026-09-02T00:00:00Z',
+    '2026-09-03T00:00:00Z',
+    '2026-09-04T00:00:00Z',
+    '2026-09-05T00:00:00Z',
+    '2026-09-06T00:00:00Z',
+  ];
+  for(let i=0;i<pairs.length;i++){
+    await pool.query('UPDATE pair_wheel_state SET real_waiting_since=$2,role=NULL,role_streak=0 WHERE pair_id=$1',[pairs[i].id,waits[i]]);
+  }
+  const plan=await planWheelV3Category(pool,c.id);
+  assert.equal(plan.pairs[0].role,'defense');
+  assert.equal(plan.pairs.at(-1).role,'attack');
+  const assignmentPairs=new Set(plan.assignments.flatMap(x=>[x.attackerId,x.defenderId]));
+  assert.equal(assignmentPairs.size,plan.assignments.length*2);
+  for(const assignment of plan.assignments){
+    const attacker=plan.pairs.find(p=>p.id===assignment.attackerId);
+    const defender=plan.pairs.find(p=>p.id===assignment.defenderId);
+    assert.ok(attacker.position>defender.position);
+  }
+  const engine=(await pool.query("SELECT value#>>'{}' value FROM app_settings WHERE key='engine'")).rows[0].value;
+  assert.equal(engine,'wheel-v2');
 });
