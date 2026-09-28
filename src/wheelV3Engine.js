@@ -1430,3 +1430,114 @@ export async function applyWheelV3BothFailure(client,{
     refresh,
   };
 }
+
+
+async function wheelV3PausePairNow(client,pairId,{reason='voluntary'}={}){
+  const pair=await wheelV3CurrentPairRow(client,pairId);
+  if(pair.competition_state!=='active')return {paused:false,alreadyInactive:true,pairId:Number(pairId)};
+  const occupied=(await q(client,`
+    SELECT assignment_id
+    FROM wheel_assignment_participants
+    WHERE pair_id=$1
+  `,[pairId])).rows[0];
+  if(occupied)throw new Error('La pareja tiene un compromiso pendiente');
+
+  const previousLeader=await wheelV3Leader(client,pair.category_id);
+  const returnPosition=Number(pair.position);
+
+  await q(client,`
+    UPDATE pairs
+    SET competition_state='paused',pause_after_current=false,updated_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+  `,[pairId]);
+  await q(client,`
+    UPDATE pair_wheel_state
+    SET
+      inactive_since=CURRENT_TIMESTAMP,
+      return_position_base=$2,
+      inactive_reason=$3,
+      auto_reactivate_at=NULL,
+      promotion_wins=0,
+      updated_at=CURRENT_TIMESTAMP
+    WHERE pair_id=$1
+  `,[pairId,returnPosition,reason]);
+
+  const activeOrder=await wheelV3ActiveOrder(client,pair.category_id);
+  await wheelV3SetCategoryOrder(client,pair.category_id,activeOrder);
+  await wheelV3SyncPromotionEdgeAfterAdministrativeMovement(client,pair.category_id,previousLeader);
+  if(Number(pair.category_number)===1){
+    const nextLeader=await wheelV3Leader(client,pair.category_id);
+    if(nextLeader)await wheelV3OpenReign(client,pair.league_id,nextLeader);
+    else{
+      await q(client,`
+        UPDATE first_place_reigns
+        SET ended_at=COALESCE(ended_at,CURRENT_TIMESTAMP),updated_at=CURRENT_TIMESTAMP
+        WHERE league_id=$1 AND ended_at IS NULL
+      `,[pair.league_id]);
+    }
+  }
+  return {
+    paused:true,
+    pairId:Number(pairId),
+    categoryId:Number(pair.category_id),
+    returnPosition,
+  };
+}
+
+export async function requestWheelV3Inactivity(client,{pairId,requestedByUserId}){
+  const member=(await q(client,`
+    SELECT 1 FROM pair_members
+    WHERE pair_id=$1 AND user_id=$2
+  `,[pairId,requestedByUserId])).rowCount;
+  if(!member)throw new Error('El usuario no integra la pareja');
+
+  const pair=await wheelV3CurrentPairRow(client,pairId);
+  if(pair.competition_state!=='active')return {status:'already_inactive',pairId:Number(pairId)};
+
+  const assignment=(await q(client,`
+    SELECT assignment_id
+    FROM wheel_assignment_participants
+    WHERE pair_id=$1
+  `,[pairId])).rows[0];
+  if(assignment){
+    await q(client,`
+      UPDATE pairs
+      SET pause_after_current=true,updated_at=CURRENT_TIMESTAMP
+      WHERE id=$1
+    `,[pairId]);
+    await q(client,`
+      INSERT INTO pair_pause_requests(pair_id,requested_by_user_id,status,effective_after_current)
+      VALUES($1,$2,'pending',true)
+      ON CONFLICT(pair_id) WHERE status='pending'
+      DO UPDATE SET requested_by_user_id=EXCLUDED.requested_by_user_id,effective_after_current=true
+    `,[pairId,requestedByUserId]);
+    return {status:'after_current',pairId:Number(pairId),assignmentId:Number(assignment.assignment_id)};
+  }
+
+  await q(client,`
+    INSERT INTO pair_pause_requests(pair_id,requested_by_user_id,status,effective_after_current,resolved_at)
+    VALUES($1,$2,'applied',false,CURRENT_TIMESTAMP)
+    ON CONFLICT(pair_id) WHERE status='pending'
+    DO UPDATE SET status='applied',resolved_at=CURRENT_TIMESTAMP,effective_after_current=false
+  `,[pairId,requestedByUserId]);
+  const paused=await wheelV3PausePairNow(client,pairId,{reason:'voluntary'});
+  return {status:'paused',...paused};
+}
+
+async function applyPendingWheelV3Pauses(client,pairIds){
+  const paused=[];
+  for(const pairId of pairIds.map(Number)){
+    const pair=(await q(client,`
+      SELECT competition_state,pause_after_current
+      FROM pairs WHERE id=$1 FOR UPDATE
+    `,[pairId])).rows[0];
+    if(!pair||pair.competition_state!=='active'||!pair.pause_after_current)continue;
+    await q(client,`
+      UPDATE pair_pause_requests
+      SET status='applied',resolved_at=CURRENT_TIMESTAMP
+      WHERE pair_id=$1 AND status='pending'
+    `,[pairId]);
+    paused.push(await wheelV3PausePairNow(client,pairId,{reason:'voluntary'}));
+  }
+  return paused;
+}
