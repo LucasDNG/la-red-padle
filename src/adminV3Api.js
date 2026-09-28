@@ -74,7 +74,7 @@ export async function resolveDisputeV3(adminId,assignmentId,{action,versionId=nu
 }
 
 export async function systemStatusV3(){
-  const [outbox,open,disputes,pending,discipline,players,pairs,formation,server]=await Promise.all([
+  const [outbox,open,disputes,pending,discipline,players,pairs,clock,formation,server]=await Promise.all([
     pool.query(`SELECT status,count(*)::int n FROM notification_outbox GROUP BY status`),
     pool.query(`SELECT count(*)::int n FROM wheel_assignments WHERE status IN('open','result_pending','disputed')`),
     pool.query(`SELECT count(*)::int n FROM wheel_assignments WHERE status='disputed'`),
@@ -82,6 +82,7 @@ export async function systemStatusV3(){
     pool.query(`SELECT count(*)::int n FROM discipline_reports WHERE status IN('open','reviewed')`),
     pool.query(`SELECT count(*)::int n FROM users WHERE role='player'`),
     pool.query(`SELECT count(*)::int n FROM pairs WHERE competition_state='active'`),
+    pool.query(`SELECT value FROM app_settings WHERE key='league_clock_paused'`),
     pool.query(`
       SELECT l.id,l.slug,l.name,lws.formation_completed_at
       FROM leagues l
@@ -104,6 +105,7 @@ export async function systemStatusV3(){
     discipline:Number(discipline.rows[0].n),
     players:Number(players.rows[0].n),
     activePairs:Number(pairs.rows[0].n),
+    clockPaused:clock.rows[0]?.value===true,
     formation:formation.rows,
     server_now:server.rows[0].server_now,
   };
