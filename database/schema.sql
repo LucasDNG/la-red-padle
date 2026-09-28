@@ -148,6 +148,7 @@ CREATE TABLE pair_wheel_state(
   role varchar(8) CHECK(role IN('attack','defense')),
   role_streak int NOT NULL DEFAULT 0 CHECK(role_streak>=0),
   defense_required_until_real boolean NOT NULL DEFAULT false,
+  real_waiting_since timestamptz,
   promotion_wins int NOT NULL DEFAULT 0 CHECK(promotion_wins>=0),
   awaiting_zone_first_match boolean NOT NULL DEFAULT false,
   awaiting_zone_kind varchar(10) CHECK(awaiting_zone_kind IN('promotion','relegation')),
@@ -222,6 +223,18 @@ DROP TRIGGER IF EXISTS trg_pair_duo_v3_state ON pair_members;
 CREATE TRIGGER trg_pair_duo_v3_state
 AFTER INSERT ON pair_members
 FOR EACH ROW EXECUTE FUNCTION ensure_pair_duo_v3_state();
+
+CREATE OR REPLACE FUNCTION sync_pair_v3_reactivation_wait() RETURNS trigger LANGUAGE plpgsql AS $
+BEGIN
+  IF OLD.competition_state='paused' AND NEW.competition_state='active' THEN
+    UPDATE pair_wheel_state SET real_waiting_since=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE pair_id=NEW.id;
+  END IF;
+  RETURN NEW;
+END $;
+DROP TRIGGER IF EXISTS trg_pair_v3_reactivation_wait ON pairs;
+CREATE TRIGGER trg_pair_v3_reactivation_wait
+AFTER UPDATE OF competition_state ON pairs
+FOR EACH ROW EXECUTE FUNCTION sync_pair_v3_reactivation_wait();
 
 CREATE TABLE pair_invitations(
   id bigserial PRIMARY KEY,
@@ -394,6 +407,20 @@ CREATE TABLE matches(
 );
 CREATE INDEX idx_matches_pair_a ON matches(pair_a_id,played_at DESC);
 CREATE INDEX idx_matches_pair_b ON matches(pair_b_id,played_at DESC);
+
+CREATE OR REPLACE FUNCTION sync_pair_v3_real_match_wait() RETURNS trigger LANGUAGE plpgsql AS $
+BEGIN
+  IF NEW.result_type IN('normal','injury_abandonment') THEN
+    UPDATE pair_wheel_state
+    SET real_waiting_since=NEW.played_at,updated_at=CURRENT_TIMESTAMP
+    WHERE pair_id IN(NEW.pair_a_id,NEW.pair_b_id);
+  END IF;
+  RETURN NEW;
+END $;
+DROP TRIGGER IF EXISTS trg_pair_v3_real_match_wait ON matches;
+CREATE TRIGGER trg_pair_v3_real_match_wait
+AFTER INSERT ON matches
+FOR EACH ROW EXECUTE FUNCTION sync_pair_v3_real_match_wait();
 
 CREATE TABLE first_place_reigns(
   id bigserial PRIMARY KEY,
