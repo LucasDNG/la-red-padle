@@ -1129,3 +1129,28 @@ test('reported pair acceptance resolves no-show immediately as administrative fa
   assert.equal(Number(reign.pair_id),Number(leader.id));
   assert.equal(Number(reign.defenses),1);
 });
+
+
+test('cancelled no-show can be reported again after a later reschedule on the same assignment',async()=>{
+  const c=await category(5);
+  const a=await seedPairWithMembers(1,5,{tag:78});
+  const b=await seedPairWithMembers(2,5,{tag:79});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,scheduled_at,location_text,schedule_confirmed_at) VALUES($1,$2,$3,$4,$4,$3,CURRENT_TIMESTAMP-interval '1 minute','Cancha',CURRENT_TIMESTAMP-interval '1 hour') RETURNING id",
+    [a.league_id,c.id,a.id,b.id],
+  )).rows[0];
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const first=await reportWheelV3NoShow(client,{assignmentId:assignment.id,reportedByPairId:a.id});
+    await cancelWheelV3NoShow(client,{assignmentId:assignment.id,reportedByPairId:a.id});
+    await pool.query("UPDATE wheel_assignments SET scheduled_at=CURRENT_TIMESTAMP-interval '1 minute' WHERE id=$1",[assignment.id]);
+    const second=await reportWheelV3NoShow(client,{assignmentId:assignment.id,reportedByPairId:a.id});
+    assert.notEqual(Number(first.id),Number(second.id));
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const reports=(await pool.query('SELECT status FROM wheel_no_shows WHERE assignment_id=$1 ORDER BY id',[assignment.id])).rows;
+  assert.deepEqual(reports.map(r=>r.status),['resolved','pending']);
+});
