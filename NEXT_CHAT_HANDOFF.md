@@ -224,3 +224,16 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - Se agregaron regresiones PostgreSQL para persistencia de descenso por dupla, múltiples encarnaciones de la misma dupla, sanción de 30 días, circuito correcto, cancelación/resultados y evolución de schema.
 - `verify.sql` valida coherencia de zona habilitante y ruta de descenso vacía.
 - El runtime continúa en `wheel-v2`.
+
+### Antigüedad real de espera Wheel v3 — 2026-09-28
+- `pairs.waiting_since` queda como dato legacy de wheel-v2.
+- Wheel v3 usa `pair_wheel_state.real_waiting_since`.
+- La migración inicializa activas desde el último match real (`normal` o `injury_abandonment`) o desde creación si nunca jugaron.
+- Un match real actualiza la espera; `dissolution_forfeit` no.
+- Nueva pareja, reactivación y reformación desde `inactive` reinician la espera con `CURRENT_TIMESTAMP` de PostgreSQL.
+- Se agregaron regresiones PostgreSQL para estas transiciones.
+
+### Correcciones del patch preparatorio
+- Se reordenó `PATCH_WHEEL_V3_STATE_2026-09-28.sql` para crear `pair_duo_state` antes de alterarla.
+- Se corrigieron delimitadores `DO $$` y funciones PL/pgSQL.
+- El patch conserva idempotencia y puede evolucionar instalaciones que recibieron una versión preparatoria anterior.
