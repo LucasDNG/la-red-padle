@@ -29,6 +29,26 @@ CREATE TABLE IF NOT EXISTS pair_wheel_state(
   CHECK(inactive_since IS NOT NULL OR (return_position_base IS NULL AND inactive_reason IS NULL AND auto_reactivate_at IS NULL))
 );
 
+ALTER TABLE pair_wheel_state
+  ADD COLUMN IF NOT EXISTS defense_required_until_real boolean NOT NULL DEFAULT false;
+
+ALTER TABLE pair_duo_state
+  ADD COLUMN IF NOT EXISTS relegation_route_step int NOT NULL DEFAULT 0;
+
+DO $
+BEGIN
+  IF NOT EXISTS(
+    SELECT 1 FROM pg_constraint
+    WHERE conname='pair_duo_relegation_empty_consistency'
+      AND conrelid='pair_duo_state'::regclass
+  ) THEN
+    ALTER TABLE pair_duo_state
+      ADD CONSTRAINT pair_duo_relegation_empty_consistency CHECK(
+        pending_relegation_category_id IS NOT NULL OR relegation_route_step=0
+      );
+  END IF;
+END $;
+
 INSERT INTO pair_wheel_state(
   pair_id,
   inactive_since,
