@@ -629,3 +629,16 @@ test('formation close marks zero-PJ bottom as awaiting relegation rather than op
   assert.equal(state.awaiting_zone_first_match,true);
   assert.equal(state.awaiting_zone_kind,'relegation');
 });
+
+
+test('late historical real result never moves v3 wait backwards',async()=>{
+  const l=await maleLeague();const c=await category(3);
+  const a=await seedPair(1,3);const b=await seedPair(2,3);
+  await pool.query("UPDATE pair_wheel_state SET real_waiting_since='2026-09-25T00:00:00Z' WHERE pair_id IN($1,$2)",[a.id,b.id]);
+  await pool.query(
+    "INSERT INTO matches(league_id,category_number,pair_a_id,pair_b_id,winner_pair_id,result_type,played_at,resolution_source) VALUES($1,3,$2,$3,$2,'normal','2026-09-20T00:00:00Z','late-test')",
+    [l.id,a.id,b.id],
+  );
+  const rows=(await pool.query('SELECT real_waiting_since FROM pair_wheel_state WHERE pair_id IN($1,$2)',[a.id,b.id])).rows;
+  assert.ok(rows.every(r=>new Date(r.real_waiting_since).toISOString()==='2026-09-25T00:00:00.000Z'));
+});
