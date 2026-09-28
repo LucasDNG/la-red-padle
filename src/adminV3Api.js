@@ -21,7 +21,11 @@ async function tx(fn){
 
 export async function disputesV3(){
   const rows=(await pool.query(`
-    SELECT wa.*
+    SELECT wa.*,
+      (SELECT string_agg(u.first_name||' '||u.last_name,' / ' ORDER BY u.id)
+       FROM pair_members pm JOIN users u ON u.id=pm.user_id WHERE pm.pair_id=wa.pair_a_id) pair_a_name,
+      (SELECT string_agg(u.first_name||' '||u.last_name,' / ' ORDER BY u.id)
+       FROM pair_members pm JOIN users u ON u.id=pm.user_id WHERE pm.pair_id=wa.pair_b_id) pair_b_name
     FROM wheel_assignments wa
     WHERE wa.status='disputed'
     ORDER BY wa.assigned_at,wa.id
