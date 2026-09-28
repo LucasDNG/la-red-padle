@@ -36,16 +36,20 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - El requisito puede bajar a 2 o 1 según desvío poblacional de parejas activas, usando el esquema vigente de `WHEEL_V3_SPEC.md`.
 - La población por sí sola nunca mueve una pareja: siempre hace falta un resultado posterior que materialice el movimiento.
 - En 7ª no existe período de descenso.
+- Una pareja que asciende entra en la **mitad de la tabla activa** de la categoría superior y desplaza hacia abajo desde ese punto; la fórmula exacta de mitad está pendiente en `WHEEL_V3_SPEC.md`.
+- Por entrar mediante ascenso no queda automáticamente en período de descenso.
+- Una pareja nueva también entra en la mitad de la tabla activa de su categoría y desplaza hacia abajo.
 - Descenso entra base #2 en la categoría inferior; si no existe #1 material, entra #1.
 - Los movimientos entre categorías son siempre adyacentes.
-- Las preguntas sobre ascendido/nuevo que entra último y el instante exacto de activación de zonas están pendientes en `WHEEL_V3_SPEC.md`.
+- El instante exacto de activación de zonas al terminar la fase de formación está pendiente en `WHEEL_V3_SPEC.md`.
 
 ## 5. Categoría individual y categoría de pareja
-- La pareja compite en la categoría individual más fuerte de sus dos jugadores; dos jugadores nuevos pueden elegir 1ª–7ª.
+- La pareja compite en la categoría individual más fuerte de sus dos jugadores (número más bajo); dos jugadores sin categoría previa pueden elegir libremente 1ª–7ª.
+- Ejemplo: jugador de 2ª + jugador de 5ª => la pareja compite en 2ª.
 - Formar pareja con alguien más fuerte **no cambia automáticamente** la categoría individual del jugador arrastrado hacia arriba.
-- Ascenso real de la pareja mejora la categoría individual de ambos al nuevo nivel.
-- Descenso empeora la categoría individual de un jugador solo cuando la pareja cae por debajo de su nivel individual vigente.
-- Al disolverse, cada jugador conserva su categoría individual real.
+- Un ascenso deportivo real de la pareja mejora la categoría individual de ambos integrantes al nivel alcanzado.
+- Al disolverse, cada jugador conserva/recupera su categoría individual propia, incluyendo las mejoras reales obtenidas por ascensos de la pareja.
+- La misma dupla que se disuelve y luego se vuelve a formar se trata competitivamente como una pareja nueva.
 
 ## 6. Identidad y acceso
 - Registro: nombre, apellido, DNI, foto del frente y dorso del DNI, WhatsApp, contraseña y circuito.
@@ -65,7 +69,7 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Expira a los 10 días y puede cancelarse.
 - La invitación muestra la categoría resultante.
 - La base impide pertenecer a dos parejas competitivamente vigentes.
-- La misma dupla puede reutilizar su identidad técnica al reactivarse o re-formarse; el efecto competitivo exacto de una re-formación está pendiente de cierre en `WHEEL_V3_SPEC.md`. No se expone un historial estadístico acumulado de la pareja.
+- La misma dupla que se disuelve y después vuelve a formarse se considera competitivamente una pareja nueva, aunque la implementación pueda reutilizar una identidad técnica interna. No se expone un historial estadístico acumulado de la pareja.
 
 ## 8. Estados
 ### Competencia de pareja
@@ -79,15 +83,20 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Disciplina individual acompaña a la persona al cambiar de compañero.
 
 ## 9. Inactividad temporal
-- La pareja puede avisar que quiere pasar a inactiva.
-- Si tiene un compromiso abierto, primero debe resolver la situación de ese compromiso.
-- No se la obliga físicamente a jugar: si decide no disputarlo, se aplica la consecuencia deportiva correspondiente antes de quedar inactiva.
-- Una vez inactiva, sale de la rueda y no recibe nuevos partidos.
-- No participa del balance ataque/defensa ni del cálculo poblacional activo.
-- La inactividad por sí sola **no hace perder puestos periódicamente ni categoría**.
-- No existen castigos por el mero paso del tiempo sin jugar mientras el estado inactivo esté correctamente aplicado.
-- La posición exacta de retorno y el tratamiento de un período de descenso previo están pendientes de cierre en `WHEEL_V3_SPEC.md`.
-- Técnicamente puede conservarse `paused` para representar esta inactividad temporal y `inactive` para disolución/archivo, aunque la interfaz del jugador debe hablar de “inactiva”.
+- Alcanza con que **uno de los dos integrantes** solicite pasar a inactiva en nombre de la pareja.
+- Si tiene un compromiso abierto, primero debe resolverse la situación de ese compromiso.
+- No se la obliga físicamente a jugar: si decide no disputarlo, se aplica primero la consecuencia deportiva correspondiente.
+- Si la incumplidora estaba por encima del rival, intercambian posiciones; si estaba por debajo, no hay intercambio. Incumplir nunca puede hacer subir a la incumplidora.
+- Una vez inactiva, sale de la rueda, no recibe assignments y no participa del balance ataque/defensa ni del cálculo poblacional activo.
+- Durante los primeros 3 meses completos conserva su posición de retorno.
+- Desde el 4º mes completo pierde 1 posición de retorno por cada mes completo adicional, sin poder bajar de categoría por inactividad.
+- Si se inactivó siendo #1 de cualquier categoría, pierde inmediatamente el derecho a volver #1: dentro de los primeros 3 meses vuelve como máximo #2; luego ese #2 base baja un puesto por cada mes completo adicional.
+- Al reactivar se inserta en la posición calculada y desplaza hacia abajo a las activas desde ese punto.
+- Si dos inactivas tienen el mismo puesto de retorno, cada una se inserta allí cuando vuelve; la que reactiva más tarde desplaza hacia abajo a la que había vuelto antes.
+- Si estaba en período de descenso, ese estado y contador quedan congelados durante la inactividad y se retoman al volver.
+- La inactividad por sí sola nunca genera descenso de categoría.
+- Técnicamente puede conservarse `paused` para esta inactividad temporal y `inactive` para disolución/archivo, mientras la UI hable de “inactiva”.
+- Tras 3 incumplimientos atribuibles consecutivos, la pareja pasa automáticamente a inactiva y queda 30 días sin nuevas asignaciones; la forma de reactivación al cumplir el plazo está pendiente en `WHEEL_V3_SPEC.md`.
 
 ## 10. Disolución
 - Puede iniciarla cualquiera.
@@ -109,6 +118,8 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - La búsqueda del atacante comienza en una ventana de hasta 3 puestos hacia arriba y se amplía inmediatamente de a 3 si no hay defensor elegible.
 - Se evita repetir rival consecutivo si existe alternativa, pero nunca se bloquea la rueda por esa preferencia.
 - Las parejas inactivas y las que ya tienen assignment abierto no participan del balance de roles.
+- Se intenta no superar 2 ataques ni 2 defensas consecutivas para una misma pareja, salvo que sea necesario para evitar que la rueda se trabe.
+- Si una categoría tiene una sola activa, esa pareja espera sin rol efectivo hasta que exista otra.
 - Desde la asignación hay 30 días corridos para **jugar y cargar** una primera versión de resultado.
 - Resolver rápido libera inmediatamente para una nueva evaluación de la rueda.
 
@@ -130,13 +141,16 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Si existe una versión cargada dentro del plazo, hay una ventana adicional de 7 días solo para confirmarla o discutirla; el inicio exacto de esa ventana está pendiente de confirmación final en `WHEEL_V3_SPEC.md`.
 
 ## 14. Incumplimientos
+- Cualquiera de los dos integrantes puede marcar `No pude jugar` en nombre de toda la pareja; no requiere confirmación del compañero.
+- La UI/auditoría registra quién lo informó: `No pude jugar (informado por Nombre Apellido)`.
 - Una pareja puede marcar `No pude jugar` sin esperar al día 30.
 - Si una sola pareja reconoce el incumplimiento, el compromiso se cierra y se aplica la consecuencia administrativa/deportiva vigente; la victoria administrativa del rival no cuenta como victoria real de ascenso ni para salir de período de descenso.
-- Si ambas incumplen o vence el plazo sin resultado ni reconocimiento unilateral, se aplican las penalizaciones a ambas sin generar una espera indefinida.
+- Si ambas incumplen o vence el plazo sin resultado ni reconocimiento unilateral, se aplican las penalizaciones a ambas sin generar espera indefinida.
 - Las penalizaciones simultáneas deben hacer perder exactamente un puesto efectivo a cada sancionada, usando deuda si hace falta.
 - Después de la fase de formación, última activa + incumplimiento propio implica descenso directo salvo 7ª.
-- En 7ª no hay descenso; la consecuencia para incumplimientos repetidos cuando ya no puede perder posición está pendiente de cierre.
-- Un incumplidor pasa a defensa obligatoria cuando sea materialmente posible; una defensa imposible por estar último no debe bloquear la rueda.
+- En 7ª no hay descenso.
+- El incumplidor pasa a defensa obligatoria cuando sea materialmente posible; una defensa imposible por estar último no debe bloquear la rueda.
+- **Tres incumplimientos atribuibles consecutivos**, en cualquier categoría, provocan 30 días sin assignments y paso automático a inactiva. Qué reinicia la racha y si la reactivación al día 30 es automática están pendientes de cierre.
 
 ## 15. No-show
 - Solo puede reportarse después de la fecha/hora oficial.
@@ -164,10 +178,12 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 ## 18. Lesión / abandono
 - Si el partido comenzó y una pareja abandona: tipo `LESIÓN / ABANDONO`.
 - Se registra quién abandona.
-- Rival obtiene victoria deportiva; abandonante derrota deportiva.
+- Se considera **partido real**.
+- Rival obtiene victoria real; abandonante derrota real.
 - No se cargan sets parciales ni games.
-- Sí puede aplicar intercambio de escalera según posiciones.
-- El efecto exacto sobre contadores de ascenso/descenso y sobre el récord de defensa de Primera está pendiente de confirmación final en `WHEEL_V3_SPEC.md`.
+- Aplica intercambio de escalera cuando corresponde.
+- La victoria cuenta para ascenso y para salir de período de descenso; la derrota cuenta para descenso.
+- Si el #1 de Primera conserva la punta mediante ese partido real, cuenta como defensa exitosa.
 - Sin penalización administrativa extra.
 - No se publican diagnósticos médicos.
 
