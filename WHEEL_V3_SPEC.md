@@ -41,7 +41,7 @@ Cada circuito tiene su propia fase inicial de formación.
 - Cuando se cumple la condición:
   - se informa por web/app y WhatsApp que finalizó la fase de formación;
   - se activan ascensos y descensos para ese circuito;
-  - los #1 con al menos un partido real previo entran inmediatamente en zona de ascenso en 0/3;
+  - los #1 de 2ª a 7ª con al menos un partido real previo entran inmediatamente en zona de ascenso en 0/3;
   - los últimos de 1ª a 6ª con al menos un partido real previo entran inmediatamente en período de descenso en 0/3;
   - una pareja sin ningún partido real previo debe disputar primero un partido antes de activar su zona correspondiente;
   - la fase de formación **no vuelve a activarse jamás**, aunque después una categoría caiga por debajo de 5 activas.
