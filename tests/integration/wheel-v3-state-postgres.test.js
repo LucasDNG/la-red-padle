@@ -1324,3 +1324,88 @@ test('30-day assignment with no result or declaration becomes simultaneous failu
   const streaks=(await pool.query('SELECT failure_streak FROM pair_duo_state WHERE league_id=$1 ORDER BY id',[a.league_id])).rows;
   assert.ok(streaks.every(r=>Number(r.failure_streak)===1));
 });
+
+
+test('explicit confirmation applies the rival loaded result immediately',async()=>{
+  const c=await category(6);
+  const defender=await seedPairWithMembers(1,6,{tag:90});
+  const attacker=await seedPairWithMembers(2,6,{tag:91});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,assigned_at,deadline_at) VALUES($1,$2,$3,$4,$4,$3,CURRENT_TIMESTAMP-interval '1 minute',CURRENT_TIMESTAMP+interval '30 days') RETURNING id",
+    [defender.league_id,c.id,defender.id,attacker.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[assignment.id,defender.id,attacker.id]);
+
+  const played=(await pool.query('SELECT CURRENT_TIMESTAMP t')).rows[0].t;
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await submitWheelV3ResultVersion(client,{
+      assignmentId:assignment.id,pairId:attacker.id,winnerPairId:defender.id,resultType:'normal',
+      playedAt:played,score:{sets:[{pairA:6,pairB:2},{pairA:6,pairB:2}]},
+    });
+    await confirmWheelV3Result(client,{assignmentId:assignment.id,confirmingPairId:defender.id});
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  assert.equal((await pool.query('SELECT status FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0].status,'confirmed');
+  assert.equal(Number((await pool.query('SELECT count(*) n FROM matches WHERE assignment_id=$1',[assignment.id])).rows[0].n),1);
+});
+
+test('valid match played before structural cancellation can be loaded afterward but edited played_at cannot cross cancellation',async()=>{
+  const c=await category(5);
+  const defender=await seedPairWithMembers(1,5,{tag:92});
+  const attacker=await seedPairWithMembers(2,5,{tag:93});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,assigned_at,deadline_at,status,cancelled_at,closed_at,close_reason) VALUES($1,$2,$3,$4,$4,$3,CURRENT_TIMESTAMP-interval '2 hours',CURRENT_TIMESTAMP+interval '29 days','cancelled',CURRENT_TIMESTAMP-interval '30 minutes',CURRENT_TIMESTAMP-interval '30 minutes','system_ranking_cancel') RETURNING *",
+    [defender.league_id,c.id,defender.id,attacker.id],
+  )).rows[0];
+  const validPlayed=new Date(new Date(assignment.cancelled_at).getTime()-10*60*1000);
+
+  const client=await pool.connect();
+  let submitted;
+  try{
+    await client.query('BEGIN');
+    submitted=await submitWheelV3ResultVersion(client,{
+      assignmentId:assignment.id,pairId:attacker.id,winnerPairId:defender.id,resultType:'normal',
+      playedAt:validPlayed,score:{sets:[{pairA:6,pairB:4},{pairA:6,pairB:4}]},
+    });
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+  assert.equal(submitted.status,'result_pending');
+  const reopened=(await pool.query('SELECT status,cancelled_at,first_result_at FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0];
+  assert.equal(reopened.status,'result_pending');
+  assert.ok(reopened.cancelled_at);
+  assert.ok(reopened.first_result_at);
+
+  const invalidPlayed=new Date(new Date(assignment.cancelled_at).getTime()+10*60*1000);
+  const client2=await pool.connect();
+  try{
+    await client2.query('BEGIN');
+    await assert.rejects(submitWheelV3ResultVersion(client2,{
+      assignmentId:assignment.id,pairId:attacker.id,winnerPairId:defender.id,resultType:'normal',
+      playedAt:invalidPlayed,score:{sets:[{pairA:6,pairB:4},{pairA:6,pairB:4}]},
+    }));
+    await client2.query('ROLLBACK');
+  }finally{client2.release();}
+});
+
+test('normal result rejects winner inconsistent with score',async()=>{
+  const c=await category(5);
+  const a=await seedPairWithMembers(1,5,{tag:94});
+  const b=await seedPairWithMembers(2,5,{tag:95});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,assigned_at,deadline_at) VALUES($1,$2,$3,$4,$4,$3,CURRENT_TIMESTAMP-interval '1 minute',CURRENT_TIMESTAMP+interval '30 days') RETURNING id",
+    [a.league_id,c.id,a.id,b.id],
+  )).rows[0];
+  const played=(await pool.query('SELECT CURRENT_TIMESTAMP t')).rows[0].t;
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await assert.rejects(submitWheelV3ResultVersion(client,{
+      assignmentId:assignment.id,pairId:a.id,winnerPairId:b.id,resultType:'normal',
+      playedAt:played,score:{sets:[{pairA:6,pairB:2},{pairA:6,pairB:2}]},
+    }));
+    await client.query('ROLLBACK');
+  }finally{client.release();}
+});
