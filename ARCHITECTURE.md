@@ -10,7 +10,7 @@ Módulos:
 - `src/core.js`: reglas puras, score, fechas, categorías.
 - `src/account.js`: identidad, legales, recuperación y teléfono.
 - `src/pairs.js`: invitaciones, parejas, pausa y disolución.
-- `src/competitionEngine.js`: escalera, ELO, rachas, ascensos/descensos, eventos.
+- `src/competitionEngine.js`: escalera, rachas, ascensos/descensos y eventos. La lógica numérica paralela aún presente pertenece a Wheel v2 y debe retirarse al implementar Wheel v3.
 - `src/wheel.js`: asignación automática, programación, no-show, extensión, resultados y mantenimiento.
 - `src/discipline.js`: reportes y estados disciplinarios.
 - `src/notifications.js`: notificaciones internas + outbox WhatsApp.
