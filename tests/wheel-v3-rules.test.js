@@ -198,11 +198,11 @@ test('collision for the same defender is won by the attacker with the longest wa
   const assignments=assignAttackersToDefenders([
     {id:10,position:10,role:'attack',active:true,free:true,realWaitingSince:'2026-09-01T00:00:00Z'},
     {id:9,position:9,role:'attack',active:true,free:true,realWaitingSince:'2026-09-05T00:00:00Z'},
-    {id:8,position:8,role:'defense',active:true,free:true,realWaitingSince:'2026-09-20T00:00:00Z'},
-    {id:7,position:7,role:'defense',active:true,free:true,realWaitingSince:'2026-09-10T00:00:00Z'},
+    {id:8,position:8,role:'defense',active:true,free:true,realWaitingSince:'2026-09-10T00:00:00Z'},
+    {id:6,position:6,role:'defense',active:true,free:true,realWaitingSince:'2026-09-20T00:00:00Z'},
   ]);
   assert.deepEqual(assignments[0],{attackerId:10,defenderId:8});
-  assert.deepEqual(assignments[1],{attackerId:9,defenderId:7});
+  assert.deepEqual(assignments[1],{attackerId:9,defenderId:6});
 });
 
 test('initial role rebalance keeps extremes forced and roughly balances the middle',()=>{
