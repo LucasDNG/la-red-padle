@@ -168,3 +168,12 @@ También se cerró que nuevas parejas y ascendidas no ingresan al fondo: entran 
 Para cortar abusos de incumplimiento, 3 incumplimientos atribuibles consecutivos provocan 30 días sin nuevas asignaciones y paso automático a inactiva. Queda pendiente decidir si la reactivación al cumplir los 30 días es automática y qué evento reinicia la racha.
 
 La misma dupla que se disuelve y luego vuelve a formarse se trata competitivamente como pareja nueva. Las categorías individuales de sus integrantes sobreviven a la disolución; un ascenso real mejora el nivel individual de ambos.
+
+
+## Cierre casi definitivo de Wheel v3 — 2026-09-28
+
+Se cerraron los principales bordes que quedaban: Masculino/Femenino forman y equilibran población por separado; la entrada a mitad usa `floor(N/2)+1`; tres incumplimientos generan 30 días de inactividad con reactivación automática; un cumplimiento posterior corta la racha; la revisión de resultados corre 7 días desde la carga; y los cambios relevantes se notifican por WhatsApp.
+
+El récord de Primera quedó definitivamente desacoplado de cualquier acumulación general: cada etapa de una dupla en el #1 es un **reinado independiente**. Perder la punta cierra ese contador. Solo si ese reinado supera o empata el máximo histórico queda en el cuadro de récord; si vuelve a ser #1 en el futuro comienza nuevamente desde cero.
+
+Antes de código quedan únicamente dos bordes pequeños documentados en `WHEEL_V3_SPEC.md`: qué hacer con el primer partido de una pareja 0 PJ cuando se activan las zonas, y el caso de una categoría con una sola activa al aplicar la fórmula de mitad.
