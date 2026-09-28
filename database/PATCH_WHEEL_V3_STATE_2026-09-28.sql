@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS pair_wheel_state(
   defense_required_until_real boolean NOT NULL DEFAULT false,
   promotion_wins int NOT NULL DEFAULT 0 CHECK(promotion_wins>=0),
   awaiting_zone_first_match boolean NOT NULL DEFAULT false,
+  awaiting_zone_kind varchar(10) CHECK(awaiting_zone_kind IN('promotion','relegation')),
   inactive_since timestamptz,
   return_position_base int CHECK(return_position_base>0),
   inactive_reason varchar(20) CHECK(inactive_reason IN('voluntary','three_failures')),
@@ -30,7 +31,8 @@ CREATE TABLE IF NOT EXISTS pair_wheel_state(
 );
 
 ALTER TABLE pair_wheel_state
-  ADD COLUMN IF NOT EXISTS defense_required_until_real boolean NOT NULL DEFAULT false;
+  ADD COLUMN IF NOT EXISTS defense_required_until_real boolean NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS awaiting_zone_kind varchar(10) CHECK(awaiting_zone_kind IN('promotion','relegation'));
 
 ALTER TABLE pair_duo_state
   ADD COLUMN IF NOT EXISTS relegation_route_step int NOT NULL DEFAULT 0;
