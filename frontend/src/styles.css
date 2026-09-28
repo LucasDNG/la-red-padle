@@ -291,7 +291,7 @@ main{min-width:0}
 .top-player{min-width:0;display:flex;flex-direction:column}
 .top-player strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
 .top-player small{color:#8db1ca;font-size:9px}
-.top-elo{font-size:13px}
+.top-role{font-size:13px}
 .top-empty{padding:50px 15px;text-align:center;color:#a8c0d1;font-size:13px}
 .top-link{
   padding-top:17px;
