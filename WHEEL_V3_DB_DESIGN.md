@@ -34,7 +34,8 @@ Campos:
 - `role_streak`: cantidad consecutiva del rol actual;
 - `defense_required_until_real`: obligación persistente de defensa después de incumplimiento propio hasta completar una defensa real, salvo imposibilidad estructural;
 - `promotion_wins`: victorias reales corrientes en zona de ascenso;
-- `awaiting_zone_first_match`: borde 0 PJ al activarse una zona;
+- `awaiting_zone_first_match`: indica que falta el partido real habilitante posterior a formación;
+- `awaiting_zone_kind`: conserva si ese habilitante corresponde a `promotion` o `relegation`, evitando reinterpretarlo si la posición cambia antes del partido;
 - `inactive_since`: inicio autoritativo de inactividad;
 - `return_position_base`: posición base congelada al inactivarse;
 - `inactive_reason`: `voluntary` o `three_failures`;
