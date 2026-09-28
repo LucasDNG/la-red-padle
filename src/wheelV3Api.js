@@ -73,6 +73,7 @@ async function pairSummary(client,pairId,{phones=false}={}){
   `,[pairId])).rows[0];
   if(!row)return null;
   row.members=await pairMembers(client,pairId,{phones});
+  row.players=row.members.map(m=>`${m.first_name} ${m.last_name}`).join(' / ');
   return row;
 }
 
