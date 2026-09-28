@@ -58,7 +58,8 @@ Después leer, como mínimo:
 - `WHEEL_V3_AUDIT_2026-09-28.md` contiene la auditoría y debe leerse antes de tocar el motor.
 - Los hallazgos anti-abuso A–D quedaron resueltos: descenso pendiente de la dupla, categoría individual tras descenso, resultado cargado protegido y cancelación automática sin reset de incumplimientos.
 - La entrada nueva/ascendida cambió a **anteúltima**, por lo que hay que rehacer las simulaciones de posición/población antes del código.
-- Quedan cuatro bordes concretos en la spec: N=1, descenso pendiente si la dupla reaparece en otra categoría, strikes al cambiar de compañero y partido jugado pero no cargado antes de cancelación.
+- Los cuatro bordes nuevos quedaron cerrados: N=1 => #2; descenso pendiente vuelve a su categoría original; strikes pertenecen a la dupla exacta; partido jugado antes de cancelación puede cargarse después.
+- Próximo paso: rehacer simulaciones con ingreso anteúltimo y luego convertir invariantes en tests antes del código.
 
 ### Código todavía contradictorio que NO representa la regla vigente
 - `frontend/src/App.jsx` todavía muestra la puntuación numérica legacy y estadísticas acumuladas en varias superficies.
