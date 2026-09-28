@@ -170,3 +170,11 @@ El backend declara un Blueprint `render.yaml` en la raíz. Render debe esperar c
 La misma rutina corre automáticamente en `src/index.js` antes de `app.listen()` cuando `NODE_ENV=production`. Usa un advisory lock PostgreSQL para que múltiples instancias que arranquen juntas no ejecuten migraciones en paralelo. Esto evita depender de `preDeployCommand`, que no está disponible en todos los planes de Render.
 
 El health no es estático: depende de PostgreSQL y valida `app_settings.engine = wheel-v2`. Por eso una instancia sin DB funcional no puede quedar verde solo porque Express arrancó.
+
+## Tiempo y deadlines
+
+La aplicación no confía en el reloj del cliente para ninguna regla competitiva. Los deadlines se persisten como timestamps UTC y las decisiones de vencimiento se resuelven en backend/DB, preferentemente con PostgreSQL `CURRENT_TIMESTAMP/NOW()` dentro de la misma transacción que aplica la consecuencia.
+
+La API debe exponer deadlines absolutos y una referencia de tiempo de servidor (`server_now` o equivalente). El frontend puede calcular un offset para mostrar cuentas regresivas, pero cualquier acción sensible vuelve a ser validada por el backend. Cambiar la hora local del navegador, PC o teléfono no puede afectar 7 días, 30 días, 48 horas, meses de inactividad ni sanciones.
+
+No se agrega una dependencia de un proveedor externo de hora por request: el servidor/DB es la autoridad del dominio y su infraestructura ya sincroniza reloj mediante mecanismos del proveedor.
