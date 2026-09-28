@@ -7,7 +7,7 @@ Este documento captura las decisiones funcionales acordadas antes de tocar el mo
 - Estado: **diseño funcional pendiente de implementación**.
 - El código productivo sigue en `wheel-v2` hasta que se implemente y pruebe este diseño.
 - Para cualquier conflicto sobre asignación automática, ataque/defensa, fase de formación, equilibrio poblacional, inactividad, ascenso/descenso, incumplimientos o historial visible, **este archivo prevalece sobre las reglas anteriores**.
-- Antes de implementar se debe resolver la sección `Preguntas abiertas finales`.
+- El reglamento funcional base está cerrado; antes de implementar se debe completar la auditoría/simulación y convertir sus hallazgos en tests.
 - No modificar el motor por intuición fuera de estas reglas.
 
 ## 1. Objetivo del motor
@@ -438,7 +438,7 @@ Administración debe conservar una auditoría técnica más completa de decision
   - se aplicó una penalización;
   - terminó la fase de formación.
 
-## 21. Preguntas abiertas finales antes de código
+## 21. Cierre funcional antes de código
 Quedaron solo estos bordes después de la última tanda:
 
 No quedan preguntas funcionales abiertas para Wheel v3.
