@@ -1,5 +1,5 @@
 import {q} from './db.js';
-import {formationComplete,planCategoryWheel,shouldCancelAssignmentForStructure,resultAllowedAfterCancellation,resultCountsAsReal,roleAfterRealMatch,promotionStateAfterResult,relegationStateAfterResult,populationDirectionalThreshold,entryPositionPenultimate,descendedEntryPosition,individualCategoriesAfterDescent,failureStateAfterClosure,roleAfterOwnFailure,administrativeFailureMovement} from './wheelV3Rules.js';
+import {formationComplete,planCategoryWheel,shouldCancelAssignmentForStructure,resultAllowedAfterCancellation,resultCountsAsReal,roleAfterRealMatch,promotionStateAfterResult,relegationStateAfterResult,populationDirectionalThreshold,entryPositionPenultimate,descendedEntryPosition,individualCategoriesAfterDescent,failureStateAfterClosure,roleAfterOwnFailure,administrativeFailureMovement,fullCalendarMonthsBetween,inactivityReturnPosition} from './wheelV3Rules.js';
 import {scoreGames} from './core.js';
 
 export async function wheelV3FormationSnapshot(client,leagueId,{lock=false}={}){
@@ -978,6 +978,8 @@ async function wheelV3ApplyThirtyDayPenalty(client,pairId,duoId){
     SET penalty_until=CURRENT_TIMESTAMP+interval '30 days',updated_at=CURRENT_TIMESTAMP
     WHERE id=$1
   `,[duoId]);
+  const activeOrder=await wheelV3ActiveOrder(client,pair.category_id);
+  await wheelV3SetCategoryOrder(client,pair.category_id,activeOrder);
 }
 
 async function wheelV3EnsurePromotionZoneAtCurrentTop(client,pairId,{wasNumberOneBefore=false}={}){
@@ -1187,4 +1189,85 @@ export async function applyWheelV3OneSidedFailure(client,{
     reportedByUserId,
     refresh,
   };
+}
+
+
+export async function reactivateWheelV3Pair(client,pairId){
+  const row=(await q(client,`
+    SELECT
+      p.id,p.category_id,p.competition_state,
+      pws.inactive_since,pws.return_position_base,pws.inactive_reason,pws.auto_reactivate_at,
+      CURRENT_TIMESTAMP server_now
+    FROM pairs p
+    JOIN pair_wheel_state pws ON pws.pair_id=p.id
+    WHERE p.id=$1
+    FOR UPDATE OF p,pws
+  `,[pairId])).rows[0];
+  if(!row)throw new Error('Pareja inexistente');
+  if(row.competition_state!=='paused')throw new Error('La pareja no está inactiva temporalmente');
+  if(!row.inactive_since||!row.return_position_base)throw new Error('Falta snapshot de retorno');
+
+  const activeOrder=await wheelV3ActiveOrder(client,row.category_id);
+  const fullMonths=fullCalendarMonthsBetween(row.inactive_since,row.server_now);
+  const desired=inactivityReturnPosition({
+    originalPosition:Number(row.return_position_base),
+    fullMonths,
+    activeCount:activeOrder.length,
+  });
+  activeOrder.splice(desired-1,0,Number(pairId));
+
+  await q(client,`
+    UPDATE pairs
+    SET competition_state='active',position=999997,updated_at=CURRENT_TIMESTAMP
+    WHERE id=$1
+  `,[pairId]);
+  await wheelV3SetCategoryOrder(client,row.category_id,activeOrder);
+  await q(client,`
+    UPDATE pair_wheel_state
+    SET
+      role=NULL,
+      role_streak=0,
+      inactive_since=NULL,
+      return_position_base=NULL,
+      inactive_reason=NULL,
+      auto_reactivate_at=NULL,
+      real_waiting_since=CURRENT_TIMESTAMP,
+      updated_at=CURRENT_TIMESTAMP
+    WHERE pair_id=$1
+  `,[pairId]);
+
+  if(row.inactive_reason==='three_failures'){
+    const duo=await wheelV3DuoStateForPair(client,pairId,{lock:true});
+    await q(client,`
+      UPDATE pair_duo_state
+      SET penalty_until=NULL,updated_at=CURRENT_TIMESTAMP
+      WHERE id=$1
+    `,[duo.id]);
+  }
+
+  const refresh=await refreshWheelV3Category(client,row.category_id);
+  return {
+    pairId:Number(pairId),
+    categoryId:Number(row.category_id),
+    position:desired,
+    fullMonths,
+    refresh,
+  };
+}
+
+export async function reactivateDueWheelV3Penalties(client){
+  const due=(await q(client,`
+    SELECT p.id
+    FROM pairs p
+    JOIN pair_wheel_state pws ON pws.pair_id=p.id
+    WHERE p.competition_state='paused'
+      AND pws.inactive_reason='three_failures'
+      AND pws.auto_reactivate_at IS NOT NULL
+      AND pws.auto_reactivate_at<=CURRENT_TIMESTAMP
+    ORDER BY pws.auto_reactivate_at,p.id
+    FOR UPDATE OF p,pws SKIP LOCKED
+  `)).rows;
+  const reactivated=[];
+  for(const row of due)reactivated.push(await reactivateWheelV3Pair(client,row.id));
+  return reactivated;
 }
