@@ -137,3 +137,13 @@ El reglamento funcional base de Wheel v3 está cerrado. La etapa siguiente es au
 87. Al aplicar ese resultado, el ganador nunca puede bajar por movimientos posteriores: solo se intercambia si el ganador está actualmente debajo del perdedor.
 88. Una cancelación automática por ranking/categoría no reinicia la racha de incumplimientos.
 89. Quedan cuatro bordes específicos en `WHEEL_V3_SPEC.md`: anteúltima con N=1, descenso pendiente si la dupla reaparece en otra categoría, evasión de incumplimientos cambiando de pareja y partido jugado pero no cargado antes de una cancelación.
+
+## Cierre de bordes de auditoría — 2026-09-28
+90. Con 0 activas una nueva/ascendida entra #1; con exactamente 1 activa entra #2, sin desplazar al único #1.
+91. Un período de descenso pendiente queda ligado a la dupla exacta y a la categoría donde se abrió. Si vuelven a juntarse antes de resolverlo, regresan excepcionalmente a esa categoría y retoman el contador.
+92. Esa excepción termina cuando el período se resuelve por victoria real o descenso; después, una nueva formación usa las categorías individuales vigentes.
+93. La racha de incumplimientos pertenece solo a la dupla exacta. No se transfiere al compañero nuevo, pero tampoco se borra por disolver o formar otras parejas.
+94. Al re-formarse una dupla con incumplimientos pendientes, app/WhatsApp muestran el contador y advierten la consecuencia del siguiente incumplimiento.
+95. Un partido jugado válidamente antes de una cancelación puede cargarse después de la cancelación y seguir confirmación/disputa normal.
+96. Si al aplicar ese resultado el ganador ya está arriba por cambios previos, no se mueve el ranking y se avisa: no se aplican cambios porque el ganador pasaría a estar abajo.
+97. Si el partido no se había jugado antes de la cancelación, la cancelación competitiva es definitiva.
