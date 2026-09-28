@@ -611,3 +611,31 @@ test('planning preserves an existing middle role when no real match changed it',
   assert.equal(rows.find(x=>x.id===2).role,'attack');
   assert.equal(rows.find(x=>x.id===3).role,'attack');
 });
+
+
+test('relegation attacker follows low-to-high difficulty route instead of normal wait priority',()=>{
+  const attacker={
+    id:8,position:8,role:'attack',active:true,free:true,
+    realWaitingSince:'2026-09-01T00:00:00Z',
+    relegationActive:true,relegationRouteStep:1,
+  };
+  const defender=chooseDefenderForAttacker(attacker,[
+    {id:7,position:7,role:'defense',active:true,free:true,realWaitingSince:'2026-09-20T00:00:00Z'},
+    {id:6,position:6,role:'defense',active:true,free:true,realWaitingSince:'2026-09-27T00:00:00Z'},
+    {id:5,position:5,role:'defense',active:true,free:true,realWaitingSince:'2026-08-01T00:00:00Z'},
+  ]);
+  assert.equal(defender.id,6);
+});
+
+test('relegation route avoids immediate repeat when another reasonable target exists',()=>{
+  const attacker={
+    id:8,position:8,role:'attack',active:true,free:true,
+    realWaitingSince:'2026-09-01T00:00:00Z',
+    relegationActive:true,relegationRouteStep:0,
+  };
+  const defender=chooseDefenderForAttacker(attacker,[
+    {id:7,position:7,role:'defense',active:true,free:true,realWaitingSince:'2026-09-20T00:00:00Z'},
+    {id:6,position:6,role:'defense',active:true,free:true,realWaitingSince:'2026-09-21T00:00:00Z'},
+  ],{lastOpponentId:7});
+  assert.equal(defender.id,6);
+});
