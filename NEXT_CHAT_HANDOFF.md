@@ -37,7 +37,14 @@ Después leer, como mínimo:
 - Tres incumplimientos atribuibles consecutivos provocan 30 días sin assignments y paso automático a inactiva; falta cerrar si la reactivación al día 30 es automática y qué reinicia la racha.
 - Nuevas/ascendidas entran a mitad de tabla, no al fondo; falta definir la fórmula exacta de mitad.
 - Una dupla disuelta y re-formada se trata competitivamente como pareja nueva.
-- Resolver las preguntas reformuladas de `WHEEL_V3_SPEC.md` antes de tocar el motor.
+- Formación y porcentajes son independientes por circuito.
+- Nuevas/ascendidas entran con `floor(N/2)+1`; queda solo el borde N=1.
+- 3 incumplimientos => 30 días inactiva; reactivación automática; cualquier assignment sin incumplimiento atribuible resetea la racha.
+- Resultado cargado abre inmediatamente 7 días de revisión y luego auto-valida por silencio.
+- Todos los cambios operativos relevantes se notifican por WhatsApp.
+- El récord del #1 de Primera es por reinado, no acumulativo entre reinados; empate = récord compartido.
+- Quedan solo dos preguntas abiertas en `WHEEL_V3_SPEC.md`: primer partido al activar zonas y caso N=1 de la fórmula de mitad.
+- Resolver esas dos preguntas antes de tocar el motor.
 
 - El propietario redefinió la rueda automática en una conversación extensa el 2026-09-28.
 - Todo quedó consolidado en `WHEEL_V3_SPEC.md`.
