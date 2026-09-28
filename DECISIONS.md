@@ -107,3 +107,17 @@ Este archivo contiene **solo decisiones que siguen vigentes**. Las decisiones re
 ## Preguntas todavía abiertas
 
 Las preguntas de borde que faltan cerrar antes de tocar Wheel v3 están en `WHEEL_V3_SPEC.md`. No deben resolverse por intuición ni por cómo funciona Wheel v2 hoy.
+
+
+## Cierres adicionales — 2026-09-28
+68. La fase de formación y el equilibrio poblacional se calculan por separado para Masculino y Femenino.
+69. Nuevas y ascendidas ingresan a mitad de tabla con fórmula `floor(N/2)+1`, salvo el borde N=1 todavía pendiente.
+70. Tres incumplimientos atribuibles consecutivos generan 30 días de inactividad sin assignments y reactivación automática al vencer el plazo.
+71. Cualquier assignment cerrado sin incumplimiento atribuible reinicia la racha de incumplimientos a 0.
+72. La revisión de un resultado dura 7 días desde el momento exacto en que una de las parejas lo carga; silencio al vencer auto-valida.
+73. Todo movimiento operativo relevante debe notificarse por WhatsApp a los integrantes afectados.
+74. Al terminar la formación, #1 y último de 1ª–6ª entran en 0/3 si ya tienen al menos un partido real previo; con 0 partidos deben disputar uno antes de activar la zona.
+75. El umbral poblacional 1/2/3 se recalcula al confirmar cada nuevo resultado.
+76. El récord de defensas del #1 de Primera mide un reinado individual: al perder la punta el contador corriente termina; si la dupla vuelve a #1 empieza de 0.
+77. Solo los reinados que superan o igualan el máximo quedan en el cuadro histórico; los empates se muestran como récord compartido.
+78. Disolver y re-formar la misma dupla no acumula defensas entre reinados; un récord histórico ya logrado permanece acreditado a esos dos jugadores.
