@@ -200,3 +200,81 @@ test('pre-v3 wheel-v2 schema migrates forward without changing engine or sportin
   assert.equal(Number(sporting.position),4);
   assert.equal(sporting.competition_state,'paused');
 });
+
+
+test('pending relegation survives pair archival because it belongs to the exact duo',async()=>{
+  const l=await maleLeague();const c=await category(4);
+  const u1=(await pool.query("INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('E','E','30000005','5','x','male') RETURNING id")).rows[0];
+  const u2=(await pool.query("INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('F','F','30000006','6','x','male') RETURNING id")).rows[0];
+  const p=(await pool.query('INSERT INTO pairs(league_id,category_id,position) VALUES($1,$2,5) RETURNING id',[l.id,c.id])).rows[0];
+  await pool.query('INSERT INTO pair_members(pair_id,user_id) VALUES($1,$2),($1,$3)',[p.id,u1.id,u2.id]);
+  await pool.query('UPDATE pair_duo_state SET pending_relegation_category_id=$1,pending_relegation_losses=2,pending_relegation_started_at=CURRENT_TIMESTAMP WHERE league_id=$2 AND member_low_id=$3 AND member_high_id=$4',[c.id,l.id,u1.id,u2.id]);
+  await pool.query("UPDATE pairs SET competition_state='inactive',archived_at=CURRENT_TIMESTAMP WHERE id=$1",[p.id]);
+  const state=(await pool.query('SELECT pending_relegation_category_id,pending_relegation_losses FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[l.id,u1.id,u2.id])).rows[0];
+  assert.equal(Number(state.pending_relegation_category_id),Number(c.id));
+  assert.equal(Number(state.pending_relegation_losses),2);
+});
+
+test('same exact duo reuses one anti-abuse state across multiple pair incarnations',async()=>{
+  const l=await maleLeague();const c=await category(3);
+  const u1=(await pool.query("INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('G','G','30000007','7','x','male') RETURNING id")).rows[0];
+  const u2=(await pool.query("INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('H','H','30000008','8','x','male') RETURNING id")).rows[0];
+
+  for(const pos of [4,5]){
+    const p=(await pool.query('INSERT INTO pairs(league_id,category_id,position,competition_state) VALUES($1,$2,$3,$4) RETURNING id',[l.id,c.id,pos,pos===4?'inactive':'active'])).rows[0];
+    await pool.query('INSERT INTO pair_members(pair_id,user_id) VALUES($1,$2),($1,$3)',[p.id,u1.id,u2.id]);
+  }
+
+  const rows=(await pool.query('SELECT * FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[l.id,u1.id,u2.id])).rows;
+  assert.equal(rows.length,1);
+});
+
+test('three-failure penalty state is internally coherent and preserves the exact duo streak',async()=>{
+  const l=await maleLeague();const c=await category(6);
+  const u1=(await pool.query("INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('I','I','30000009','9','x','male') RETURNING id")).rows[0];
+  const u2=(await pool.query("INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('J','J','30000010','10','x','male') RETURNING id")).rows[0];
+  const p=(await pool.query("INSERT INTO pairs(league_id,category_id,position,competition_state) VALUES($1,$2,3,'paused') RETURNING id",[l.id,c.id])).rows[0];
+  await pool.query('INSERT INTO pair_members(pair_id,user_id) VALUES($1,$2),($1,$3)',[p.id,u1.id,u2.id]);
+
+  await pool.query("UPDATE pair_wheel_state SET inactive_since=CURRENT_TIMESTAMP,return_position_base=3,inactive_reason='three_failures',auto_reactivate_at=CURRENT_TIMESTAMP+interval '30 days' WHERE pair_id=$1",[p.id]);
+  await pool.query('UPDATE pair_duo_state SET failure_streak=3,penalty_until=CURRENT_TIMESTAMP+interval '30 days' WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[l.id,u1.id,u2.id]);
+
+  const pairState=(await pool.query('SELECT inactive_reason,EXTRACT(EPOCH FROM (auto_reactivate_at-inactive_since)) seconds FROM pair_wheel_state WHERE pair_id=$1',[p.id])).rows[0];
+  const duoState=(await pool.query('SELECT failure_streak,penalty_until FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[l.id,u1.id,u2.id])).rows[0];
+  assert.equal(pairState.inactive_reason,'three_failures');
+  assert.equal(Number(pairState.seconds),30*24*60*60);
+  assert.equal(Number(duoState.failure_streak),3);
+  assert.ok(duoState.penalty_until);
+});
+
+test('relegation state cannot point to a category in another circuit',async()=>{
+  const male=await maleLeague();const female=(await pool.query("SELECT id FROM leagues WHERE slug='femenino'")).rows[0];
+  const femaleCat=await category(4,'femenino');
+  const u1=(await pool.query("INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('K','K','30000011','11','x','male') RETURNING id")).rows[0];
+  const u2=(await pool.query("INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('L','L','30000012','12','x','male') RETURNING id")).rows[0];
+  assert.notEqual(Number(male.id),Number(female.id));
+  await assert.rejects(
+    pool.query('INSERT INTO pair_duo_state(league_id,member_low_id,member_high_id,pending_relegation_category_id,pending_relegation_started_at) VALUES($1,$2,$3,$4,CURRENT_TIMESTAMP)',[male.id,u1.id,u2.id,femaleCat.id]),
+  );
+});
+
+test('cancelled assignment keeps enough state to accept only matches played before cancellation',async()=>{
+  const l=await maleLeague();const c=await category(2);const a=await seedPair(1,2);const b=await seedPair(2,2);
+  const row=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,cancelled_at,status) VALUES($1,$2,$3,$4,$4,$3,CURRENT_TIMESTAMP,'cancelled') RETURNING id,cancelled_at",
+    [l.id,c.id,a.id,b.id],
+  )).rows[0];
+  const before=(await pool.query("SELECT ($1::timestamptz-interval '1 minute') <= $1::timestamptz ok",[row.cancelled_at])).rows[0].ok;
+  const after=(await pool.query("SELECT ($1::timestamptz+interval '1 minute') <= $1::timestamptz ok",[row.cancelled_at])).rows[0].ok;
+  assert.equal(before,true);
+  assert.equal(after,false);
+});
+
+test('first_result_at is independent from played_at and can protect an already-loaded result',async()=>{
+  const l=await maleLeague();const c=await category(2);const a=await seedPair(1,2);const b=await seedPair(2,2);
+  const row=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,first_result_at,status) VALUES($1,$2,$3,$4,CURRENT_TIMESTAMP,'result_pending') RETURNING first_result_at",
+    [l.id,c.id,a.id,b.id],
+  )).rows[0];
+  assert.ok(row.first_result_at);
+});
