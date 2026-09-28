@@ -211,3 +211,118 @@ export function delayedResultMovement({winnerPosition,loserPosition}){
   }
   return {winnerPosition:Number(winnerPosition),loserPosition:Number(loserPosition),moved:false};
 }
+
+
+export function promotionStateAfterResult({
+  category,
+  position,
+  activeCount,
+  currentWins=0,
+  isRealMatch,
+  won,
+  threshold=3,
+  awaitingFirstMatch=false,
+}){
+  const c=Number(category),pos=Number(position),n=Number(activeCount),wins=Number(currentWins),need=Number(threshold);
+  if(c<=1||pos!==1)return {active:false,wins:0,promote:false,awaitingFirstMatch:false};
+  if(awaitingFirstMatch){
+    if(!isRealMatch)return {active:false,wins:0,promote:false,awaitingFirstMatch:true};
+    return {active:true,wins:0,promote:false,awaitingFirstMatch:false};
+  }
+  if(!isRealMatch)return {active:true,wins,promote:false,awaitingFirstMatch:false};
+  if(!won)return {active:false,wins:0,promote:false,awaitingFirstMatch:false};
+  const next=wins+1;
+  return {active:true,wins:next,promote:next>=need,awaitingFirstMatch:false};
+}
+
+export function relegationStateAfterResult({
+  category,
+  wasInRelegation,
+  losses=0,
+  routeStep=0,
+  isRealMatch,
+  won,
+  ownFailure=false,
+  isLast,
+  threshold=3,
+  awaitingFirstMatch=false,
+}){
+  const c=Number(category),count=Number(losses),route=Number(routeStep),need=Number(threshold);
+  if(c>=7)return {active:false,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false};
+  if(awaitingFirstMatch){
+    if(!isRealMatch)return {active:false,losses:0,routeStep:0,descend:false,awaitingFirstMatch:true};
+    return {active:true,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false};
+  }
+  const active=Boolean(wasInRelegation)||Boolean(isLast);
+  if(!active)return {active:false,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false};
+  if(ownFailure&&isLast)return {active:true,losses:count+1,routeStep:route,descend:true,awaitingFirstMatch:false};
+  if(isRealMatch&&won)return {active:false,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false};
+  if(isRealMatch&&!won){
+    const next=count+1;
+    return {active:true,losses:next,routeStep:route+1,descend:next>=need,awaitingFirstMatch:false};
+  }
+  if(ownFailure){
+    const next=count+1;
+    return {active:true,losses:next,routeStep:route,descend:next>=need,awaitingFirstMatch:false};
+  }
+  return {active:true,losses:count,routeStep:route,descend:false,awaitingFirstMatch:false};
+}
+
+export function failureStateAfterClosure({
+  failureStreak=0,
+  ownFailure=false,
+  rivalOnlyFailure=false,
+  realMatch=false,
+  automaticCancellation=false,
+}){
+  const streak=Number(failureStreak);
+  if(automaticCancellation)return {failureStreak:streak,penalty30Days:false};
+  if(ownFailure){
+    const next=streak+1;
+    return {failureStreak:next,penalty30Days:next>=3};
+  }
+  if(realMatch||rivalOnlyFailure)return {failureStreak:0,penalty30Days:false};
+  return {failureStreak:streak,penalty30Days:false};
+}
+
+export function roleAfterOwnFailure({
+  previousRole,
+  position,
+  activeCount,
+}){
+  const forced=forcedRoleForPosition({position,activeCount});
+  if(forced==='attack'){
+    return {role:'attack',defenseRequiredUntilReal:false};
+  }
+  return {role:'defense',defenseRequiredUntilReal:true};
+}
+
+export function administrativeFailureMovement({failingPosition,rivalPosition}){
+  const failing=Number(failingPosition),rival=Number(rivalPosition);
+  if(failing<rival)return {failingPosition:rival,rivalPosition:failing,moved:true};
+  return {failingPosition:failing,rivalPosition:rival,moved:false};
+}
+
+export function relegationAttackTarget({
+  attackerPosition,
+  defenderPositions,
+  routeStep=0,
+}){
+  const attacker=Number(attackerPosition),step=Math.max(0,Number(routeStep)||0);
+  const eligible=[...defenderPositions].map(Number).filter(p=>p<attacker).sort((a,b)=>b-a);
+  if(!eligible.length)return null;
+  const index=Math.min(step,eligible.length-1);
+  return eligible[index];
+}
+
+export function shouldCancelAssignmentForStructure({
+  hasFirstResult,
+  attackerCategory,
+  defenderCategory,
+  attackerPosition,
+  defenderPosition,
+}){
+  if(hasFirstResult)return false;
+  if(Number(attackerCategory)!==Number(defenderCategory))return true;
+  return Number(attackerPosition)<=Number(defenderPosition);
+}
