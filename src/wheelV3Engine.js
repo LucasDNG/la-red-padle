@@ -926,6 +926,7 @@ export async function applyWheelV3ConfirmedRealResult(client,{
     WHERE id=$1
   `,[assignment.id]);
   await q(client,`DELETE FROM wheel_assignment_participants WHERE assignment_id=$1`,[assignment.id]);
+  await applyPendingWheelV3Pauses(client,pairIds);
 
   const refresh=[];
   for(const categoryId of [...affectedCategories].sort((a,b)=>a-b)){
@@ -1186,6 +1187,7 @@ export async function applyWheelV3OneSidedFailure(client,{
     WHERE id=$1
   `,[assignment.id,resolutionSource]);
   await q(client,`DELETE FROM wheel_assignment_participants WHERE assignment_id=$1`,[assignment.id]);
+  await applyPendingWheelV3Pauses(client,pairIds);
 
   const refresh=[];
   for(const categoryId of [...affectedCategories].sort((a,b)=>a-b)){
@@ -1415,6 +1417,7 @@ export async function applyWheelV3BothFailure(client,{
     WHERE id=$1
   `,[assignment.id,resolutionSource]);
   await q(client,`DELETE FROM wheel_assignment_participants WHERE assignment_id=$1`,[assignment.id]);
+  await applyPendingWheelV3Pauses(client,pairIds);
 
   const refresh=[];
   for(const categoryId of [...affectedCategories].sort((a,b)=>a-b)){
@@ -1521,7 +1524,8 @@ export async function requestWheelV3Inactivity(client,{pairId,requestedByUserId}
     DO UPDATE SET status='applied',resolved_at=CURRENT_TIMESTAMP,effective_after_current=false
   `,[pairId,requestedByUserId]);
   const paused=await wheelV3PausePairNow(client,pairId,{reason:'voluntary'});
-  return {status:'paused',...paused};
+  const refresh=await refreshWheelV3Category(client,pair.category_id);
+  return {status:'paused',...paused,refresh};
 }
 
 async function applyPendingWheelV3Pauses(client,pairIds){
