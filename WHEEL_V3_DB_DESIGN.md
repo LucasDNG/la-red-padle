@@ -141,3 +141,13 @@ Antes de cambiar `app_settings.engine` a `wheel-v3` deben estar verdes:
 - suite PostgreSQL Wheel v3.
 
 La eliminación de columnas/tablas legacy es posterior al cutover estable.
+
+
+## 9. Sincronización durante la convivencia temporal
+
+Mientras `wheel-v2` siga aceptando formación de parejas:
+- un trigger `AFTER INSERT` sobre `pairs` crea `pair_wheel_state`;
+- un trigger `AFTER INSERT` sobre `pair_members` crea `pair_duo_state` al quedar identificados exactamente dos integrantes;
+- ambos usan `ON CONFLICT DO NOTHING` para conservar idempotencia.
+
+Esto evita que la base preparada quede incompleta entre la migración y el cutover.
