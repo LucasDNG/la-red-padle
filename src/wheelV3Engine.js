@@ -166,7 +166,7 @@ export async function persistWheelV3PlannedRoles(client,pairs){
   for(const pair of pairs){
     await q(client,`
       UPDATE pair_wheel_state
-      SET role=$2,role_streak=$3,updated_at=CURRENT_TIMESTAMP
+      SET role=$2::varchar,role_streak=$3,updated_at=CURRENT_TIMESTAMP
       WHERE pair_id=$1
     `,[
       pair.id,
@@ -844,7 +844,7 @@ async function wheelV3ApplyRealRoles(client,assignment,snapshots,categoryId){
     });
     await q(client,`
       UPDATE pair_wheel_state
-      SET role=$2,role_streak=$3,defense_required_until_real=$4,updated_at=CURRENT_TIMESTAMP
+      SET role=$2::varchar,role_streak=$3,defense_required_until_real=$4,updated_at=CURRENT_TIMESTAMP
       WHERE pair_id=$1
     `,[pairId,next.role,next.roleStreak,next.defenseRequiredUntilReal]);
   }
@@ -1356,8 +1356,8 @@ export async function applyWheelV3OneSidedFailure(client,{
   await q(client,`
     UPDATE pair_wheel_state
     SET
-      role=$2,
-      role_streak=CASE WHEN role=$2 THEN role_streak+1 ELSE 1 END,
+      role=$2::varchar,
+      role_streak=CASE WHEN role=$2::varchar THEN role_streak+1 ELSE 1 END,
       defense_required_until_real=$3,
       updated_at=CURRENT_TIMESTAMP
     WHERE pair_id=$1
@@ -1630,8 +1630,8 @@ export async function applyWheelV3BothFailure(client,{
     await q(client,`
       UPDATE pair_wheel_state
       SET
-        role=$2,
-        role_streak=CASE WHEN role=$2 THEN role_streak+1 ELSE 1 END,
+        role=$2::varchar,
+        role_streak=CASE WHEN role=$2::varchar THEN role_streak+1 ELSE 1 END,
         defense_required_until_real=$3,
         updated_at=CURRENT_TIMESTAMP
       WHERE pair_id=$1
