@@ -171,16 +171,22 @@ export function rebalanceInitialRoles(pairs){
   if(!Array.isArray(pairs)||pairs.length===0)return [];
   const ordered=[...pairs].sort((a,b)=>Number(a.position)-Number(b.position));
   if(ordered.length===1)return [{...ordered[0],role:null,roleStreak:0}];
-  let attacks=0,defenses=0;
-  return ordered.map((pair,index)=>{
-    let role;
-    if(index===0)role='defense';
-    else if(index===ordered.length-1)role='attack';
-    else if(pair.defenseRequiredUntilReal)role='defense';
-    else role=attacks<=defenses?'attack':'defense';
+
+  const out=ordered.map(pair=>({...pair}));
+  out[0].role='defense';
+  out[0].roleStreak=ordered[0].role==='defense'?Math.max(1,Number(ordered[0].roleStreak)||0):1;
+  out.at(-1).role='attack';
+  out.at(-1).roleStreak=ordered.at(-1).role==='attack'?Math.max(1,Number(ordered.at(-1).roleStreak)||0):1;
+
+  let attacks=1,defenses=1;
+  for(let index=1;index<out.length-1;index++){
+    const pair=out[index];
+    const role=pair.defenseRequiredUntilReal?'defense':attacks<=defenses?'attack':'defense';
+    pair.roleStreak=ordered[index].role===role?Math.max(1,Number(ordered[index].roleStreak)||0):1;
+    pair.role=role;
     if(role==='attack')attacks++;else defenses++;
-    return {...pair,role,roleStreak:pair.role===role?Math.max(1,Number(pair.roleStreak)||0):1};
-  });
+  }
+  return out;
 }
 
 
