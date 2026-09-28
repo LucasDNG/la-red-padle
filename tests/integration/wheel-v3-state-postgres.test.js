@@ -10,7 +10,7 @@ if(!connectionString)throw new Error('TEST_DATABASE_URL es obligatorio para los 
 process.env.DATABASE_URL=connectionString;
 const {Pool}=pg;
 const pool=new Pool({connectionString});
-const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory}=await import('../../src/wheelV3Engine.js');
+const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
@@ -479,4 +479,88 @@ test('isolated Wheel v3 assignment writer is serialized by category and does not
   assert.ok(a+b>=1);
   const duplicates=(await pool.query('SELECT pair_id,count(*) n FROM wheel_assignment_participants GROUP BY pair_id HAVING count(*)>1')).rows;
   assert.deepEqual(duplicates,[]);
+});
+
+
+test('structural cancellation preserves pair roles and v3 real wait',async()=>{
+  const c=await category(3);
+  const attacker=await seedPair(5,3);
+  const defender=await seedPair(4,3);
+  await pool.query("UPDATE pair_wheel_state SET role='attack',role_streak=1,real_waiting_since='2026-09-01T00:00:00Z' WHERE pair_id=$1",[attacker.id]);
+  await pool.query("UPDATE pair_wheel_state SET role='defense',role_streak=1,real_waiting_since='2026-09-02T00:00:00Z' WHERE pair_id=$1",[defender.id]);
+  const a=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id) SELECT league_id,$1,$2,$3,$2,$3 FROM categories WHERE id=$1 RETURNING *",
+    [c.id,attacker.id,defender.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[a.id,attacker.id,defender.id]);
+
+  await pool.query('UPDATE pairs SET position=3 WHERE id=$1',[attacker.id]);
+  await pool.query('UPDATE pairs SET position=4 WHERE id=$1',[defender.id]);
+
+  const client=await pool.connect();
+  let cancelled;
+  try{
+    await client.query('BEGIN');
+    cancelled=await cancelInvalidWheelV3AssignmentsForCategory(client,c.id);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  assert.equal(cancelled.length,1);
+  assert.equal(cancelled[0].close_reason,'system_ranking_cancel');
+  assert.ok(cancelled[0].cancelled_at);
+  assert.equal(Number((await pool.query('SELECT count(*) n FROM wheel_assignment_participants WHERE assignment_id=$1',[a.id])).rows[0].n),0);
+  const states=(await pool.query('SELECT pair_id,role,real_waiting_since FROM pair_wheel_state WHERE pair_id IN($1,$2) ORDER BY pair_id',[attacker.id,defender.id])).rows;
+  assert.equal(states[0].role,'attack');
+  assert.equal(states[1].role,'defense');
+  assert.equal(new Date(states[0].real_waiting_since).toISOString(),'2026-09-01T00:00:00.000Z');
+  assert.equal(new Date(states[1].real_waiting_since).toISOString(),'2026-09-02T00:00:00.000Z');
+});
+
+test('first result protects assignment from later structural cancellation and starts exact 7-day review',async()=>{
+  const c=await category(4);
+  const attacker=await seedPair(5,4);
+  const defender=await seedPair(4,4);
+  const a=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id) SELECT league_id,$1,$2,$3,$2,$3 FROM categories WHERE id=$1 RETURNING *",
+    [c.id,attacker.id,defender.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[a.id,attacker.id,defender.id]);
+
+  const client=await pool.connect();
+  let marked;
+  try{
+    await client.query('BEGIN');
+    marked=await registerWheelV3FirstResult(client,a.id);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+  assert.ok(marked.first_result_at);
+  assert.equal(Number((await pool.query('SELECT EXTRACT(EPOCH FROM (confirmation_deadline_at-first_result_at)) seconds FROM wheel_assignments WHERE id=$1',[a.id])).rows[0].seconds),7*24*60*60);
+
+  await pool.query('UPDATE pairs SET position=3 WHERE id=$1',[attacker.id]);
+  await pool.query('UPDATE pairs SET position=4 WHERE id=$1',[defender.id]);
+
+  const client2=await pool.connect();
+  let cancelled;
+  try{
+    await client2.query('BEGIN');
+    cancelled=await cancelInvalidWheelV3AssignmentsForCategory(client2,c.id);
+    await client2.query('COMMIT');
+  }catch(e){await client2.query('ROLLBACK');throw e;}finally{client2.release();}
+  assert.equal(cancelled.length,0);
+  const still=(await pool.query('SELECT status FROM wheel_assignments WHERE id=$1',[a.id])).rows[0];
+  assert.equal(still.status,'result_pending');
+});
+
+test('cancelled assignment accepts only a match played before its authoritative cancellation time',async()=>{
+  const c=await category(5);
+  const attacker=await seedPair(4,5);
+  const defender=await seedPair(3,5);
+  const a=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,status,cancelled_at,closed_at,close_reason) SELECT league_id,$1,$2,$3,$2,$3,'cancelled',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,'system_ranking_cancel' FROM categories WHERE id=$1 RETURNING *",
+    [c.id,attacker.id,defender.id],
+  )).rows[0];
+  const before=new Date(new Date(a.cancelled_at).getTime()-1000).toISOString();
+  const after=new Date(new Date(a.cancelled_at).getTime()+1000).toISOString();
+  assert.equal((await wheelV3CancelledResultEligibility(pool,a.id,before)).eligible,true);
+  assert.equal((await wheelV3CancelledResultEligibility(pool,a.id,after)).eligible,false);
 });
