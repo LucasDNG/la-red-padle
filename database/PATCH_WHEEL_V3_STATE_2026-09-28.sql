@@ -255,4 +255,10 @@ ALTER TABLE wheel_no_shows
   ADD CONSTRAINT wheel_no_shows_status_check
   CHECK(status IN('pending','accepted','contested','admin_review','resolved'));
 
+
+ALTER TABLE wheel_no_shows DROP CONSTRAINT IF EXISTS wheel_no_shows_assignment_id_key;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_wheel_no_show_live
+  ON wheel_no_shows(assignment_id)
+  WHERE status IN('pending','contested','admin_review','accepted');
+
 COMMIT;
