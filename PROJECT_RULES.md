@@ -6,7 +6,7 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 > **Diseño Wheel v3 pendiente de implementación — 2026-09-28**
 >
 > Para asignación automática, ataque/defensa, fase de formación, equilibrio poblacional, inactividad, ascenso/descenso, incumplimientos, no-show y movimientos visibles, leer primero `WHEEL_V3_SPEC.md`.
-> Ese archivo contiene las decisiones nuevas acordadas y **prevalece sobre las secciones antiguas que entren en conflicto**. El runtime productivo continúa en `wheel-v2` hasta implementar y probar Wheel v3. Las preguntas abiertas del final de la spec deben resolverse antes de cambiar el motor.
+> Ese archivo contiene las decisiones nuevas acordadas y **prevalece sobre las secciones antiguas que entren en conflicto**. El runtime productivo continúa en `wheel-v2` hasta implementar y probar Wheel v3. El reglamento base está cerrado; antes de cambiar el motor se debe completar la auditoría/simulación y escribir tests.
 
 ## 1. Alcance
 - Liga continua de pádel por parejas en San Pedro, Buenos Aires.
@@ -138,7 +138,7 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Wheel v3 usa un plazo único de 30 días para jugar y cargar una primera versión de resultado.
 - No existe una extensión extraordinaria de 15 días.
 - Una caída comprobada de LA RED puede suspender/compensar relojes sin sancionar jugadores.
-- Si existe una versión cargada dentro del plazo, hay una ventana adicional de 7 días solo para confirmarla o discutirla; el inicio exacto de esa ventana está pendiente de confirmación final en `WHEEL_V3_SPEC.md`.
+- Si existe una versión cargada dentro del plazo, desde ese instante hay 7 días para confirmarla o discutirla; silencio al vencer auto-valida.
 
 ## 14. Incumplimientos
 - Cualquiera de los dos integrantes puede marcar `No pude jugar` en nombre de toda la pareja; no requiere confirmación del compañero.
@@ -150,7 +150,7 @@ Este archivo es la **fuente de verdad funcional**. Código, base, frontend, test
 - Después de la fase de formación, última activa + incumplimiento propio implica descenso directo salvo 7ª.
 - En 7ª no hay descenso.
 - El incumplidor pasa a defensa obligatoria cuando sea materialmente posible; una defensa imposible por estar último no debe bloquear la rueda.
-- **Tres incumplimientos atribuibles consecutivos**, en cualquier categoría, provocan 30 días sin assignments y paso automático a inactiva. Qué reinicia la racha y si la reactivación al día 30 es automática están pendientes de cierre.
+- **Tres incumplimientos atribuibles consecutivos**, en cualquier categoría, provocan 30 días sin assignments y paso automático a inactiva. Al día 30 se reactiva automáticamente; un assignment cerrado sin incumplimiento atribuible reinicia la racha a 0.
 
 ## 15. No-show
 - Solo puede reportarse después de la fecha/hora oficial.
