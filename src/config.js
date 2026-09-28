@@ -8,6 +8,12 @@ function parseDatabaseUrl(raw){
 }
 function base32Secret(value){return /^[A-Z2-7]+=*$/i.test(clean(value))&&clean(value).replace(/=+$/,'').length>=32;}
 export function frontendOrigins(env=process.env){return clean(env.FRONTEND_URL).split(',').map(x=>x.trim()).filter(Boolean).map(x=>{try{return new URL(x).origin;}catch{return x;}});}
+const OFFICIAL_PRODUCTION_FRONTEND_ORIGINS=['https://www.laredpadel.com.ar','https://laredpadel.com.ar'];
+export function corsOrigins(env=process.env){
+  const configured=frontendOrigins(env);
+  const official=env.NODE_ENV==='production'?OFFICIAL_PRODUCTION_FRONTEND_ORIGINS:[];
+  return [...new Set([...configured,...official])];
+}
 
 export function databasePoolOptions(env=process.env){
   const connectionString=clean(env.DATABASE_URL);
