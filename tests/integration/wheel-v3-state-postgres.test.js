@@ -10,7 +10,7 @@ if(!connectionString)throw new Error('TEST_DATABASE_URL es obligatorio para los 
 process.env.DATABASE_URL=connectionString;
 const {Pool}=pg;
 const pool=new Pool({connectionString});
-const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties}=await import('../../src/wheelV3Engine.js');
+const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
@@ -947,4 +947,69 @@ test('future insertion that pushes an indebted pair down consumes one debt',asyn
   const last=(await pool.query('SELECT position,position_debt FROM pairs WHERE id=$1',[targetLast.id])).rows[0];
   assert.equal(Number(last.position),6);
   assert.equal(Number(last.position_debt),0);
+});
+
+
+test('voluntary inactivity without assignment applies immediately and compacts active ladder',async()=>{
+  const c=await category(5);
+  const p1=await seedPair(1,5);
+  const p2=await seedPairWithMembers(2,5,{tag:60});
+  const p3=await seedPair(3,5);
+  const client=await pool.connect();
+  let result;
+  try{
+    await client.query('BEGIN');
+    result=await requestWheelV3Inactivity(client,{pairId:p2.id,requestedByUserId:p2.members[0].id});
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  assert.equal(result.status,'paused');
+  const active=(await pool.query("SELECT id,position FROM pairs WHERE category_id=$1 AND competition_state='active' ORDER BY position",[c.id])).rows;
+  assert.deepEqual(active.map(r=>Number(r.id)),[Number(p1.id),Number(p3.id)]);
+  assert.deepEqual(active.map(r=>Number(r.position)),[1,2]);
+  const state=(await pool.query('SELECT return_position_base,inactive_reason FROM pair_wheel_state WHERE pair_id=$1',[p2.id])).rows[0];
+  assert.equal(Number(state.return_position_base),2);
+  assert.equal(state.inactive_reason,'voluntary');
+});
+
+test('voluntary inactivity requested during assignment waits for closure and then pauses automatically',async()=>{
+  const c=await category(6);
+  const defender=await seedPairWithMembers(1,6,{tag:61});
+  const attacker=await seedPairWithMembers(2,6,{tag:62});
+  const a=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,status,first_result_at,confirmation_deadline_at) VALUES($1,$2,$3,$4,$4,$3,'result_pending',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP+interval '7 days') RETURNING id",
+    [defender.league_id,c.id,defender.id,attacker.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[a.id,defender.id,attacker.id]);
+
+  const reqClient=await pool.connect();
+  let request;
+  try{
+    await reqClient.query('BEGIN');
+    request=await requestWheelV3Inactivity(reqClient,{pairId:attacker.id,requestedByUserId:attacker.members[0].id});
+    await reqClient.query('COMMIT');
+  }catch(e){await reqClient.query('ROLLBACK');throw e;}finally{reqClient.release();}
+  assert.equal(request.status,'after_current');
+  assert.equal((await pool.query('SELECT competition_state FROM pairs WHERE id=$1',[attacker.id])).rows[0].competition_state,'active');
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await applyWheelV3ConfirmedRealResult(client,{
+      assignmentId:a.id,
+      winnerPairId:defender.id,
+      resultType:'normal',
+      score:{sets:[{pairA:6,pairB:2},{pairA:6,pairB:2}]},
+      playedAt:'2026-09-28T21:00:00Z',
+      resolutionSource:'test',
+    });
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const pair=(await pool.query('SELECT competition_state,pause_after_current FROM pairs WHERE id=$1',[attacker.id])).rows[0];
+  assert.equal(pair.competition_state,'paused');
+  assert.equal(pair.pause_after_current,false);
+  const state=(await pool.query('SELECT inactive_reason,return_position_base FROM pair_wheel_state WHERE pair_id=$1',[attacker.id])).rows[0];
+  assert.equal(state.inactive_reason,'voluntary');
+  assert.ok(Number(state.return_position_base)>=1);
 });
