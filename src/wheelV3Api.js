@@ -149,8 +149,7 @@ export async function rankingV3(){
       `,[category.id])).rows;
       for(const pair of category.pairs)pair.members=await pairMembers(client,pair.id);
     }
-    const serverNow=(await q(client,`SELECT CURRENT_TIMESTAMP server_now`)).rows[0].server_now;
-    return {categories,server_now:serverNow};
+    return categories;
   }finally{client.release();}
 }
 
