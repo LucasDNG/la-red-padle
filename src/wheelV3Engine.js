@@ -1094,6 +1094,7 @@ export async function applyWheelV3ConfirmedRealResult(client,{
   `,[assignment.id]);
   await q(client,`DELETE FROM wheel_assignment_participants WHERE assignment_id=$1`,[assignment.id]);
   await wheelV3ResolveNoShowOnAssignmentClose(client,assignment.id);
+  await applyPendingWheelV3Dissolutions(client,pairIds);
   await applyPendingWheelV3Pauses(client,pairIds);
 
   const refresh=[];
@@ -1397,6 +1398,7 @@ export async function applyWheelV3OneSidedFailure(client,{
   `,[assignment.id,resolutionSource]);
   await q(client,`DELETE FROM wheel_assignment_participants WHERE assignment_id=$1`,[assignment.id]);
   await wheelV3ResolveNoShowOnAssignmentClose(client,assignment.id);
+  await applyPendingWheelV3Dissolutions(client,pairIds);
   await applyPendingWheelV3Pauses(client,pairIds);
 
   const refresh=[];
@@ -1666,6 +1668,7 @@ export async function applyWheelV3BothFailure(client,{
   `,[assignment.id,resolutionSource]);
   await q(client,`DELETE FROM wheel_assignment_participants WHERE assignment_id=$1`,[assignment.id]);
   await wheelV3ResolveNoShowOnAssignmentClose(client,assignment.id);
+  await applyPendingWheelV3Dissolutions(client,pairIds);
   await applyPendingWheelV3Pauses(client,pairIds);
 
   const refresh=[];
@@ -1790,6 +1793,33 @@ export async function requestWheelV3Inactivity(client,{pairId,requestedByUserId}
   const paused=await wheelV3PausePairNow(client,pairId,{reason:'voluntary'});
   const refresh=await refreshWheelV3Category(client,pair.category_id);
   return {status:'paused',...paused,refresh};
+}
+
+async function applyPendingWheelV3Dissolutions(client,pairIds){
+  const archived=[];
+  for(const pairId of pairIds.map(Number)){
+    const request=(await q(client,`
+      SELECT *
+      FROM pair_dissolution_requests
+      WHERE pair_id=$1
+        AND status IN('confirmed','awaiting_result')
+      ORDER BY id DESC
+      LIMIT 1
+      FOR UPDATE
+    `,[pairId])).rows[0];
+    if(!request)continue;
+    const occupied=(await q(client,`
+      SELECT 1 FROM wheel_assignment_participants WHERE pair_id=$1
+    `,[pairId])).rowCount;
+    if(occupied)continue;
+    await q(client,`
+      UPDATE pair_dissolution_requests
+      SET status='applied',resolved_at=CURRENT_TIMESTAMP
+      WHERE id=$1
+    `,[request.id]);
+    archived.push(await archiveWheelV3Pair(client,pairId));
+  }
+  return archived;
 }
 
 async function applyPendingWheelV3Pauses(client,pairIds){
