@@ -10,7 +10,7 @@ if(!connectionString)throw new Error('TEST_DATABASE_URL es obligatorio para los 
 process.env.DATABASE_URL=connectionString;
 const {Pool}=pg;
 const pool=new Pool({connectionString});
-const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity,reportWheelV3NoShow,cancelWheelV3NoShow,contestWheelV3NoShow,acceptWheelV3NoShow,escalateExpiredWheelV3NoShows,submitWheelV3ResultVersion,confirmWheelV3Result,autoValidateDueWheelV3Results,expireDueWheelV3Assignments,expireWheelV3ScheduleProposals,formWheelV3Pair,archiveWheelV3Pair,resolveWheelV3FormationCategory,proposeWheelV3Schedule,acceptWheelV3Schedule,cancelWheelV3ScheduleProposal}=await import('../../src/wheelV3Engine.js');
+const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity,reportWheelV3NoShow,cancelWheelV3NoShow,contestWheelV3NoShow,acceptWheelV3NoShow,escalateExpiredWheelV3NoShows,submitWheelV3ResultVersion,confirmWheelV3Result,autoValidateDueWheelV3Results,expireDueWheelV3Assignments,expireWheelV3ScheduleProposals,formWheelV3Pair,archiveWheelV3Pair,resolveWheelV3FormationCategory,proposeWheelV3Schedule,acceptWheelV3Schedule,cancelWheelV3ScheduleProposal,wheelV3RecentMovements}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
@@ -1863,4 +1863,52 @@ test('new schedule proposal replaces previous pending proposal without touching 
   }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
   const statuses=(await pool.query('SELECT status FROM wheel_schedule_proposals WHERE assignment_id=$1 ORDER BY id',[assignment.id])).rows.map(r=>r.status);
   assert.deepEqual(statuses,['replaced','pending']);
+});
+
+test('Wheel v3 public movement history returns only the latest five ranking/category movements',async()=>{
+  const attacker=await seedPairWithMembers(2,3,{tag:123});
+  for(let i=0;i<7;i++){
+    await pool.query(
+      "INSERT INTO competitive_events(source_key,event_type,pair_id,data,created_at) VALUES($1,'wheel_v3_movement',$2,$3::jsonb,CURRENT_TIMESTAMP+($4||' seconds')::interval)",
+      ['history:'+attacker.id+':'+i,attacker.id,JSON.stringify({reason:'test',fromPosition:i+2,toPosition:i+1}),String(i)],
+    );
+  }
+  await pool.query(
+    "INSERT INTO competitive_events(source_key,event_type,pair_id,data) VALUES($1,'assignment_created',$2,'{}'::jsonb)",
+    ['history:'+attacker.id+':noise',attacker.id],
+  );
+  const rows=await wheelV3RecentMovements(pool,attacker.id);
+  assert.equal(rows.length,5);
+  assert.ok(rows.every(r=>r.event_type==='wheel_v3_movement'));
+  assert.deepEqual(rows.map(r=>Number(r.data.fromPosition)),[8,7,6,5,4]);
+});
+
+test('real ladder swap writes movement history for both pairs',async()=>{
+  const c=await category(4);
+  const defender=await seedPairWithMembers(1,4,{tag:124});
+  const attacker=await seedPairWithMembers(2,4,{tag:125});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,status,first_result_at,confirmation_deadline_at) VALUES($1,$2,$3,$4,$4,$3,'result_pending',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP+interval '7 days') RETURNING id",
+    [defender.league_id,c.id,defender.id,attacker.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[assignment.id,defender.id,attacker.id]);
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await applyWheelV3ConfirmedRealResult(client,{
+      assignmentId:assignment.id,
+      winnerPairId:attacker.id,
+      resultType:'normal',
+      score:{sets:[{pairA:2,pairB:6},{pairA:3,pairB:6}]},
+      playedAt:(await client.query('SELECT CURRENT_TIMESTAMP t')).rows[0].t,
+      resolutionSource:'history-test',
+    });
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+  const winnerHistory=await wheelV3RecentMovements(pool,attacker.id);
+  const loserHistory=await wheelV3RecentMovements(pool,defender.id);
+  assert.equal(winnerHistory[0].data.reason,'victory_over_higher_rival');
+  assert.equal(loserHistory[0].data.reason,'loss_to_lower_rival');
+  assert.equal(Number(winnerHistory[0].data.fromPosition),2);
+  assert.equal(Number(winnerHistory[0].data.toPosition),1);
 });
