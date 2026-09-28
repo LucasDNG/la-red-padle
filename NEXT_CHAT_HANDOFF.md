@@ -35,31 +35,32 @@ Después leer, como mínimo:
 - Si se inactivó siendo #1 de cualquier categoría, vuelve como máximo #2 durante los primeros 3 meses y luego ese #2 base también baja 1 puesto por mes completo adicional.
 - Si dos inactivas vuelven al mismo puesto objetivo, la que reactiva más tarde se inserta allí y desplaza hacia abajo a la anterior.
 - Si había período de descenso, queda congelado y se retoma al volver.
-- Tres incumplimientos atribuibles consecutivos provocan 30 días sin assignments y paso automático a inactiva; falta cerrar si la reactivación al día 30 es automática y qué reinicia la racha.
+- Tres incumplimientos atribuibles consecutivos provocan 30 días sin assignments y paso automático a inactiva; al día 30 se reactiva automáticamente y la racha se reinicia solo con un cierre real sin incumplimiento propio.
 - Nuevas/ascendidas entran **anteúltimas**, no a mitad ni al fondo. No activan descenso solo por ingresar.
 - Una dupla disuelta y re-formada se trata competitivamente como pareja nueva.
 - Formación y porcentajes son independientes por circuito.
-- La antigua fórmula de mitad queda reemplazada. Falta confirmar el borde anteúltima con N=1.
+- La antigua fórmula de mitad queda reemplazada. Con N=0 entra #1; con N=1 entra #2.
 - 3 incumplimientos => 30 días inactiva; reactivación automática; cualquier assignment sin incumplimiento atribuible resetea la racha.
 - Resultado cargado abre inmediatamente 7 días de revisión y luego auto-valida por silencio.
 - Todos los cambios operativos relevantes se notifican por WhatsApp.
 - El récord del #1 de Primera es por reinado, no acumulativo entre reinados; empate = récord compartido.
-- El primer partido de una pareja 0 PJ al activarse la zona no cuenta y luego entra en 0/3. La entrada nueva/ascendida ahora es anteúltima; el viejo caso N=1 debe reconfirmarse.
+- El primer partido de una pareja 0 PJ al activarse la zona no cuenta y luego entra en 0/3. La entrada nueva/ascendida es anteúltima; N=0 => #1 y N=1 => #2.
 - No quedan preguntas funcionales abiertas. Próximo paso obligatorio: simulaciones/tests del diseño antes de tocar el motor.
 
 - El propietario redefinió la rueda automática en una conversación extensa el 2026-09-28.
 - Todo quedó consolidado en `WHEEL_V3_SPEC.md`.
 - El código sigue en `wheel-v2`; **no implementar parcialmente desde memoria del chat**.
 - La spec nueva sustituye, cuando haya conflicto, la selección de rival anterior, la válvula poblacional anterior, la pausa/inactividad anterior y partes de no-show/asignación.
-- Hay preguntas abiertas finales al final de `WHEEL_V3_SPEC.md`. Resolverlas con el propietario antes de migración/código.
+- Los bordes funcionales detectados en la auditoría están cerrados. No reabrirlos por intuición; validar mediante tests/simulación antes de migración/código.
 - Después: consolidar `PROJECT_RULES.md` + `DECISIONS.md`, escribir tests/simulación y recién entonces implementar.
 
 ### Auditoría Wheel v3 — 2026-09-28
 - `WHEEL_V3_AUDIT_2026-09-28.md` contiene la auditoría y debe leerse antes de tocar el motor.
 - Los hallazgos anti-abuso A–D quedaron resueltos: descenso pendiente de la dupla, categoría individual tras descenso, resultado cargado protegido y cancelación automática sin reset de incumplimientos.
-- La entrada nueva/ascendida cambió a **anteúltima**, por lo que hay que rehacer las simulaciones de posición/población antes del código.
+- La simulación longitudinal ya fue rehecha con ingreso **anteúltimo** y no mostró deriva peligrosa ni categorías vacías en los escenarios modelados.
+- Se agregaron `scripts/simulate-wheel-v3.js`, `tests/wheel-v3-simulation.test.js`, `scripts/wheel-v3-rule-model.js` y `tests/wheel-v3-rules.test.js`.
 - Los cuatro bordes nuevos quedaron cerrados: N=1 => #2; descenso pendiente vuelve a su categoría original; strikes pertenecen a la dupla exacta; partido jugado antes de cancelación puede cargarse después.
-- Próximo paso: rehacer simulaciones con ingreso anteúltimo y luego convertir invariantes en tests antes del código.
+- Próximo paso: diseñar estado/migración DB y ampliar tests puros/PostgreSQL antes de implementar el runtime Wheel v3.
 
 ### Código todavía contradictorio que NO representa la regla vigente
 - `frontend/src/App.jsx` todavía muestra la puntuación numérica legacy y estadísticas acumuladas en varias superficies.
