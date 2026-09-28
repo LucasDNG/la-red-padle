@@ -222,6 +222,7 @@ export function promotionStateAfterResult({
   won,
   threshold=3,
   awaitingFirstMatch=false,
+  wasNumberOneBefore=true,
 }){
   const c=Number(category),pos=Number(position),n=Number(activeCount),wins=Number(currentWins),need=Number(threshold);
   if(c<=1||pos!==1)return {active:false,wins:0,promote:false,awaitingFirstMatch:false};
@@ -229,6 +230,7 @@ export function promotionStateAfterResult({
     if(!isRealMatch)return {active:false,wins:0,promote:false,awaitingFirstMatch:true};
     return {active:true,wins:0,promote:false,awaitingFirstMatch:false};
   }
+  if(!wasNumberOneBefore)return {active:true,wins:0,promote:false,awaitingFirstMatch:false};
   if(!isRealMatch)return {active:true,wins,promote:false,awaitingFirstMatch:false};
   if(!won)return {active:false,wins:0,promote:false,awaitingFirstMatch:false};
   const next=wins+1;
@@ -256,6 +258,7 @@ export function relegationStateAfterResult({
   }
   const active=Boolean(wasInRelegation)||Boolean(isLast);
   if(!active)return {active:false,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false};
+  if(!wasInRelegation&&isLast)return {active:true,losses:0,routeStep:0,descend:Boolean(ownFailure),awaitingFirstMatch:false};
   if(ownFailure&&isLast)return {active:true,losses:count+1,routeStep:route,descend:true,awaitingFirstMatch:false};
   if(isRealMatch&&won)return {active:false,losses:0,routeStep:0,descend:false,awaitingFirstMatch:false};
   if(isRealMatch&&!won){
