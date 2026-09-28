@@ -41,7 +41,7 @@ Debe mostrar hechos deportivos, no una red social:
 - jugadores;
 - categoría;
 - posición;
-- ELO;
+- una puntuación numérica paralela al ranking;
 - partidos/victorias;
 - últimos resultados;
 - evolución/historia;
