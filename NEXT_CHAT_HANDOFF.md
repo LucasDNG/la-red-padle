@@ -251,3 +251,21 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - Se agregó `entryPositionPenultimate`; el alias legacy `entryPositionAntepenultimate` se conserva solo para no romper tests/simulaciones existentes.
 - `delayedResultMovement` también quedó centralizado en el modelo puro.
 - Todo este bloque sigue aislado: todavía no se conectó al runtime productivo ni se cambió `engine=wheel-v2`.
+
+### Motor Wheel v3 aislado — avance 2026-09-28
+- Las reglas puras dejaron de vivir solo en `scripts/`: fuente productiva nueva `src/wheelV3Rules.js`; `scripts/wheel-v3-rule-model.js` reexporta por compatibilidad.
+- `npm run check` incluye `src/wheelV3Rules.js` y `src/wheelV3Engine.js`.
+- Se agregaron transiciones puras de ascenso, descenso, incumplimientos, defensa obligatoria, ruta de descenso, cancelación estructural, récord por reinado, inactividad y deadlines.
+- Se corrigió el edge del partido habilitante de descenso: solo abre 0/3 si la pareja sigue última después de ese partido.
+- Se agregó planificador puro de categoría con normalización de roles, prioridad de espera, ventanas de 3, no-repeat blando y colisiones.
+- Se agregó adaptador PostgreSQL aislado `src/wheelV3Engine.js`.
+- El adaptador puede leer formación por circuito, planificar una categoría, persistir roles, crear assignments con atacante/defensor y deadlines DB, y consultar último rival real.
+- La creación de assignments bloquea la categoría y conserva máximo un compromiso por pareja mediante `wheel_assignment_participants`.
+- Se agregó cierre de formación persistente e irreversible.
+- El cierre de formación ahora inicializa en la misma transacción zonas 0/3 o estado `awaiting_zone_kind` para parejas con 0 PJ.
+- Se agregó cancelación estructural previa a primera carga, liberación de participantes y preservación de roles/antigüedad.
+- Se agregó `registerWheelV3FirstResult`: fija `first_result_at` y revisión de 7 días con reloj PostgreSQL; desde ahí el assignment queda protegido de cancelación por ranking/categoría.
+- Se agregó elegibilidad de resultado cargado después de cancelación usando `played_at <= cancelled_at`.
+- Se agregó `refreshWheelV3Category` para cancelar inválidos y reevaluar asignación inmediatamente.
+- Todo lo anterior sigue AISLADO: `wheel.js` productivo no llama a `wheelV3Engine.js` y `app_settings.engine` continúa en `wheel-v2`.
+- Se ampliaron regresiones puras y PostgreSQL para formación, assignments concurrentes, cancelación, primera carga y zonas.
