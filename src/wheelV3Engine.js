@@ -980,15 +980,23 @@ async function wheelV3ApplyThirtyDayPenalty(client,pairId,duoId){
   `,[duoId]);
 }
 
-async function wheelV3EnsurePromotionZoneAtCurrentTop(client,pairId){
+async function wheelV3EnsurePromotionZoneAtCurrentTop(client,pairId,{wasNumberOneBefore=false}={}){
   const pair=await wheelV3CurrentPairRow(client,pairId);
   if(Number(pair.category_number)<=1)return;
-  if(Number(pair.position)!==1)return;
+  if(Number(pair.position)!==1||wasNumberOneBefore)return;
   await q(client,`
     UPDATE pair_wheel_state
     SET promotion_wins=0,awaiting_zone_first_match=false,awaiting_zone_kind=NULL,updated_at=CURRENT_TIMESTAMP
     WHERE pair_id=$1
   `,[pairId]);
+}
+
+async function wheelV3SyncFirstPlaceReign(client,leagueId,categoryId){
+  const category=await wheelV3CategoryRow(client,categoryId);
+  if(Number(category.number)!==1)return null;
+  const leader=await wheelV3Leader(client,categoryId);
+  if(!leader)return null;
+  return wheelV3OpenReign(client,leagueId,leader);
 }
 
 async function wheelV3AdministrativeRelegationDecision(client,pairId,{ownFailure}){
@@ -1050,6 +1058,9 @@ export async function applyWheelV3OneSidedFailure(client,{
   `,[assignmentId])).rows[0];
   if(!assignment)throw new Error('Assignment inexistente');
   if(!['open','result_pending','disputed'].includes(assignment.status))throw new Error('Assignment no disponible');
+
+  const existing=(await q(client,`SELECT * FROM matches WHERE assignment_id=$1`,[assignmentId])).rows[0];
+  if(existing)return {match:existing,idempotent:true,movements:[],refresh:[]};
 
   const pairIds=[Number(assignment.pair_a_id),Number(assignment.pair_b_id)];
   const failing=Number(failingPairId);
@@ -1126,7 +1137,7 @@ export async function applyWheelV3OneSidedFailure(client,{
   const failingFailure=await wheelV3ApplyFailureStreak(client,failing,{ownFailure:true});
   await wheelV3ApplyFailureStreak(client,winner,{rivalOnlyFailure:true});
 
-  await wheelV3EnsurePromotionZoneAtCurrentTop(client,winner);
+  await wheelV3EnsurePromotionZoneAtCurrentTop(client,winner,{wasNumberOneBefore:Number(winnerBefore.position)===1});
   const relegation=await wheelV3AdministrativeRelegationDecision(client,failing,{ownFailure:true});
 
   const movements=[];
@@ -1145,6 +1156,9 @@ export async function applyWheelV3OneSidedFailure(client,{
     await wheelV3ApplyThirtyDayPenalty(client,failing,failingFailure.duoId);
   }
 
+  if(Number(category.number)===1){
+    await wheelV3SyncFirstPlaceReign(client,assignment.league_id,assignment.category_id);
+  }
   await wheelV3CountAdministrativeFirstPlaceDefense(client,{
     assignment,
     winnerPairId:winner,
