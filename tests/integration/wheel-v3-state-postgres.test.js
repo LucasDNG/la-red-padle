@@ -2207,3 +2207,31 @@ test('confirmed dissolution waiting on an assignment archives pair automatically
   assert.equal(req.status,'applied');
   assert.ok(req.resolved_at);
 });
+
+
+test('self failure and new no-show are rejected after first result load',async()=>{
+  const c=await category(4);
+  const defender=await seedPairWithMembers(1,4,{tag:230});
+  const attacker=await seedPairWithMembers(2,4,{tag:231});
+  const a=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,scheduled_at,schedule_confirmed_at) VALUES($1,$2,$3,$4,$4,$3,CURRENT_TIMESTAMP-interval '1 hour',CURRENT_TIMESTAMP-interval '2 hours') RETURNING id",
+    [defender.league_id,c.id,defender.id,attacker.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[a.id,defender.id,attacker.id]);
+  await registerWheelV3FirstResult(pool,a.id);
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await assert.rejects(
+      applyWheelV3OneSidedFailure(client,{assignmentId:a.id,failingPairId:attacker.id,resolutionSource:'self_failure'}),
+      /después de cargar un resultado/,
+    );
+    await client.query('ROLLBACK');
+  }finally{client.release();}
+
+  await assert.rejects(
+    reportWheelV3NoShow(pool,{assignmentId:a.id,reportedByPairId:defender.id}),
+    /no disponible para no-show/,
+  );
+});
