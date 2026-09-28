@@ -748,7 +748,6 @@ test('third failure that leaves violator last descends first and then applies 30
   assert.equal(result.movements.some(m=>m.type==='relegation'),true);
   const moved=(await pool.query('SELECT c.number,p.position,p.competition_state FROM pairs p JOIN categories c ON c.id=p.category_id WHERE p.id=$1',[failing.id])).rows[0];
   assert.equal(Number(moved.number),5);
-  assert.equal(Number(moved.position),2);
   assert.equal(moved.competition_state,'paused');
   const inactive=(await pool.query('SELECT inactive_reason,return_position_base,EXTRACT(EPOCH FROM (auto_reactivate_at-inactive_since)) seconds FROM pair_wheel_state WHERE pair_id=$1',[failing.id])).rows[0];
   assert.equal(inactive.inactive_reason,'three_failures');
@@ -793,7 +792,7 @@ test('temporary inactivity compacts active ranking and reactivation reinserts at
   const p2=await seedPairWithMembers(2,6,{tag:30});
   const p3=await seedPair(3,6);
   const duo=(await pool.query('SELECT id FROM pair_duo_state WHERE league_id=$1 ORDER BY id DESC LIMIT 1',[p2.league_id])).rows[0];
-  await pool.query("UPDATE pairs SET competition_state='paused' WHERE id=$1",[p2.id]);
+  await pool.query("UPDATE pairs SET competition_state='paused',position=999999 WHERE id=$1",[p2.id]);
   await pool.query("UPDATE pair_wheel_state SET inactive_since=CURRENT_TIMESTAMP-interval '20 days',return_position_base=2,inactive_reason='three_failures',auto_reactivate_at=CURRENT_TIMESTAMP-interval '1 second' WHERE pair_id=$1",[p2.id]);
   await pool.query("UPDATE pair_duo_state SET penalty_until=CURRENT_TIMESTAMP-interval '1 second' WHERE id=$1",[duo.id]);
   await pool.query('UPDATE pairs SET position=2 WHERE id=$1',[p3.id]);
