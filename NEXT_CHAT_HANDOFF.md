@@ -29,8 +29,14 @@ Después leer, como mínimo:
 - La posición real es el único ranking; eliminar cualquier métrica numérica paralela y sus referencias.
 - El único récord histórico especial es defensas exitosas del #1 de Primera.
 - La rueda asigna automáticamente los partidos.
-- Inactividad correctamente aplicada: sin partidos, sin castigos periódicos y sin descenso por el mero paso del tiempo.
-- La antigua pérdida mensual de posición durante inactividad queda descartada.
+- Inactividad correctamente aplicada: sin partidos y sin descenso de categoría por el mero paso del tiempo.
+- Posición de retorno: hasta 3 meses completos conserva puesto; desde el 4º mes pierde 1 puesto de retorno por mes completo, siempre dentro de la misma categoría.
+- Si se inactivó siendo #1 de cualquier categoría, vuelve como máximo #2 durante los primeros 3 meses y luego ese #2 base también baja 1 puesto por mes completo adicional.
+- Si dos inactivas vuelven al mismo puesto objetivo, la que reactiva más tarde se inserta allí y desplaza hacia abajo a la anterior.
+- Si había período de descenso, queda congelado y se retoma al volver.
+- Tres incumplimientos atribuibles consecutivos provocan 30 días sin assignments y paso automático a inactiva; falta cerrar si la reactivación al día 30 es automática y qué reinicia la racha.
+- Nuevas/ascendidas entran a mitad de tabla, no al fondo; falta definir la fórmula exacta de mitad.
+- Una dupla disuelta y re-formada se trata competitivamente como pareja nueva.
 - Resolver las preguntas reformuladas de `WHEEL_V3_SPEC.md` antes de tocar el motor.
 
 - El propietario redefinió la rueda automática en una conversación extensa el 2026-09-28.
