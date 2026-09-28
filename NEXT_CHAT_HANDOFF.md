@@ -25,6 +25,14 @@ Después leer, como mínimo:
 
 ## Diseño competitivo nuevo — PRIORIDAD ANTES DE TOCAR CÓDIGO
 
+### Actualización prioritaria 2026-09-28 — ranking e inactividad
+- La posición real es el único ranking; eliminar cualquier métrica numérica paralela y sus referencias.
+- El único récord histórico especial es defensas exitosas del #1 de Primera.
+- La rueda asigna automáticamente los partidos.
+- Inactividad correctamente aplicada: sin partidos, sin castigos periódicos y sin descenso por el mero paso del tiempo.
+- La antigua pérdida mensual de posición durante inactividad queda descartada.
+- Resolver las preguntas reformuladas de `WHEEL_V3_SPEC.md` antes de tocar el motor.
+
 - El propietario redefinió la rueda automática en una conversación extensa el 2026-09-28.
 - Todo quedó consolidado en `WHEEL_V3_SPEC.md`.
 - El código sigue en `wheel-v2`; **no implementar parcialmente desde memoria del chat**.
