@@ -190,7 +190,7 @@ CREATE TABLE pair_duo_state(
 
 CREATE OR REPLACE FUNCTION ensure_pair_wheel_v3_state() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  INSERT INTO pair_wheel_state(pair_id) VALUES(NEW.id)
+  INSERT INTO pair_wheel_state(pair_id,real_waiting_since) VALUES(NEW.id,CURRENT_TIMESTAMP)
   ON CONFLICT(pair_id) DO NOTHING;
   RETURN NEW;
 END $$;
@@ -226,7 +226,7 @@ FOR EACH ROW EXECUTE FUNCTION ensure_pair_duo_v3_state();
 
 CREATE OR REPLACE FUNCTION sync_pair_v3_reactivation_wait() RETURNS trigger LANGUAGE plpgsql AS $
 BEGIN
-  IF OLD.competition_state='paused' AND NEW.competition_state='active' THEN
+  IF OLD.competition_state IN('paused','inactive') AND NEW.competition_state='active' THEN
     UPDATE pair_wheel_state SET real_waiting_since=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE pair_id=NEW.id;
   END IF;
   RETURN NEW;
