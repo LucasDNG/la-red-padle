@@ -64,3 +64,45 @@ FROM first_place_reigns
 WHERE ended_at IS NULL
 GROUP BY league_id
 HAVING count(*)>1;
+
+
+SELECT p.id
+FROM pairs p
+LEFT JOIN pair_wheel_state pws ON pws.pair_id=p.id
+WHERE pws.pair_id IS NULL;
+
+WITH exact_duos AS (
+  SELECT
+    p.id pair_id,
+    p.league_id,
+    min(pm.user_id) member_low_id,
+    max(pm.user_id) member_high_id
+  FROM pairs p
+  JOIN pair_members pm ON pm.pair_id=p.id
+  GROUP BY p.id,p.league_id
+  HAVING count(*)=2
+)
+SELECT d.pair_id
+FROM exact_duos d
+LEFT JOIN pair_duo_state s
+  ON s.league_id=d.league_id
+ AND s.member_low_id=d.member_low_id
+ AND s.member_high_id=d.member_high_id
+WHERE s.id IS NULL;
+
+SELECT pws.pair_id
+FROM pair_wheel_state pws
+JOIN pairs p ON p.id=pws.pair_id
+WHERE p.competition_state='paused'
+  AND (pws.inactive_since IS NULL OR pws.return_position_base IS NULL);
+
+SELECT pair_id
+FROM pair_wheel_state
+WHERE inactive_reason='three_failures'
+  AND (inactive_since IS NULL OR auto_reactivate_at IS NULL);
+
+SELECT pds.id
+FROM pair_duo_state pds
+JOIN categories c ON c.id=pds.pending_relegation_category_id
+WHERE pds.pending_relegation_category_id IS NOT NULL
+  AND c.league_id<>pds.league_id;
