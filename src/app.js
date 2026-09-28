@@ -11,7 +11,7 @@ import {pendingUsers,searchUsers,setUserVerification,updateUserDni,identityDocum
 import {problem} from './core.js';
 import {safeErrorLog,authRateLimitKey,safeClientErrorMessage,createFixedWindowRateLimitStore,securityResponseHeaders,privateResponseHeaders,createRequestTrace} from './httpSecurity.js';
 import {readHealth,readLiveness} from './health.js';
-import {frontendOrigins} from './config.js';
+import {corsOrigins} from './config.js';
 
 export const app=express();
 app.disable('x-powered-by');
@@ -24,7 +24,7 @@ app.use((req,res,next)=>{
   for(const [name,value] of Object.entries(headers))res.setHeader(name,value);
   next();
 });
-app.use(cors({origin:frontendOrigins(process.env).length?frontendOrigins(process.env):['http://localhost:5173']}));
+app.use(cors({origin:corsOrigins(process.env).length?corsOrigins(process.env):['http://localhost:5173']}));
 app.use(express.json({limit:'1mb'}));
 const wrap=fn=>(req,res,next)=>Promise.resolve(fn(req,res,next)).catch(next);
 const identityUpload=multer({
