@@ -332,3 +332,17 @@ test('reactivation restarts v3 wait from PostgreSQL time',async()=>{
   const after=(await pool.query('SELECT real_waiting_since FROM pair_wheel_state WHERE pair_id=$1',[p.id])).rows[0].real_waiting_since;
   assert.ok(new Date(after).getTime()>=new Date(before).getTime());
 });
+
+test('new and re-formed pairs start a fresh v3 wait clock',async()=>{
+  const l=await maleLeague();const c=await category(4);
+  const beforeNew=(await pool.query('SELECT CURRENT_TIMESTAMP t')).rows[0].t;
+  const p=(await pool.query('INSERT INTO pairs(league_id,category_id,position) VALUES($1,$2,1) RETURNING id',[l.id,c.id])).rows[0];
+  const created=(await pool.query('SELECT real_waiting_since FROM pair_wheel_state WHERE pair_id=$1',[p.id])).rows[0].real_waiting_since;
+  assert.ok(new Date(created).getTime()>=new Date(beforeNew).getTime());
+  await pool.query("UPDATE pairs SET competition_state='inactive' WHERE id=$1",[p.id]);
+  await pool.query("UPDATE pair_wheel_state SET real_waiting_since=CURRENT_TIMESTAMP-interval '50 days' WHERE pair_id=$1",[p.id]);
+  const beforeReturn=(await pool.query('SELECT CURRENT_TIMESTAMP t')).rows[0].t;
+  await pool.query("UPDATE pairs SET competition_state='active' WHERE id=$1",[p.id]);
+  const returned=(await pool.query('SELECT real_waiting_since FROM pair_wheel_state WHERE pair_id=$1',[p.id])).rows[0].real_waiting_since;
+  assert.ok(new Date(returned).getTime()>=new Date(beforeReturn).getTime());
+});
