@@ -2,7 +2,7 @@
 
 Este archivo contiene **solo decisiones que siguen vigentes**. Las decisiones reemplazadas se documentan en `PROJECT_JOURNEY.md`.
 
-> **Wheel v3 — 2026-09-28:** el diseño funcional nuevo está consolidado en `WHEEL_V3_SPEC.md`. El código productivo continúa en `wheel-v2` hasta cerrar las preguntas abiertas, escribir tests/simulaciones e implementar la migración.
+> **Wheel v3 — 2026-09-28:** el diseño funcional nuevo está consolidado en `WHEEL_V3_SPEC.md`. El reglamento base está cerrado. El código productivo continúa en `wheel-v2` hasta completar auditoría/simulación, escribir tests e implementar la migración.
 
 ## Ranking y competencia
 
@@ -104,9 +104,9 @@ Este archivo contiene **solo decisiones que siguen vigentes**. Las decisiones re
 66. La identidad visual aprobada debe preservarse: hero de cancha real de pádel nocturna, sin referencias a tenis.
 67. Los `.md` son la memoria oficial; toda regla implementada debe quedar alineada con código, tests y documentación.
 
-## Preguntas todavía abiertas
+## Estado de cierre
 
-Las preguntas de borde que faltan cerrar antes de tocar Wheel v3 están en `WHEEL_V3_SPEC.md`. No deben resolverse por intuición ni por cómo funciona Wheel v2 hoy.
+El reglamento funcional base de Wheel v3 está cerrado. La etapa siguiente es auditoría/simulación y conversión de hallazgos en tests antes de tocar el motor.
 
 
 ## Cierres adicionales — 2026-09-28
