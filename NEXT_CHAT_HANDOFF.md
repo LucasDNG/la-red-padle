@@ -202,3 +202,15 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - Se agregó `tests/integration/wheel-v3-state-postgres.test.js` para schema, idempotencia, constraints, reloj DB, reinados y sincronización de nuevas parejas.
 - **El engine sigue en `wheel-v2`; no se implementó todavía el runtime Wheel v3.**
 - Validación local desde este entorno no pudo ejecutarse por bloqueo DNS hacia GitHub; confirmar GitHub Actions del HEAD antes de dar este bloque por verde.
+
+
+### Endurecimiento de migración Wheel v3 — 2026-09-28
+- La suite PostgreSQL ya no prueba solo el patch sobre el schema final.
+- Se agregó un caso que construye un esquema mínimo pre-v3 tipo `wheel-v2`, carga una pareja pausada con datos reales, aplica `PATCH_WHEEL_V3_STATE_2026-09-28.sql` dos veces y verifica:
+  - `engine` sigue en `wheel-v2`;
+  - posición/categoría/estado competitivo se conservan;
+  - se crea estado de inactividad/retorno;
+  - se crea estado canónico de dupla;
+  - la segunda ejecución es idempotente.
+- `database/verify.sql` ahora falla si alguna pareja no tiene `pair_wheel_state`, una dupla exacta no tiene `pair_duo_state`, una pausada carece de snapshot de retorno o una sanción de 30 días carece de timestamps.
+- Siguiente paso: confirmar CI PostgreSQL del HEAD y ampliar tests de comportamiento/concurrencia v3 antes de tocar el runtime.
