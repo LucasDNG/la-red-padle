@@ -167,3 +167,11 @@ La estrategia sigue siendo expand -> validar -> integrar -> cutover -> limpiar l
 ## Regla de seguridad de implementación
 
 No conectar parcialmente `wheelV3Engine.js` a producción mientras unas rutas sigan aplicando consecuencias competitivas v2 y otras v3. La integración debe quedar completa detrás de un selector de engine y el cambio efectivo debe ser atómico.
+
+## Evidencia ejecutada de implementación — 2026-09-29
+
+- Run de GitHub Actions: `36509908405`.
+- Commit validado: `9fa38f9a0529bafd3c7d36f82c72ac0d70b85710`.
+- Resultado del workflow: `success`.
+- Pasaron build frontend, chequeo de sintaxis/imports, unit tests, `verify:db` y suite de integración PostgreSQL completa.
+- El motor productivo sigue seleccionado como `wheel-v2`; la validación corresponde al código dual y al motor v3 aislado/ruteable, no a un cutover productivo ya realizado.
