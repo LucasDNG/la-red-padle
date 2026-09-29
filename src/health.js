@@ -1,10 +1,21 @@
+export function deploymentSha(env=process.env){
+  return String(
+    env.RENDER_GIT_COMMIT||
+    env.GIT_COMMIT_SHA||
+    env.GITHUB_SHA||
+    env.COMMIT_SHA||
+    ''
+  ).trim()||null;
+}
+
 export function readLiveness(){
   return {
     ok:true,
     name:'LA RED Pádel',
     engine:'database-selected',
     timezone:'America/Argentina/Buenos_Aires',
-    process:'ok'
+    process:'ok',
+    release:deploymentSha()
   };
 }
 
@@ -18,6 +29,7 @@ export async function readHealth(client){
     name:'LA RED Pádel',
     engine,
     timezone:'America/Argentina/Buenos_Aires',
-    database:'ok'
+    database:'ok',
+    release:deploymentSha()
   };
 }
