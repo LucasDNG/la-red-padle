@@ -154,3 +154,5 @@ El reglamento funcional base de Wheel v3 está cerrado. La etapa siguiente es au
 100. Para decisiones de vencimiento se prefiere PostgreSQL `CURRENT_TIMESTAMP/NOW()` dentro de la transacción correspondiente.
 101. El frontend solo muestra deadlines y cuentas regresivas basadas en una referencia `server_now`; alterar la hora local no cambia reglas ni vencimientos.
 102. Las fechas pueden mostrarse en horario de Argentina, pero la lógica permanece en UTC.
+
+153. En el gate poblacional entre categorías adyacentes, un movimiento puede habilitar aceleración si reduce **o mantiene** el desvío conjunto respecto de 1/7; un empate exacto del desvío conjunto es admisible. Solo se bloquea la aceleración cuando el movimiento empeora ese desvío conjunto.
