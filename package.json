@@ -24,7 +24,8 @@
     "preflight:core": "node scripts/preflight-production.js --mode=core",
     "preflight:full": "node scripts/preflight-production.js --mode=full",
     "simulate:wheel-v3": "node scripts/simulate-wheel-v3.js",
-    "check:wheel-v3-cutover": "node scripts/check-wheel-v3-cutover.js"
+    "check:wheel-v3-cutover": "node scripts/check-wheel-v3-cutover.js",
+    "activate:wheel-v3": "node scripts/activate-wheel-v3.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
