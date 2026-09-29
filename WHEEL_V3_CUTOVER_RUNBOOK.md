@@ -24,6 +24,8 @@ EXPECTED_RELEASE_SHA=<sha-git-completo> npm run precutover:wheel-v3
 
 Combina configuración de producción, TLS, preflight de base, gate competitivo v3 y smoke HTTP. Además exige que Render y Vercel expongan exactamente `EXPECTED_RELEASE_SHA`. Debe devolver `ok: true` y `cutover.ready: true`. Si Vercel no desplegó ese commit (por ejemplo por build-rate-limit), el cutover queda bloqueado.
 
+Si el frontend responde sin `la-red-release`, revisar en Vercel que estén expuestas las System Environment Variables y volver a desplegar. El build usa `VERCEL_GIT_COMMIT_SHA` / `VITE_VERCEL_GIT_COMMIT_SHA`; no se debe saltear el gate poniendo un SHA manual dentro del código.
+
 El chequeo competitivo aislado sigue disponible con `npm run check:wheel-v3-cutover`.
 
 ## Activación
