@@ -1,3 +1,4 @@
+import {wheelV3OperationalReadiness} from './wheelV3Cutover.js';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -69,6 +70,14 @@ export async function databasePreflight(pool,{requireTls=true}={}){
 
   const venueCount=Number((await client.query(`SELECT count(*) n FROM venues WHERE active=true`)).rows[0].n);
 
+  let wheelV3Operational=null;
+  if(map.engine==='wheel-v3'){
+    wheelV3Operational=await wheelV3OperationalReadiness(client);
+    if(!wheelV3Operational.ready){
+      throw new Error('Wheel v3 operativo inconsistente: '+wheelV3Operational.blockers.join(', '));
+    }
+  }
+
   for(let i=3;i<VERIFY_STATEMENTS.length;i++){
     const result=await client.query(VERIFY_STATEMENTS[i]);
     if(result.rowCount>0)throw new Error('database/verify.sql detectó inconsistencia en control #'+(i-2));
@@ -92,6 +101,7 @@ export async function databasePreflight(pool,{requireTls=true}={}){
     databaseTlsCipher:requireTls?(ssl.cipher||null):null,
     admins:adminCount,
     activeCommercialVenues:venueCount,
+    wheelV3Operational,
     verifyControls:Math.max(0,VERIFY_STATEMENTS.length-3),
     failedOutbox,
     oldestFailedOutboxAt:failed.oldest||null,
