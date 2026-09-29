@@ -26,7 +26,7 @@ test('frontend release helper injects the deployment commit into HTML',()=>{
 });
 
 
-test('Vercel skips builds when the frontend directory did not change',()=>{
+test('Vercel skips only documentation-only commits so backend/frontend release SHAs stay aligned',()=>{
   const config=JSON.parse(fs.readFileSync(new URL('../frontend/vercel.json',import.meta.url),'utf8'));
-  assert.equal(config.ignoreCommand,'git diff HEAD^ HEAD --quiet .');
+  assert.equal(config.ignoreCommand,"git -C .. diff --quiet HEAD^ HEAD -- ':!*.md' ':!**/*.md'");
 });
