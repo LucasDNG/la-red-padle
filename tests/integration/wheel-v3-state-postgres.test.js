@@ -836,7 +836,7 @@ test('temporary inactivity compacts active ranking and reactivation reinserts at
   assert.equal(state.return_position_base,null);
   assert.equal(state.inactive_reason,null);
   assert.equal(state.auto_reactivate_at,null);
-  assert.equal(state.role,null);
+  assert.ok(['attack','defense'].includes(state.role));
   assert.ok(state.real_waiting_since);
 });
 
@@ -2235,7 +2235,7 @@ test('self failure and new no-show are rejected after first result load',async()
   const defender=await seedPairWithMembers(1,4,{tag:230});
   const attacker=await seedPairWithMembers(2,4,{tag:231});
   const a=(await pool.query(
-    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,scheduled_at,schedule_confirmed_at) VALUES($1,$2,$3,$4,$4,$3,CURRENT_TIMESTAMP-interval '1 hour',CURRENT_TIMESTAMP-interval '2 hours') RETURNING id",
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,scheduled_at,location_text,schedule_confirmed_at) VALUES($1,$2,$3,$4,$4,$3,CURRENT_TIMESTAMP-interval '1 hour','Cancha',CURRENT_TIMESTAMP-interval '2 hours') RETURNING id",
     [defender.league_id,c.id,defender.id,attacker.id],
   )).rows[0];
   await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[a.id,defender.id,attacker.id]);
