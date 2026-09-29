@@ -417,3 +417,12 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - El cutover audita `backendReleaseSha` y `frontendReleaseSha` por separado dentro de `admin_audit_events`.
 - Todavía falta confirmar el SHA realmente desplegado por Render; no se infiere como desplegado sólo porque Actions esté verde.
 - Plugins opcionales de Render y Vercel fueron sugeridos para poder inspeccionar/activar deploys directamente desde ChatGPT; requieren conexión explícita del usuario.
+
+
+### WhatsApp productivo — herramienta lista 2026-09-29
+- `preflight:full` real run `36585295135` confirmó que faltan exactamente las 5 entradas externas de Meta en GitHub Environment `production`.
+- Se agregó `npm run whatsapp:test:prod` y workflow manual `LA RED WhatsApp production test`.
+- El workflow exige confirmación `SEND-WHATSAPP-TEST`, ejecuta primero `preflight:full` y sólo después envía una plantilla al teléfono indicado.
+- No se envió ningún WhatsApp durante esta implementación.
+- CI del tooling WhatsApp: run `36586440051` success completo; tests/unit/integración y frontend verdes.
+- Para terminar WhatsApp: cargar `PROD_WHATSAPP_PHONE_NUMBER_ID`, `PROD_WHATSAPP_ACCESS_TOKEN`, `PROD_WHATSAPP_TEMPLATE_NAME`, `PROD_WHATSAPP_GRAPH_VERSION`, `PROD_WHATSAPP_TEMPLATE_LANGUAGE`; luego correr el workflow manual con un número de prueba propio.
