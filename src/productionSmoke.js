@@ -30,7 +30,7 @@ async function jsonGet(fetchImpl,url,frontendOrigin){
   return {response,data:await response.json()};
 }
 
-export async function runProductionSmoke({apiUrl,frontendUrl,expectedEngine=null,fetchImpl=globalThis.fetch}){
+export async function runProductionSmoke({apiUrl,frontendUrl,expectedEngine=null,expectedBackendSha=null,expectedFrontendSha=null,fetchImpl=globalThis.fetch}){
   const api=normalizeHttps(apiUrl,'PROD_API_URL');
   const frontend=normalizeHttps(frontendUrl,'PROD_FRONTEND_URL');
 
@@ -44,6 +44,7 @@ export async function runProductionSmoke({apiUrl,frontendUrl,expectedEngine=null
   const health=healthResult.data;
   if(health?.ok!==true||!['wheel-v2','wheel-v3'].includes(health?.engine)||health?.database!=='ok')throw new Error('Health productivo inválido');
   if(expectedEngine&&health.engine!==expectedEngine)throw new Error('Engine productivo inesperado: '+health.engine);
+  if(expectedBackendSha&&health.release!==expectedBackendSha)throw new Error('Backend desplegado en commit inesperado: '+(health.release||'sin-version'));
   const allowOrigin=healthResult.response.headers.get('access-control-allow-origin');
   if(allowOrigin!==frontend)throw new Error('CORS productivo no autoriza el frontend esperado');
   requireSecurityHeaders(healthResult.response,'API productiva');
@@ -71,6 +72,9 @@ export async function runProductionSmoke({apiUrl,frontendUrl,expectedEngine=null
   requireSecurityHeaders(frontResponse,'Frontend productivo');
   const html=await frontResponse.text();
   if(!/id=["']root["']/.test(html))throw new Error('Frontend no parece contener el root de la SPA');
+  const releaseMatch=html.match(/<meta\s+name=["']la-red-release["']\s+content=["']([^"']+)["']\s*\/?>/i);
+  const frontendRelease=releaseMatch?.[1]||null;
+  if(expectedFrontendSha&&frontendRelease!==expectedFrontendSha)throw new Error('Frontend desplegado en commit inesperado: '+(frontendRelease||'sin-version'));
 
   return {
     ok:true,
@@ -84,5 +88,7 @@ export async function runProductionSmoke({apiUrl,frontendUrl,expectedEngine=null
     securityHeaders:true,
     privateNoStore:true,
     publicEndpoints:publicChecks.length,
+    backendRelease:health.release||null,
+    frontendRelease,
   };
 }
