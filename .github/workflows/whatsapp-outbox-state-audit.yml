@@ -1,0 +1,65 @@
+name: WhatsApp outbox state audit
+
+on:
+  push:
+    branches:
+      - wheel-v3-whatsapp-outbox-audit-2
+    paths:
+      - .github/workflows/whatsapp-outbox-state-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      NODE_ENV: production
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - name: Aggregate outbox status and semantic validity without PII
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import pg from 'pg';
+          import {databasePoolOptions} from './src/config.js';
+          const {Client}=pg;
+          const client=new Client(databasePoolOptions(process.env));
+          await client.connect();
+          try{
+            const statuses=(await client.query(`
+              SELECT status,type,count(*)::int n
+              FROM notification_outbox
+              GROUP BY status,type
+              ORDER BY status,type
+            `)).rows;
+            const semantic=(await client.query(`
+              SELECT
+                count(*) FILTER (
+                  WHERE o.type='password_recovery'
+                    AND o.status IN('pending','failed')
+                )::int recovery_deliverable_queue,
+                count(*) FILTER (
+                  WHERE o.type='pair_invitation'
+                    AND o.status IN('pending','failed')
+                    AND EXISTS (
+                      SELECT 1 FROM pair_invitations i
+                      WHERE i.id=CASE WHEN o.payload->>'invitationId' ~ '^[0-9]+$'
+                        THEN (o.payload->>'invitationId')::bigint ELSE NULL END
+                        AND i.status='pending'
+                        AND i.expires_at>CURRENT_TIMESTAMP
+                    )
+                )::int valid_pair_invites
+              FROM notification_outbox o
+            `)).rows[0];
+            console.log(JSON.stringify({statuses,semantic},null,2));
+          }finally{
+            await client.end();
+          }
+          NODE
