@@ -503,7 +503,7 @@ CREATE TABLE notification_outbox(
   type varchar(60) NOT NULL,
   payload jsonb NOT NULL DEFAULT '{}'::jsonb,
   dedupe_key text NOT NULL UNIQUE,
-  status varchar(12) NOT NULL DEFAULT 'pending' CHECK(status IN('pending','sent','failed')),
+  status varchar(12) NOT NULL DEFAULT 'pending' CHECK(status IN('pending','sent','failed','expired')),
   attempts int NOT NULL DEFAULT 0,
   next_attempt_at timestamptz NOT NULL DEFAULT now(),
   sent_at timestamptz,
