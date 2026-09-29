@@ -1,11 +1,6 @@
 name: Wheel v3 production cutover
 
 on:
-  push:
-    branches:
-      - wheel-v3-cutover-run
-    paths:
-      - .github/workflows/wheel-v3-cutover.yml
   workflow_dispatch:
     inputs:
       backend_sha:
@@ -37,15 +32,15 @@ jobs:
       ADMIN_TOTP_SECRET: ${{ secrets.PROD_ADMIN_TOTP_SECRET }}
       PROD_API_URL: ${{ vars.PROD_API_URL }}
       PROD_FRONTEND_URL: ${{ vars.PROD_FRONTEND_URL }}
-      EXPECTED_BACKEND_SHA: ${{ inputs.backend_sha || '209f8164920a20fa6ee3a540b0c1d4b205112e70' }}
-      EXPECTED_FRONTEND_SHA: ${{ inputs.frontend_sha || '87532489ca44d8ed5cd9378a5e17db64f360c032' }}
+      EXPECTED_BACKEND_SHA: ${{ inputs.backend_sha }}
+      EXPECTED_FRONTEND_SHA: ${{ inputs.frontend_sha }}
       CONFIRM_WHEEL_V3_CUTOVER: YES
     steps:
       - name: Validate destructive cutover confirmation
         shell: bash
         run: |
           set -euo pipefail
-          [ "${{ inputs.confirmation || 'ACTIVATE-WHEEL-V3' }}" = "ACTIVATE-WHEEL-V3" ] || {
+          [ "${{ inputs.confirmation }}" = "ACTIVATE-WHEEL-V3" ] || {
             echo "Confirmation must be exactly ACTIVATE-WHEEL-V3"
             exit 1
           }
