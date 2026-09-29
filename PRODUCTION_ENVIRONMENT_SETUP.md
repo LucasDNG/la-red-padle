@@ -138,3 +138,17 @@ Secuencia segura:
 4. envía una única plantilla de prueba al teléfono indicado.
 
 No guarda ni imprime el token de Meta ni el número completo en el resultado del script.
+
+
+## Seguridad del outbox antes de habilitar Meta
+
+Antes de habilitar WhatsApp se corrigió el tratamiento de mensajes sensibles/temporales. El outbox admite `expired` y el dispatcher valida:
+- `password_recovery`: código no usado y no vencido;
+- `phone_change`: código no usado y no vencido;
+- `pair_invitation`: invitación todavía `pending` y no vencida.
+
+Estado productivo verificado el 2026-09-29: un recovery histórico fue marcado `expired`; queda una invitación de pareja todavía válida en `pending`. Esto evita que al cargar Meta se envíen códigos o invitaciones obsoletas.
+
+Las cinco entradas de Meta deben existir en **dos lugares**:
+1. GitHub Environment `production`, para `preflight:full` y el workflow de prueba;
+2. Render, para que el backend productivo y su dispatcher realmente puedan enviar.
