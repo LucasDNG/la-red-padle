@@ -40,6 +40,14 @@ Después leer, como mínimo:
 - Advertencia: no volver a `wheel-v2` cambiando sólo `app_settings.engine`. Cualquier rollback posterior debe conservar semántica v3 o tener una migración de recuperación explícita.
 - Próximo trabajo: observación/monitoreo de producción v3 y, sólo después de estabilidad suficiente, retiro del runtime/campos legacy.
 
+### Estabilización verificada — 2026-09-29 11:53 ART
+- Postcutover real de estabilidad run `36584434874`: success; `engine=wheel-v3`, DB ok, readiness `true`, `blockers=[]`, 0 assignments legacy/malformados y 0 estados v3 faltantes.
+- Backend observado en ese smoke: `0678256544ee23cf64dcab5944bf9823d24852c3`; frontend: `87532489ca44d8ed5cd9378a5e17db64f360c032`.
+- Smoke autenticado productivo run `36585954395`: success. Acceso anónimo rechazado; Admin verificado; 7 superficies privadas/Admin GET verdes; jugador real autenticado verde.
+- Producción no tiene todavía un jugador verificado con pareja, por lo que `/api/me/league` no pudo auditarse contra una pareja real. No crear datos ficticios en producción sólo para cubrir ese smoke; verificarlo cuando exista la primera pareja real.
+- `preflight:full` de WhatsApp run `36585295135` falla únicamente porque faltan las 5 entradas externas de Meta en GitHub Environment `production`: `PROD_WHATSAPP_PHONE_NUMBER_ID`, `PROD_WHATSAPP_ACCESS_TOKEN`, `PROD_WHATSAPP_TEMPLATE_NAME`, `PROD_WHATSAPP_GRAPH_VERSION`, `PROD_WHATSAPP_TEMPLATE_LANGUAGE`.
+- Siguiente trabajo real: configurar Meta WhatsApp, ejecutar `preflight:full`, enviar un mensaje de prueba controlado y observar el primer flujo real de pareja/Mi Liga. No cambiar reglas competitivas.
+
 ## Diseño competitivo nuevo — HISTÓRICO / YA IMPLEMENTADO
 
 ### Actualización prioritaria 2026-09-28 — ranking e inactividad
