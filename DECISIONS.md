@@ -156,3 +156,8 @@ El reglamento funcional base de Wheel v3 está cerrado. La etapa siguiente es au
 102. Las fechas pueden mostrarse en horario de Argentina, pero la lógica permanece en UTC.
 
 153. En el gate poblacional entre categorías adyacentes, un movimiento puede habilitar aceleración si reduce **o mantiene** el desvío conjunto respecto de 1/7; un empate exacto del desvío conjunto es admisible. Solo se bloquea la aceleración cuando el movimiento empeora ese desvío conjunto.
+
+154. El cutover productivo Wheel v2 -> Wheel v3 se ejecutó exitosamente el 2026-09-29 a las 04:36:57.554Z; desde entonces `app_settings.engine='wheel-v3'`.
+155. Todas las escrituras competitivas del runtime usan una barrera PostgreSQL compartida con advisory key `8675311`; el cutover toma ese lock en exclusivo antes de los locks de asignador/mantenimiento y antes de revalidar/cambiar engine. Esto reemplaza la necesidad de apagar el backend durante el switch.
+156. El run de cutover `36522396511` verificó backend `209f8164920a20fa6ee3a540b0c1d4b205112e70` y frontend `87532489ca44d8ed5cd9378a5e17db64f360c032`; pre y postcutover quedaron verdes y ambos SHA fueron auditados.
+157. Después del cutover v3 no se permite volver a Wheel v2 mediante un simple cambio de `app_settings.engine`; cualquier rollback necesita una estrategia compatible con el estado v3.
