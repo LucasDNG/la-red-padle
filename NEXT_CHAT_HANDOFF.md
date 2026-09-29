@@ -314,3 +314,15 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - Ese UPDATE ahora usa el mismo `client` transaccional.
 - También se corrigió en `wheelV3Engine.js` la persistencia de roles usando `$2::varchar` para evitar `inconsistent types deduced for parameter $2`.
 - Próximo bloque: releer el nuevo run de Actions y corregir los fallos funcionales restantes (sanction deadline, migración pre-v3, inactividad/posición/deuda) uno por uno.
+
+### CI completo verde — 2026-09-29
+- GitHub Actions run `36509908405` sobre SHA `9fa38f9a0529bafd3c7d36f82c72ac0d70b85710` terminó `success`.
+- Frontend build: verde.
+- `npm run check`: verde.
+- `npm test`: verde.
+- `npm run verify:db`: verde.
+- `npm run test:integration`: verde; la suite PostgreSQL completa terminó sin fallos.
+- Los fallos descubiertos y corregidos en esta ronda incluyeron: self-deadlock de test no-show, casteo SQL de roles, score confirmado no normalizado, fixture de sanción duplicando `pair_wheel_state`, fixture pre-v3 incompleto, `return_position_base` sin cast entero, validación de `played_at` contra timestamp fijo de transacción y fixture de no-show sin `location_text`.
+- Para validar `played_at` contra el presente se usa `clock_timestamp()` de PostgreSQL: sigue siendo reloj autoritativo del servidor y evita falsos 'futuro' cuando la transacción comenzó antes del timestamp cargado.
+- `engine` continúa en `wheel-v2`; CI verde NO implica que el cutover ya haya sido ejecutado.
+- Existe gate `wheelV3CutoverReadiness` / `npm run check:wheel-v3-cutover`; bloquea el switch si quedan assignments vivos, transiciones de pareja pendientes o estado v3 incompleto.
