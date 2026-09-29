@@ -105,10 +105,13 @@ export async function assertWheelV3CutoverReady(client){
 }
 
 
-export async function activateWheelV3(client,{adminUserId,releaseSha}={}){
+export async function activateWheelV3(client,{adminUserId,backendReleaseSha=null,frontendReleaseSha=null,releaseSha=null}={}){
   const adminId=Number(adminUserId);
+  const backendSha=String(backendReleaseSha||releaseSha||'');
+  const frontendSha=String(frontendReleaseSha||releaseSha||'');
   if(!Number.isInteger(adminId)||adminId<=0)throw new Error('El cutover requiere un Admin verificado');
-  if(!/^[0-9a-f]{40}$/i.test(String(releaseSha||'')))throw new Error('El cutover requiere un release SHA Git completo');
+  if(!/^[0-9a-f]{40}$/i.test(backendSha))throw new Error('El cutover requiere un backend release SHA Git completo');
+  if(!/^[0-9a-f]{40}$/i.test(frontendSha))throw new Error('El cutover requiere un frontend release SHA Git completo');
 
   await q(client,`SELECT pg_advisory_xact_lock(8675309)`);
   await q(client,`SELECT pg_advisory_xact_lock(8675310)`);
@@ -142,7 +145,8 @@ export async function activateWheelV3(client,{adminUserId,releaseSha}={}){
     JSON.stringify({
       previousEngine:before.engine,
       engine:row.engine,
-      releaseSha,
+      backendReleaseSha:backendSha,
+      frontendReleaseSha:frontendSha,
     }),
   ]);
 
@@ -151,7 +155,8 @@ export async function activateWheelV3(client,{adminUserId,releaseSha}={}){
     engine:row.engine,
     activatedAt:row.updated_at,
     adminUserId:admin.id,
-    releaseSha,
+    backendReleaseSha:backendSha,
+    frontendReleaseSha:frontendSha,
   };
 }
 
