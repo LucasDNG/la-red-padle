@@ -8,7 +8,8 @@ test('liveness is dependency-free and leaves authoritative engine to readiness',
     name:'LA RED Pádel',
     engine:'database-selected',
     timezone:'America/Argentina/Buenos_Aires',
-    process:'ok'
+    process:'ok',
+    release:null
   });
 });
 
@@ -43,4 +44,24 @@ test('readiness accepts wheel-v3 as an explicitly supported engine',async()=>{
   const result=await readHealth(client);
   assert.equal(result.database,'ok');
   assert.equal(result.engine,'wheel-v3');
+});
+
+
+test('health exposes deployment commit from Render metadata when available',async()=>{
+  const previous=process.env.RENDER_GIT_COMMIT;
+  process.env.RENDER_GIT_COMMIT='abc123';
+  try{
+    const client={
+      async query(sql){
+        if(sql.includes('app_settings'))return {rows:[{value:'wheel-v3'}]};
+        return {rows:[{}]};
+      }
+    };
+    const result=await readHealth(client);
+    assert.equal(result.release,'abc123');
+    assert.equal(readLiveness().release,'abc123');
+  }finally{
+    if(previous===undefined)delete process.env.RENDER_GIT_COMMIT;
+    else process.env.RENDER_GIT_COMMIT=previous;
+  }
 });
