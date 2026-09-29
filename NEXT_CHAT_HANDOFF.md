@@ -383,3 +383,13 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - `WHEEL_V3_AUDIT_2026-09-28.md` marca la antigua fórmula `floor(N/2)+1` como histórica/superada.
 - No quedan tareas funcionales conocidas de Wheel v3. Lo único pendiente es el procedimiento operativo de producción: lograr paridad de release Render/Vercel, ejecutar precutover, quiesce, activación atómica y postcutover.
 - NO se activó producción en esta sesión; `app_settings.engine` debe continuar `wheel-v2` hasta completar el runbook.
+
+
+### Releases separadas para terminar el cutover — 2026-09-29
+- El gate ya no exige que Render y Vercel estén en el mismo commit, sino que exige y audita dos SHA explícitos: `EXPECTED_BACKEND_SHA` y `EXPECTED_FRONTEND_SHA`.
+- Compatibilidad observada: Vercel tuvo `success` en `87532489ca44d8ed5cd9378a5e17db64f360c032`. Entre ese commit y `eba415f82579d7dc763513531cbb7c6f4c35f831` no cambió ningún archivo bajo `frontend/` ni las fachadas API consumidas por la app.
+- Backend/cutover candidato: `eba415f82579d7dc763513531cbb7c6f4c35f831`.
+- GitHub Actions run `36521118598` sobre ese commit terminó `success` completo.
+- El cutover audita `backendReleaseSha` y `frontendReleaseSha` por separado dentro de `admin_audit_events`.
+- Todavía falta confirmar el SHA realmente desplegado por Render; no se infiere como desplegado sólo porque Actions esté verde.
+- Plugins opcionales de Render y Vercel fueron sugeridos para poder inspeccionar/activar deploys directamente desde ChatGPT; requieren conexión explícita del usuario.
