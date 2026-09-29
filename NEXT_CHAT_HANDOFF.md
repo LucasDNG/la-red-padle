@@ -358,3 +358,10 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - `postcutover:wheel-v3` exige el mismo SHA y engine v3.
 - `activate:wheel-v3` exige además `CUTOVER_ADMIN_USER_ID` de un Admin verificado y registra `wheel_v3_cutover` en `admin_audit_events` con engine anterior/nuevo y release SHA dentro de la misma transacción.
 - El estado actual de Vercel en varios commits recientes fue `build-rate-limit`; por diseño eso debe considerarse blocker hasta que el frontend productivo pueda demostrar el SHA esperado.
+
+### Paridad exacta de releases — evidencia 2026-09-29
+- Backend health/liveness exponen `release` usando metadata de deploy; frontend inyecta `<meta name="la-red-release">` desde metadata de Vercel.
+- La lógica de meta se extrajo a `frontend/releaseMeta.js` para poder probarla desde la suite backend sin instalar Vite allí.
+- Run `36515539015` sobre commit `6882784c356373cf618142730e3f5d27819d8705` terminó `success`: frontend, check, unit, verify DB e integración PostgreSQL verdes con el helper de release ya probado.
+- Render documenta `RENDER_GIT_COMMIT`; Vercel documenta `VERCEL_GIT_COMMIT_SHA` y `VITE_VERCEL_GIT_COMMIT_SHA`. Si Vercel no expone esas variables, el precutover debe fallar hasta habilitar System Environment Variables y redeployar.
+- No hacer cutover mientras Vercel siga en build-rate-limit o el frontend productivo no demuestre el mismo `EXPECTED_RELEASE_SHA` que backend.
