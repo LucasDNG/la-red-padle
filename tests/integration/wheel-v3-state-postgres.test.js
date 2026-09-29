@@ -18,6 +18,7 @@ const {expireObsoleteWhatsAppOutbox}=await import('../../src/notifications.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
 const patch=fs.readFileSync(path.resolve(__dirname,'../../database/PATCH_WHEEL_V3_STATE_2026-09-28.sql'),'utf8');
+const outboxExpiryPatch=fs.readFileSync(path.resolve(__dirname,'../../database/PATCH_WHATSAPP_OUTBOX_EXPIRY_2026-09-29.sql'),'utf8');
 
 async function resetDb(){await pool.query('DROP SCHEMA public CASCADE; CREATE SCHEMA public');await pool.query(schema);}
 beforeEach(resetDb);
@@ -2608,4 +2609,14 @@ test('WhatsApp outbox expires only obsolete domain messages before delivery',asy
   assert.equal(statuses['wa:invite-accepted'],'expired');
   assert.equal(statuses[`phone-change-code:${expiredPhone.id}`],'expired');
   assert.equal(statuses['phone-change-valid'],'pending');
+});
+
+
+test('WhatsApp outbox expiry patch is idempotent and preserves expired status support',async()=>{
+  await pool.query(outboxExpiryPatch);
+  await pool.query(outboxExpiryPatch);
+  const definition=(await pool.query(
+    "SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='notification_outbox_status_check' AND conrelid='notification_outbox'::regclass"
+  )).rows[0]?.definition||'';
+  assert.match(definition,/expired/);
 });
