@@ -350,3 +350,11 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - El entorno de herramientas de esta sesión no pudo resolver DNS hacia Render, por lo que no se verificó el endpoint público vivo desde aquí; eso debe hacerse con `postcutover:wheel-v3` en el entorno productivo.
 - `ARCHITECTURE.md` y `WHEEL_V3_IMPLEMENTATION_AUDIT_2026-09-28.md` fueron actualizados para reflejar el runtime dual real y eliminar afirmaciones obsoletas de 'frontend sólo v2'.
 - Producción NO fue activada desde esta sesión; el engine debe seguir en `wheel-v2` hasta ejecutar el procedimiento real.
+
+### Gate de paridad de deploy — 2026-09-29
+- Render expone `RENDER_GIT_COMMIT`; Vercel expone `VERCEL_GIT_COMMIT_SHA` / `VITE_VERCEL_GIT_COMMIT_SHA`. El backend publica `release` en `/api/live` y `/api/health`; Vite inyecta `<meta name="la-red-release" ...>` en `index.html`.
+- `runProductionSmoke()` puede exigir SHA exacto de backend y frontend.
+- `precutover:wheel-v3` ahora exige `EXPECTED_RELEASE_SHA` (40 hex), `PROD_API_URL` y `PROD_FRONTEND_URL`; antes del switch comprueba engine v2 + paridad exacta de deploy.
+- `postcutover:wheel-v3` exige el mismo SHA y engine v3.
+- `activate:wheel-v3` exige además `CUTOVER_ADMIN_USER_ID` de un Admin verificado y registra `wheel_v3_cutover` en `admin_audit_events` con engine anterior/nuevo y release SHA dentro de la misma transacción.
+- El estado actual de Vercel en varios commits recientes fue `build-rate-limit`; por diseño eso debe considerarse blocker hasta que el frontend productivo pueda demostrar el SHA esperado.
