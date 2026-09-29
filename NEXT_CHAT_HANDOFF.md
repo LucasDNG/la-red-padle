@@ -426,3 +426,12 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - No se envió ningún WhatsApp durante esta implementación.
 - CI del tooling WhatsApp: run `36586440051` success completo; tests/unit/integración y frontend verdes.
 - Para terminar WhatsApp: cargar `PROD_WHATSAPP_PHONE_NUMBER_ID`, `PROD_WHATSAPP_ACCESS_TOKEN`, `PROD_WHATSAPP_TEMPLATE_NAME`, `PROD_WHATSAPP_GRAPH_VERSION`, `PROD_WHATSAPP_TEMPLATE_LANGUAGE`; luego correr el workflow manual con un número de prueba propio.
+
+
+### Outbox WhatsApp saneado antes de configurar Meta — 2026-09-29
+- Main HEAD funcional: `259b7cd3d38dbd5db0a859d1dd27a0103d686a75`; GitHub Actions run `36588283933` success completo.
+- Se agregó estado técnico `expired` a `notification_outbox` y migración `PATCH_WHATSAPP_OUTBOX_EXPIRY_2026-09-29.sql`.
+- Antes de enviar, `password_recovery`, `phone_change` y `pair_invitation` se validan contra su registro origen; usados/vencidos/cancelados/aceptados pasan a `expired` y no salen por WhatsApp.
+- Producción ya aplicó la migración: auditoría real sin PII mostró `password_recovery: expired = 1`, `pair_invitation: pending = 1`, `recovery_deliverable_queue = 0`, `valid_pair_invites = 1`.
+- Render sigue con `whatsappConfigured=false`; outbox productivo no tiene mensajes fallidos y conserva sólo una invitación válida pendiente.
+- No cargar Meta hasta tener listas las 5 entradas tanto en GitHub Environment `production` como en el servicio Render.
