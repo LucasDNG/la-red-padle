@@ -5,7 +5,7 @@ Fecha: 2026-09-28
 
 Wheel v3 ya no es solo una especificación: existe un motor aislado en `src/wheelV3Engine.js` y reglas puras compartidas en `src/wheelV3Rules.js`.
 
-**Todavía no está activado en producción.** `app_settings.engine` sigue en `wheel-v2`, `src/wheel.js` continúa siendo el runtime productivo y el frontend sigue hablando con la superficie v2.
+**Todavía no está activado en producción.** `app_settings.engine` sigue en `wheel-v2`, pero backend y frontend ya están integrados en modo dual detrás del selector de engine. `wheel-v2` permanece activo hasta el cutover; `wheel-v3` está implementado, enrutable y validado por CI.
 
 La estrategia sigue siendo expand -> validar -> integrar -> cutover -> limpiar legacy.
 
