@@ -1,11 +1,6 @@
 name: LA RED production preflight
 
 on:
-  push:
-    branches:
-      - wheel-v3-whatsapp-preflight
-    paths:
-      - .github/workflows/production-preflight.yml
   workflow_dispatch:
     inputs:
       mode:
@@ -27,7 +22,7 @@ jobs:
     environment: production
     env:
       NODE_ENV: production
-      PREFLIGHT_MODE: ${{ inputs.mode || 'full' }}
+      PREFLIGHT_MODE: ${{ inputs.mode }}
       DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
       JWT_SECRET: ${{ secrets.PROD_JWT_SECRET }}
       FRONTEND_URL: ${{ vars.PROD_FRONTEND_URL }}
