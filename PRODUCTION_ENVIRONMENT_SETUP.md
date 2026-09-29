@@ -121,3 +121,20 @@ Existe el workflow manual `LA RED authenticated production smoke`. Usa `PROD_DAT
 - que un jugador no pueda entrar a Admin.
 
 Run real 2026-09-29 `36585954395`: success. Había jugador verificado pero ninguna pareja verificada real, por lo que `Mi Liga` quedó correctamente pendiente de un caso real.
+
+
+## Prueba controlada de WhatsApp
+
+Una vez cargadas las cinco entradas de Meta, usar GitHub → Actions → `LA RED WhatsApp production test`.
+
+El workflow pide:
+- `phone`: número de destino en formato internacional;
+- `confirmation`: exactamente `SEND-WHATSAPP-TEST`.
+
+Secuencia segura:
+1. valida la confirmación;
+2. ejecuta `npm run preflight:full`;
+3. si todo está verde, ejecuta `npm run whatsapp:test:prod`;
+4. envía una única plantilla de prueba al teléfono indicado.
+
+No guarda ni imprime el token de Meta ni el número completo en el resultado del script.
