@@ -93,3 +93,20 @@ A fecha 2026-09-29:
 - comparación Git `87532489… -> eba415f8…`: sin cambios en `frontend/` ni en `src/wheelV3Api.js`, `src/pairsV3Api.js`, `src/adminV3Api.js` o `src/app.js`.
 
 Por eso ese par es compatible desde el punto de vista de código. **No asumir que Render ya sirve `eba415f8…`: el precutover debe comprobar el SHA real del backend antes de activar.**
+
+
+## Ejecución desde GitHub Actions
+
+Si no se usa una terminal con los secretos productivos, existen dos workflows manuales bajo **Actions**:
+
+- `Wheel v3 production precutover`
+- `Wheel v3 production postcutover`
+
+Ambos usan el environment `production` y los secretos/variables ya configurados en GitHub. Piden dos inputs:
+
+- `backend_sha`: SHA exacto que debe exponer Render;
+- `frontend_sha`: SHA exacto que debe exponer Vercel.
+
+El precutover es no destructivo: valida configuración, TLS, DB, blockers deportivos, health/smoke y ambos SHA. El postcutover hace la misma verificación exigiendo además `engine=wheel-v3`.
+
+**No existe workflow automático de activación**: el cambio de engine sigue requiriendo quiescer realmente el backend y ejecutar la activación controlada, para no fingir desde GitHub que no hay requests v2 en vuelo.
