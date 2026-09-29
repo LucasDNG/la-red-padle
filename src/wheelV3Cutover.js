@@ -1,4 +1,5 @@
 import {q} from './db.js';
+import {COMPETITIVE_WRITE_LOCK_KEY} from './competitionRuntime.js';
 
 export async function wheelV3CutoverReadiness(client){
   const engine=(await q(client,`
@@ -113,6 +114,7 @@ export async function activateWheelV3(client,{adminUserId,backendReleaseSha=null
   if(!/^[0-9a-f]{40}$/i.test(backendSha))throw new Error('El cutover requiere un backend release SHA Git completo');
   if(!/^[0-9a-f]{40}$/i.test(frontendSha))throw new Error('El cutover requiere un frontend release SHA Git completo');
 
+  await q(client,`SELECT pg_advisory_xact_lock($1::bigint)`,[COMPETITIVE_WRITE_LOCK_KEY]);
   await q(client,`SELECT pg_advisory_xact_lock(8675309)`);
   await q(client,`SELECT pg_advisory_xact_lock(8675310)`);
   await q(client,`SELECT key FROM app_settings WHERE key='engine' FOR UPDATE`);
