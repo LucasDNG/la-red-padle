@@ -1,6 +1,11 @@
 name: Wheel v3 production postcutover
 
 on:
+  push:
+    branches:
+      - wheel-v3-stability-check
+    paths:
+      - .github/workflows/wheel-v3-postcutover.yml
   workflow_dispatch:
     inputs:
       backend_sha:
@@ -28,8 +33,8 @@ jobs:
       ADMIN_TOTP_SECRET: ${{ secrets.PROD_ADMIN_TOTP_SECRET }}
       PROD_API_URL: ${{ vars.PROD_API_URL }}
       PROD_FRONTEND_URL: ${{ vars.PROD_FRONTEND_URL }}
-      EXPECTED_BACKEND_SHA: ${{ inputs.backend_sha }}
-      EXPECTED_FRONTEND_SHA: ${{ inputs.frontend_sha }}
+      EXPECTED_BACKEND_SHA: ${{ inputs.backend_sha || '209f8164920a20fa6ee3a540b0c1d4b205112e70' }}
+      EXPECTED_FRONTEND_SHA: ${{ inputs.frontend_sha || '87532489ca44d8ed5cd9378a5e17db64f360c032' }}
     steps:
       - name: Validate Wheel v3 postcutover inputs
         shell: bash
