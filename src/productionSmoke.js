@@ -30,7 +30,7 @@ async function jsonGet(fetchImpl,url,frontendOrigin){
   return {response,data:await response.json()};
 }
 
-export async function runProductionSmoke({apiUrl,frontendUrl,fetchImpl=globalThis.fetch}){
+export async function runProductionSmoke({apiUrl,frontendUrl,expectedEngine=null,fetchImpl=globalThis.fetch}){
   const api=normalizeHttps(apiUrl,'PROD_API_URL');
   const frontend=normalizeHttps(frontendUrl,'PROD_FRONTEND_URL');
 
@@ -43,6 +43,7 @@ export async function runProductionSmoke({apiUrl,frontendUrl,fetchImpl=globalThi
   const healthResult=await jsonGet(fetchImpl,api+'/api/health',frontend);
   const health=healthResult.data;
   if(health?.ok!==true||!['wheel-v2','wheel-v3'].includes(health?.engine)||health?.database!=='ok')throw new Error('Health productivo inválido');
+  if(expectedEngine&&health.engine!==expectedEngine)throw new Error('Engine productivo inesperado: '+health.engine);
   const allowOrigin=healthResult.response.headers.get('access-control-allow-origin');
   if(allowOrigin!==frontend)throw new Error('CORS productivo no autoriza el frontend esperado');
   requireSecurityHeaders(healthResult.response,'API productiva');
@@ -53,6 +54,7 @@ export async function runProductionSmoke({apiUrl,frontendUrl,fetchImpl=globalThi
     ['/api/venues','array'],
     ['/api/results/recent','array'],
     ['/api/upcoming','array'],
+    ['/api/records','array'],
   ];
   for(const [path,kind] of publicChecks){
     const {data}=await jsonGet(fetchImpl,api+path,frontend);
