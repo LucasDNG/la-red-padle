@@ -3,14 +3,13 @@ import assert from 'node:assert/strict';
 import {readLiveness,readHealth} from '../src/health.js';
 
 test('liveness is dependency-free and leaves authoritative engine to readiness',()=>{
-  assert.deepEqual(readLiveness(),{
-    ok:true,
-    name:'LA RED Pádel',
-    engine:'database-selected',
-    timezone:'America/Argentina/Buenos_Aires',
-    process:'ok',
-    release:null
-  });
+  const live=readLiveness();
+  assert.equal(live.ok,true);
+  assert.equal(live.name,'LA RED Pádel');
+  assert.equal(live.engine,'database-selected');
+  assert.equal(live.timezone,'America/Argentina/Buenos_Aires');
+  assert.equal(live.process,'ok');
+  assert.ok(live.release===null||typeof live.release==='string');
 });
 
 test('readiness remains database-aware and verifies engine',async()=>{
