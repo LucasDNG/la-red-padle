@@ -12,7 +12,7 @@ const {Pool}=pg;
 const pool=new Pool({connectionString});
 const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity,reportWheelV3NoShow,cancelWheelV3NoShow,contestWheelV3NoShow,acceptWheelV3NoShow,escalateExpiredWheelV3NoShows,submitWheelV3ResultVersion,confirmWheelV3Result,autoValidateDueWheelV3Results,expireDueWheelV3Assignments,expireWheelV3ScheduleProposals,formWheelV3Pair,archiveWheelV3Pair,resolveWheelV3FormationCategory,proposeWheelV3Schedule,acceptWheelV3Schedule,cancelWheelV3ScheduleProposal,wheelV3RecentMovements,resolveWheelV3ResultDispute,dismissWheelV3NoShowByAdmin,resolveWheelV3NoShowByAdmin}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
-const {wheelV3CutoverReadiness,activateWheelV3}=await import('../../src/wheelV3Cutover.js');
+const {wheelV3CutoverReadiness,activateWheelV3,wheelV3OperationalReadiness}=await import('../../src/wheelV3Cutover.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
 const patch=fs.readFileSync(path.resolve(__dirname,'../../database/PATCH_WHEEL_V3_STATE_2026-09-28.sql'),'utf8');
@@ -2349,4 +2349,27 @@ test('atomic cutover refuses to switch while a live legacy assignment exists',as
   }finally{client.release();}
 
   assert.equal((await pool.query("SELECT value#>>'{}' value FROM app_settings WHERE key='engine'")).rows[0].value,'wheel-v2');
+});
+
+
+test('post-cutover operational readiness accepts valid Wheel v3 state and rejects malformed live assignments',async()=>{
+  await pool.query("UPDATE app_settings SET value=to_jsonb($1::text) WHERE key='engine'",['wheel-v3']);
+  let state=await wheelV3OperationalReadiness(pool);
+  assert.equal(state.ready,true);
+  assert.deepEqual(state.blockers,[]);
+
+  const c=await category(3);
+  const a=await seedPairWithMembers(1,3,{tag:260});
+  const b=await seedPairWithMembers(2,3,{tag:261});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id) VALUES($1,$2,$3,$4,$4,$3) RETURNING id",
+    [a.league_id,c.id,a.id,b.id],
+  )).rows[0];
+
+  state=await wheelV3OperationalReadiness(pool);
+  assert.equal(state.ready,false);
+  assert.ok(state.blockers.includes('malformed_live_assignments'));
+
+  await pool.query("UPDATE wheel_assignments SET status='cancelled',closed_at=CURRENT_TIMESTAMP,close_reason='operational-readiness-test' WHERE id=$1",[assignment.id]);
+  await pool.query("UPDATE app_settings SET value=to_jsonb($1::text) WHERE key='engine'",['wheel-v2']);
 });
