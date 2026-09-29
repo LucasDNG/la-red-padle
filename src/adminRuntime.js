@@ -1,4 +1,4 @@
-import {competitiveEngine} from './competitionRuntime.js';
+import {competitiveEngine,withCompetitiveWrite} from './competitionRuntime.js';
 import * as legacy from './admin.js';
 import {disputesV3,resolveDisputeV3,systemStatusV3} from './adminV3Api.js';
 
@@ -15,7 +15,6 @@ export {
   disciplineQueue,
   resolveDiscipline,
   auditLog,
-  setLeagueClockPause,
   retryWhatsApp,
   verifyTotp,
 } from './admin.js';
@@ -25,9 +24,13 @@ export async function disputes(){
 }
 
 export async function resolveDispute(adminId,assignmentId,body){
-  return (await competitiveEngine())==='wheel-v3'
+  return withCompetitiveWrite(engine=>engine==='wheel-v3'
     ?resolveDisputeV3(adminId,assignmentId,body)
-    :legacy.resolveDispute(adminId,assignmentId,body);
+    :legacy.resolveDispute(adminId,assignmentId,body));
+}
+
+export async function setLeagueClockPause(adminId,paused){
+  return withCompetitiveWrite(()=>legacy.setLeagueClockPause(adminId,paused));
 }
 
 export async function systemStatus(){
