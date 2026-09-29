@@ -33,5 +33,5 @@
       ]
     }
   ],
-  "ignoreCommand": "git diff HEAD^ HEAD --quiet ."
+  "ignoreCommand": "git -C .. diff --quiet HEAD^ HEAD -- ':!*.md' ':!**/*.md'"
 }
