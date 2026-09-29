@@ -84,7 +84,7 @@ La rueda puede fluir incluso con categorías grandes, pero la dispersión de esp
 11. #1 que se inactiva vuelve como máximo #2.
 12. Inactividad >3 meses degrada solo posición de retorno, nunca categoría.
 13. Descendido entra #2 salvo inexistencia material de #1.
-14. Nueva/ascendida entra `floor(N/2)+1`; con N=1 entra #2.
+14. **HISTÓRICO / SUPERADO:** durante la primera auditoría se evaluó `floor(N/2)+1`. La decisión vigente posterior reemplazó esa fórmula por ingreso **anteúltimo**: N=0 => #1; N=1 => #2; N>=2 => posición N.
 15. Primer partido de una pareja 0 PJ al activarse zonas no cuenta para el 0/3.
 16. Resultado cargado abre 7 días desde la carga y luego auto-valida por silencio.
 17. Masculino y Femenino forman y equilibran población de manera independiente.
