@@ -24,7 +24,23 @@ Después leer, como mínimo:
 14. `PRODUCTION_ENVIRONMENT_SETUP.md`
 15. `PRODUCTION_RECOVERY.md`
 
-## Diseño competitivo nuevo — PRIORIDAD ANTES DE TOCAR CÓDIGO
+## ESTADO ACTUAL PRIORITARIO — CUTOVER COMPLETADO 2026-09-29
+
+> **Esta sección prevalece sobre cualquier checkpoint histórico posterior que diga que producción sigue en Wheel v2. Esas menciones se conservan sólo como bitácora cronológica.**
+
+- Producción está en `app_settings.engine='wheel-v3'` desde `2026-09-29T04:36:57.554Z`.
+- Cutover GitHub Actions run: `36522396511`, resultado `success` completo.
+- Backend verificado durante el switch: `209f8164920a20fa6ee3a540b0c1d4b205112e70`.
+- Frontend verificado durante el switch: `87532489ca44d8ed5cd9378a5e17db64f360c032`.
+- Precutover real inmediatamente anterior: `ready:true`, `blockers:[]`, engine v2, DB ok, 0 assignments vivos/legacy, 0 transiciones pendientes y 0 estados v3 faltantes.
+- Activación: write barrier exclusivo + locks de asignador/mantenimiento + recheck dentro de la transacción + update atómico v2→v3.
+- Postcutover real: `ok:true`, engine v3, DB ok, readiness v3 verde, 0 assignments legacy/malformados y 0 estado preparatorio faltante.
+- Barrera de concurrencia: escrituras competitivas toman advisory lock compartido `8675311`; cutover toma el mismo lock en exclusivo. Ya no se necesita apagar Render para un switch futuro equivalente.
+- Las ramas temporales `wheel-v3-precutover-run` y `wheel-v3-cutover-run` quedaron neutralizadas (sin push-trigger automático); el probe temporal de Render fue eliminado.
+- Advertencia: no volver a `wheel-v2` cambiando sólo `app_settings.engine`. Cualquier rollback posterior debe conservar semántica v3 o tener una migración de recuperación explícita.
+- Próximo trabajo: observación/monitoreo de producción v3 y, sólo después de estabilidad suficiente, retiro del runtime/campos legacy.
+
+## Diseño competitivo nuevo — HISTÓRICO / YA IMPLEMENTADO
 
 ### Actualización prioritaria 2026-09-28 — ranking e inactividad
 - La posición real es el único ranking; eliminar cualquier métrica numérica paralela y sus referencias.
@@ -80,7 +96,7 @@ Después leer, como mínimo:
 ## Estado consolidado
 
 - package: `5.0.9`.
-- motor activo: `wheel-v2`.
+- motor activo: `wheel-v3` (producción desde 2026-09-29).
 - Neon histórica: eliminada; no asumir recuperable.
 - Neon nueva: base de referencia actual.
 - runtime objetivo: Node 22.
