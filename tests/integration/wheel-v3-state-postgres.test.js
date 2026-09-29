@@ -208,6 +208,14 @@ test('pre-v3 wheel-v2 schema migrates forward without changing engine or sportin
       result_type text NOT NULL CHECK(result_type IN('normal','injury_abandonment','dissolution_forfeit')),
       played_at timestamptz NOT NULL DEFAULT now()
     );
+
+    CREATE TABLE wheel_no_shows(
+      id bigserial PRIMARY KEY,
+      assignment_id bigint NOT NULL UNIQUE REFERENCES wheel_assignments(id),
+      reported_by_pair_id bigint NOT NULL REFERENCES pairs(id),
+      reported_pair_id bigint NOT NULL REFERENCES pairs(id),
+      status text NOT NULL DEFAULT 'pending' CHECK(status IN('pending','contested','admin_review','resolved'))
+    );
   `);
 
   const u1=(await pool.query("INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('Legacy','Uno','40000001','1','x','male') RETURNING id")).rows[0];
