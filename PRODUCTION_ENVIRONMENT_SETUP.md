@@ -60,10 +60,12 @@ El workflow permite elegir:
 
 El primer paso valida solo los inputs requeridos por el modo elegido y, si falta alguno, muestra **solo los nombres faltantes**, nunca sus valores.
 
+Estado 2026-09-29: `core` está verde con Wheel v3 activo. `full` sigue bloqueado únicamente por las cinco entradas de Meta WhatsApp todavía no cargadas.
+
 Después `npm run preflight:prod` valida de forma read-only:
 - configuración productiva;
 - TLS de PostgreSQL;
-- engine `wheel-v2`;
+- engine válido (`wheel-v3` en producción actual);
 - timezone;
 - reloj global no pausado;
 - patch de abandono completo;
@@ -107,3 +109,15 @@ El smoke valida de forma no destructiva:
 
 ## Nota 2026-09-22 — canchas
 `preflight:core` ya no exige una fila activa en `venues`. Los jugadores escriben libremente el lugar de cada partido. `venues` es únicamente la capa de sedes adheridas/comerciales y puede permanecer vacía al lanzamiento.
+
+
+## Smoke autenticado read-only
+
+Existe el workflow manual `LA RED authenticated production smoke`. Usa `PROD_DATABASE_URL`, `PROD_JWT_SECRET`, `PROD_API_URL` y `PROD_FRONTEND_URL` desde el Environment `production`; no necesita ni imprime contraseñas/DNI. Genera JWT efímeros sólo para GETs read-only y comprueba:
+- rechazo de acceso anónimo;
+- `/api/me` y notificaciones de un jugador verificado cuando exista;
+- `Mi pareja` y, si existe una pareja verificada real, `Mi Liga`;
+- `Admin status`, auditoría, identidad pendiente, canchas, disputas y disciplina;
+- que un jugador no pueda entrar a Admin.
+
+Run real 2026-09-29 `36585954395`: success. Había jugador verificado pero ninguna pareja verificada real, por lo que `Mi Liga` quedó correctamente pendiente de un caso real.
