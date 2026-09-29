@@ -12,7 +12,7 @@ const {Pool}=pg;
 const pool=new Pool({connectionString});
 const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity,reportWheelV3NoShow,cancelWheelV3NoShow,contestWheelV3NoShow,acceptWheelV3NoShow,escalateExpiredWheelV3NoShows,submitWheelV3ResultVersion,confirmWheelV3Result,autoValidateDueWheelV3Results,expireDueWheelV3Assignments,expireWheelV3ScheduleProposals,formWheelV3Pair,archiveWheelV3Pair,resolveWheelV3FormationCategory,proposeWheelV3Schedule,acceptWheelV3Schedule,cancelWheelV3ScheduleProposal,wheelV3RecentMovements,resolveWheelV3ResultDispute,dismissWheelV3NoShowByAdmin,resolveWheelV3NoShowByAdmin}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
-const {wheelV3CutoverReadiness}=await import('../../src/wheelV3Cutover.js');
+const {wheelV3CutoverReadiness,activateWheelV3}=await import('../../src/wheelV3Cutover.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
 const patch=fs.readFileSync(path.resolve(__dirname,'../../database/PATCH_WHEEL_V3_STATE_2026-09-28.sql'),'utf8');
@@ -2308,4 +2308,45 @@ test('cutover gate refuses pending pair transitions and global clock pause',asyn
   state=await wheelV3CutoverReadiness(pool);
   assert.equal(state.ready,false);
   assert.ok(state.blockers.includes('league_clock_paused'));
+});
+
+
+test('atomic cutover acquires wheel locks, rechecks readiness and switches only inside its transaction',async()=>{
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const before=await wheelV3CutoverReadiness(client);
+    assert.equal(before.ready,true);
+    const activated=await activateWheelV3(client);
+    assert.equal(activated.previousEngine,'wheel-v2');
+    assert.equal(activated.engine,'wheel-v3');
+    assert.ok(activated.activatedAt);
+    assert.equal((await client.query("SELECT value#>>'{}' value FROM app_settings WHERE key='engine'")).rows[0].value,'wheel-v3');
+    await client.query('ROLLBACK');
+  }finally{client.release();}
+
+  assert.equal((await pool.query("SELECT value#>>'{}' value FROM app_settings WHERE key='engine'")).rows[0].value,'wheel-v2');
+});
+
+test('atomic cutover refuses to switch while a live legacy assignment exists',async()=>{
+  const c=await category(2);
+  const a=await seedPairWithMembers(1,2,{tag:250});
+  const b=await seedPairWithMembers(2,2,{tag:251});
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id) VALUES($1,$2,$3,$4) RETURNING id",
+    [a.league_id,c.id,a.id,b.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[assignment.id,a.id,b.id]);
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await assert.rejects(
+      activateWheelV3(client),
+      error=>error?.code==='WHEEL_V3_CUTOVER_BLOCKED'&&error?.state?.blockers?.includes('live_legacy_assignments'),
+    );
+    await client.query('ROLLBACK');
+  }finally{client.release();}
+
+  assert.equal((await pool.query("SELECT value#>>'{}' value FROM app_settings WHERE key='engine'")).rows[0].value,'wheel-v2');
 });
