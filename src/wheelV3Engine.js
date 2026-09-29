@@ -1866,7 +1866,7 @@ export async function reportWheelV3NoShow(client,{assignmentId,reportedByPairId}
   if(!assignment)throw new Error('Assignment inexistente');
   if(assignment.status!=='open'||assignment.first_result_at)throw new Error('Assignment no disponible para no-show');
   if(!assignment.scheduled_at)throw new Error('El assignment no tiene fecha/hora oficial');
-  const now=(await q(client,`SELECT CURRENT_TIMESTAMP now`)).rows[0].now;
+  const now=(await q(client,`SELECT clock_timestamp() now`)).rows[0].now;
   if(new Date(now)<new Date(assignment.scheduled_at))throw new Error('El no-show solo puede reportarse después del horario oficial');
 
   const reporter=Number(reportedByPairId);
@@ -2446,7 +2446,7 @@ export async function formWheelV3Pair(client,{userIds,requestedCategoryNumber=nu
         awaiting_zone_first_match=false,
         awaiting_zone_kind=NULL,
         inactive_since=CASE WHEN $2 THEN $3::timestamptz-interval '30 days' ELSE NULL END,
-        return_position_base=CASE WHEN $2 THEN $4 ELSE NULL END,
+        return_position_base=CASE WHEN $2 THEN $4::int ELSE NULL END,
         inactive_reason=CASE WHEN $2 THEN 'three_failures' ELSE NULL END,
         auto_reactivate_at=CASE WHEN $2 THEN $3::timestamptz ELSE NULL END,
         real_waiting_since=CURRENT_TIMESTAMP,
@@ -2466,7 +2466,7 @@ export async function formWheelV3Pair(client,{userIds,requestedCategoryNumber=nu
       UPDATE pair_wheel_state
       SET
         inactive_since=CASE WHEN $2 THEN $3::timestamptz-interval '30 days' ELSE NULL END,
-        return_position_base=CASE WHEN $2 THEN $4 ELSE NULL END,
+        return_position_base=CASE WHEN $2 THEN $4::int ELSE NULL END,
         inactive_reason=CASE WHEN $2 THEN 'three_failures' ELSE NULL END,
         auto_reactivate_at=CASE WHEN $2 THEN $3::timestamptz ELSE NULL END,
         real_waiting_since=CURRENT_TIMESTAMP,
