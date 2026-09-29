@@ -7,6 +7,7 @@ export default defineConfig(({mode})=>{
   if(mode==='production')productionApiUrl(process.env.VITE_API_URL||env.VITE_API_URL);
   const release=String(
     process.env.VERCEL_GIT_COMMIT_SHA||
+    process.env.VITE_VERCEL_GIT_COMMIT_SHA||
     process.env.GITHUB_SHA||
     process.env.GIT_COMMIT_SHA||
     env.VITE_RELEASE_SHA||
