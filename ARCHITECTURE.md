@@ -126,25 +126,29 @@ La Neon histórica no existe. No hay que diseñar futuras decisiones asumiendo q
 
 Producción objetivo: Node 22. Las pruebas que se hayan ejecutado accidentalmente con Node 24 no sustituyen el gate final sobre Node 22.
 
-## Válvula de equilibrio entre categorías
+## Runtime legacy Wheel v2 durante la transición
+
+Las subsecciones siguientes documentan exclusivamente el comportamiento que sigue existiendo en `competitionEngine.js` / `wheel.js` mientras `app_settings.engine='wheel-v2'`. **No son la fuente de reglas de Wheel v3** y se retirarán después del cutover estable. Para v3 mandan `PROJECT_RULES.md`, `DECISIONS.md`, `WHEEL_V3_SPEC.md`, `wheelV3Rules.js` y `wheelV3Engine.js`.
+
+### Válvula de equilibrio entre categorías
 `core.relegationLossThreshold()` concentra el umbral puro de descenso. `competitionEngine.applySportingResult()` consulta cantidades activas de la categoría actual e inferior y aplica 2 o 3 derrotas según la diferencia. No existe job que mueva parejas por población: el movimiento ocurre únicamente al confirmar un resultado deportivo.
 
 
-## Concurrencia de resultados deportivos
+### Concurrencia de resultados deportivos
 `applySportingResult()` serializa por `wheel_assignments.id` antes de comprobar idempotencia y bloquea en orden la categoría del partido y sus adyacentes. Esto evita que dos retries simultáneos apliquen el mismo match dos veces y que ascensos/descensos concurrentes hacia una misma categoría choquen por posiciones transitorias. El bloqueo es transaccional y no cambia ninguna regla deportiva.
 
 
-## Concurrencia de formación de pareja y prioridad de bye
+### Concurrencia de formación de pareja y prioridad de bye
 `acceptInvitation()` toma locks de usuarios en orden estable antes de bloquear/revalidar la invitación. Luego bloquea la categoría de destino antes de crear o reactivar la pareja y renumerar posiciones. Esto evita deadlocks cuando dos invitaciones comparten jugador y evita colisiones de posición cuando dos parejas distintas ingresan simultáneamente a la misma categoría.
 
 En categorías impares, `createAssignmentsForCategory()` reserva primero como bye a la pareja elegible con menor antigüedad de espera. Sobre las restantes se mantiene la prioridad de rival nunca enfrentado y luego cruce más antiguo. Así la selección de rival no puede quitarle turno a una pareja que lleva más tiempo esperando.
 
 
-## Resolución de disputas y notificaciones
+### Resolución de disputas y notificaciones
 Una disputa mantiene el assignment abierto y bloqueado para nuevas asignaciones hasta resolución. Si Admin selecciona una versión, el motor aplica el resultado deportivo dentro de la misma transacción y luego cierra el assignment; si lo declara `void`, se cierra sin crear un match. Ambos caminos encolan una notificación idempotente a todos los integrantes afectados y registran auditoría Admin.
 
 
-## Vencimientos y ventana extraordinaria
+### Vencimientos y ventana extraordinaria
 La atribución de vencimiento distingue entre “actuó” y “actuó con margen suficiente”. Un único actor con margen puede dejar al rival como único responsable solo si el rival no actuó en absoluto. Si ambos actuaron sin resolver, ambos son penalizados. La extensión extraordinaria solo acepta votos en las 48 horas posteriores al deadline original; si se activa, su deadline es exactamente 15 días después del original. Su vencimiento genera penalización posicional sin derrota deportiva ni strike atribuible.
 
 
