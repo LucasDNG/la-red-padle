@@ -215,3 +215,56 @@ test('production smoke rejects a deployment whose engine differs from the expect
     /Engine productivo inesperado/,
   );
 });
+
+
+test('production smoke verifies exact backend and frontend release commits',async()=>{
+  const sha='0123456789abcdef';
+  const fetchImpl=async(url)=>{
+    if(url.endsWith('/api/live'))return response({ok:true,engine:'database-selected',process:'ok',release:sha});
+    if(url.endsWith('/api/health'))return response(
+      {ok:true,engine:'wheel-v2',database:'ok',release:sha},
+      {headers:{'access-control-allow-origin':'https://app.example.com'}}
+    );
+    if(url.endsWith('/api/auth/__smoke_no_store__'))return response('not found',{status:404,headers:{'cache-control':'no-store','pragma':'no-cache'}});
+    if(url==='https://app.example.com')return response(`<html><head><meta name="la-red-release" content="${sha}"/></head><body><div id="root"></div></body></html>`);
+    if(url.endsWith('/api/legal/versions'))return response({});
+    return response([]);
+  };
+  const result=await runProductionSmoke({
+    apiUrl:'https://api.example.com',
+    frontendUrl:'https://app.example.com',
+    expectedEngine:'wheel-v2',
+    expectedBackendSha:sha,
+    expectedFrontendSha:sha,
+    fetchImpl,
+  });
+  assert.equal(result.backendRelease,sha);
+  assert.equal(result.frontendRelease,sha);
+});
+
+test('production smoke rejects stale frontend even when backend is current',async()=>{
+  const current='current-sha';
+  const stale='stale-sha';
+  const fetchImpl=async(url)=>{
+    if(url.endsWith('/api/live'))return response({ok:true,engine:'database-selected',process:'ok',release:current});
+    if(url.endsWith('/api/health'))return response(
+      {ok:true,engine:'wheel-v2',database:'ok',release:current},
+      {headers:{'access-control-allow-origin':'https://app.example.com'}}
+    );
+    if(url.endsWith('/api/auth/__smoke_no_store__'))return response('not found',{status:404,headers:{'cache-control':'no-store','pragma':'no-cache'}});
+    if(url==='https://app.example.com')return response(`<html><head><meta name="la-red-release" content="${stale}"/></head><body><div id="root"></div></body></html>`);
+    if(url.endsWith('/api/legal/versions'))return response({});
+    return response([]);
+  };
+  await assert.rejects(
+    ()=>runProductionSmoke({
+      apiUrl:'https://api.example.com',
+      frontendUrl:'https://app.example.com',
+      expectedEngine:'wheel-v2',
+      expectedBackendSha:current,
+      expectedFrontendSha:current,
+      fetchImpl,
+    }),
+    /Frontend desplegado en commit inesperado/,
+  );
+});
