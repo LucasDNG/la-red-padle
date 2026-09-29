@@ -1,11 +1,6 @@
 name: LA RED authenticated production smoke
 
 on:
-  push:
-    branches:
-      - wheel-v3-auth-smoke-run
-    paths:
-      - .github/workflows/production-auth-smoke.yml
   workflow_dispatch:
 
 permissions:
