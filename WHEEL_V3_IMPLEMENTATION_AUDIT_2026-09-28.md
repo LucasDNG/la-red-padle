@@ -5,7 +5,7 @@ Fecha: 2026-09-28
 
 Wheel v3 ya no es solo una especificación: existe un motor aislado en `src/wheelV3Engine.js` y reglas puras compartidas en `src/wheelV3Rules.js`.
 
-**Todavía no está activado en producción.** `app_settings.engine` sigue en `wheel-v2`, pero backend y frontend ya están integrados en modo dual detrás del selector de engine. `wheel-v2` permanece activo hasta el cutover; `wheel-v3` está implementado, enrutable y validado por CI.
+**CUTOVER COMPLETADO.** Desde `2026-09-29T04:36:57.554Z`, `app_settings.engine='wheel-v3'` en producción. Backend y frontend continúan con routing dual sólo durante la estabilización, pero Wheel v3 es el motor competitivo activo.
 
 La estrategia sigue siendo expand -> validar -> integrar -> cutover -> limpiar legacy.
 
@@ -142,7 +142,7 @@ La estrategia sigue siendo expand -> validar -> integrar -> cutover -> limpiar l
 - notificaciones/WhatsApp en assignments, resultados, disputas, cancelaciones, formación, movimientos, inactividad, reactivación, sanciones, no-show y programación;
 - claves de deduplicación para evitar avisos duplicados.
 
-## Aún pendiente antes del cutover
+## Histórico: pendientes previos al cutover — RESUELTOS
 
 No quedan tareas funcionales conocidas de implementación Wheel v3. El pendiente es operativo:
 
@@ -187,3 +187,18 @@ El requisito operativo ya no es identidad de commit entre proveedores, sino **co
 - Run `36521118598` sobre `eba415f82579d7dc763513531cbb7c6f4c35f831`: success completo.
 - Vercel `87532489ca44d8ed5cd9378a5e17db64f360c032` es compatible con ese backend según diff de repositorio sin cambios de frontend/API pública entre ambos.
 - Aun así, el SHA real de cada proveedor debe ser leído por smoke/precutover; no se adivina.
+
+
+## Cutover productivo ejecutado — 2026-09-29
+
+- Run GitHub Actions: `36522396511`.
+- Activación atómica: `2026-09-29T04:36:57.554Z`.
+- Engine anterior: `wheel-v2`.
+- Engine actual: `wheel-v3`.
+- Backend verificado durante el cutover: `209f8164920a20fa6ee3a540b0c1d4b205112e70`.
+- Frontend verificado durante el cutover: `87532489ca44d8ed5cd9378a5e17db64f360c032`.
+- Precutover inmediatamente anterior: `ready:true`, `blockers:[]`, 0 assignments vivos/legacy, 0 transiciones pendientes y 0 estados v3 faltantes.
+- Postcutover: `ok:true`, `engine:wheel-v3`, DB `ok`, readiness v3 `ready:true`, 0 assignments legacy/malformados y 0 estados faltantes.
+- El cambio quedó auditado en `admin_audit_events` con Admin verificado y ambos SHA de release.
+- La barrera global de escrituras competitivas (`8675311`) reemplazó la necesidad de apagar Render: writers en curso terminan antes del switch y writers nuevos esperan hasta poder leer el engine nuevo.
+- A partir de este punto no se debe volver a `wheel-v2` mediante un simple update de configuración.
