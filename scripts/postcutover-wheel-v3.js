@@ -14,6 +14,7 @@ if(report.errors.length){
 if(!process.env.PROD_API_URL)throw new Error('PROD_API_URL es obligatorio');
 if(!process.env.PROD_FRONTEND_URL)throw new Error('PROD_FRONTEND_URL es obligatorio');
 if(!process.env.EXPECTED_RELEASE_SHA)throw new Error('EXPECTED_RELEASE_SHA es obligatorio');
+if(!/^[0-9a-f]{40}$/i.test(process.env.EXPECTED_RELEASE_SHA||''))throw new Error('EXPECTED_RELEASE_SHA debe ser un SHA Git completo de 40 caracteres');
 
 const {Pool}=pg;
 const pool=new Pool(databasePoolOptions(process.env));
