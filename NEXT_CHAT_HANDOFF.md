@@ -326,3 +326,15 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - Para validar `played_at` contra el presente se usa `clock_timestamp()` de PostgreSQL: sigue siendo reloj autoritativo del servidor y evita falsos 'futuro' cuando la transacción comenzó antes del timestamp cargado.
 - `engine` continúa en `wheel-v2`; CI verde NO implica que el cutover ya haya sido ejecutado.
 - Existe gate `wheelV3CutoverReadiness` / `npm run check:wheel-v3-cutover`; bloquea el switch si quedan assignments vivos, transiciones de pareja pendientes o estado v3 incompleto.
+
+### Cutover controlado listo — 2026-09-29
+- Se agregó `activateWheelV3(client)` con advisory locks `8675309` (asignador) y `8675310` (mantenimiento), recheck del gate y update atómico de `app_settings.engine`.
+- Comando explícito: `npm run activate:wheel-v3`.
+- El comando exige `CONFIRM_WHEEL_V3_CUTOVER=YES` y `WHEEL_V3_BACKEND_QUIESCED=YES`; no debe ejecutarse con requests v2 en vuelo.
+- Tests PostgreSQL verifican activación transaccional, rollback y rechazo si existe un assignment legacy vivo.
+- Run `36510192308` sobre commit `423636f8e75b3d66469af3a1514d7a0578ff17e7` terminó verde incluyendo esas pruebas.
+- Los scripts de check/activación quedaron incluidos en `npm run check`.
+- Run `36510319476` sobre commit `a2da70eab1ea0d50137bfb123662a9353746a6d9` terminó `success`: frontend, check, unit, verify DB e integración PostgreSQL verdes.
+- Runbook operativo: `WHEEL_V3_CUTOVER_RUNBOOK.md`.
+- Vercel reportó `success` en el commit del runbook durante esta tanda.
+- No se ejecutó el cutover productivo: el engine debe seguir en `wheel-v2` hasta correr el gate contra la DB real y quiescer el backend.
