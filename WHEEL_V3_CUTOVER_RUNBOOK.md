@@ -46,9 +46,16 @@ Después se inicia/reanuda el backend.
 
 ## Verificación inmediata
 
-Confirmar:
+Ejecutar:
+
+```
+npm run postcutover:wheel-v3
+```
+
+Ese comando valida configuración productiva, TLS, preflight/estado operativo v3 y smoke HTTP exigiendo `engine=wheel-v3`.
+
+Además confirmar:
 - `/api/health` informa `engine: wheel-v3`;
-- `npm run smoke:prod` se ejecuta con `EXPECTED_ENGINE=wheel-v3`;
 - liveness está verde;
 - ranking público responde;
 - login y `/api/me/league` responden;
