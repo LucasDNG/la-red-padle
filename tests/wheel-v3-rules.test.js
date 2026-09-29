@@ -717,8 +717,12 @@ test('immediate repeat expands to the next window when a fresh superior defender
   assert.equal(defender.id,4);
 });
 
-test('population acceleration requires strict improvement, not equal combined deviation',()=>{
-  const counts=[20,18,10,10,10,10,10];
-  assert.equal(populationMoveImprovesBalance(counts,0,1),false);
-  assert.equal(populationDirectionalThreshold(counts,0,1),3);
+test('population acceleration may use an equal combined deviation but never a worse one',()=>{
+  const equal=[20,18,10,10,10,10,10];
+  assert.equal(populationMoveImprovesBalance(equal,0,1),true);
+  assert.equal(populationDirectionalThreshold(equal,0,1),1);
+
+  const worse=[20,8,20,10,10,10,10];
+  assert.equal(populationMoveImprovesBalance(worse,0,2),false);
+  assert.equal(populationDirectionalThreshold(worse,0,2),3);
 });
