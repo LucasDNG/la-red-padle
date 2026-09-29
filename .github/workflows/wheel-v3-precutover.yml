@@ -33,7 +33,7 @@ jobs:
       ADMIN_TOTP_SECRET: ${{ secrets.PROD_ADMIN_TOTP_SECRET }}
       PROD_API_URL: ${{ vars.PROD_API_URL }}
       PROD_FRONTEND_URL: ${{ vars.PROD_FRONTEND_URL }}
-      EXPECTED_BACKEND_SHA: ${{ inputs.backend_sha || 'ef91cff756bbab5d7bbe994d3ee6a05f4097eb5a' }}
+      EXPECTED_BACKEND_SHA: ${{ inputs.backend_sha || '3cd83e5d4d0a4bcb594c3acdc5828b563170e6e7' }}
       EXPECTED_FRONTEND_SHA: ${{ inputs.frontend_sha || '87532489ca44d8ed5cd9378a5e17db64f360c032' }}
     steps:
       - name: Validate Wheel v3 precutover inputs
