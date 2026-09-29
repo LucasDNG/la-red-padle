@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
 import {productionApiUrl} from '../frontend/buildEnv.js';
 import {frontendReleaseSha,injectFrontendReleaseMeta} from '../frontend/releaseMeta.js';
 
@@ -22,4 +23,10 @@ test('frontend release helper injects the deployment commit into HTML',()=>{
   assert.equal(frontendReleaseSha({VITE_VERCEL_GIT_COMMIT_SHA:sha}),sha);
   const html=injectFrontendReleaseMeta('<html><head></head><body></body></html>',sha);
   assert.match(html,/name="la-red-release" content="0123456789abcdef0123456789abcdef01234567"/);
+});
+
+
+test('Vercel skips builds when the frontend directory did not change',()=>{
+  const config=JSON.parse(fs.readFileSync(new URL('../frontend/vercel.json',import.meta.url),'utf8'));
+  assert.equal(config.ignoreCommand,'git diff HEAD^ HEAD --quiet .');
 });
