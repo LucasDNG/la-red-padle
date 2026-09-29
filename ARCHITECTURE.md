@@ -1,7 +1,7 @@
 # LA RED Pádel — Arquitectura final
 
 ## Principio
-Una sola aplicación y una sola base. Durante la transición existe routing dual `wheel-v2` / `wheel-v3` detrás de `app_settings.engine`; sólo un engine aplica consecuencias competitivas en cada momento. Tras el cutover estable se retirará el runtime legacy.
+Una sola aplicación y una sola base. Desde el 2026-09-29 producción usa `app_settings.engine='wheel-v3'`. El routing dual `wheel-v2` / `wheel-v3` permanece temporalmente sólo como capa de transición/recuperación; un único engine aplica consecuencias competitivas en cada momento. El runtime legacy se retirará únicamente después de observar estabilidad suficiente.
 
 ## Backend
 Node.js 22 + Express 5 + PostgreSQL/Neon.
@@ -60,7 +60,9 @@ Superficies:
 - PWA instalable.
 
 ## Motor
-`wheel-v2` sigue siendo el engine seleccionado antes del cutover. El código ya soporta `wheel-v3` de forma completa detrás de `app_settings.engine`; no se ejecutan reglas de ambos engines sobre un mismo compromiso.
+`wheel-v3` es el engine activo en producción desde `2026-09-29T04:36:57.554Z`. El selector por `app_settings.engine` continúa existiendo durante la estabilización, pero `wheel-v2` ya no es el motor productivo.
+
+El cutover usa una barrera PostgreSQL de escrituras competitivas: cada write obtiene un advisory lock compartido (`8675311`) y la activación toma el mismo lock en exclusivo antes de revalidar blockers y cambiar el engine. Así las escrituras v2 en vuelo terminan antes del switch y las nuevas escrituras esperan para volver a leer `wheel-v3`, sin apagar el backend.
 
 Invariantes:
 - máximo un assignment abierto por pareja;
@@ -190,9 +192,9 @@ La API debe exponer deadlines absolutos y una referencia de tiempo de servidor (
 No se agrega una dependencia de un proveedor externo de hora por request: el servidor/DB es la autoridad del dominio y su infraestructura ya sincroniza reloj mediante mecanismos del proveedor.
 
 
-## Estado preparatorio Wheel v3
+## Estado Wheel v3
 
-Antes del cutover, la base incorpora de forma aditiva estado específico de Wheel v3 sin cambiar `app_settings.engine`:
+La preparación previa al cutover incorporó de forma aditiva el estado específico de Wheel v3. Ese estado es ahora el estado competitivo activo:
 - `league_wheel_state`: cierre irreversible de formación por circuito;
 - `pair_wheel_state`: rol, racha de rol, ascenso e inactividad/retorno;
 - `pair_duo_state`: incumplimientos y descenso pendiente ligados a la dupla exacta;
