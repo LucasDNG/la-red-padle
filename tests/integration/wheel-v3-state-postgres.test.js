@@ -2373,3 +2373,44 @@ test('post-cutover operational readiness accepts valid Wheel v3 state and reject
   await pool.query("UPDATE wheel_assignments SET status='cancelled',closed_at=CURRENT_TIMESTAMP,close_reason='operational-readiness-test' WHERE id=$1",[assignment.id]);
   await pool.query("UPDATE app_settings SET value=to_jsonb($1::text) WHERE key='engine'",['wheel-v2']);
 });
+
+
+test('audited cutover records verified admin and release SHA in the same transaction',async()=>{
+  const admin=(await pool.query(
+    "INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender,role,verification_status) VALUES('Cutover','Admin','79999999','79999999','x','male','admin','verified') RETURNING id"
+  )).rows[0];
+  const sha='0123456789abcdef0123456789abcdef01234567';
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const activated=await activateWheelV3(client,{adminUserId:admin.id,releaseSha:sha});
+    assert.equal(Number(activated.adminUserId),Number(admin.id));
+    assert.equal(activated.releaseSha,sha);
+    const audit=(await client.query(
+      "SELECT action,target_type,data FROM admin_audit_events WHERE admin_user_id=$1 ORDER BY id DESC LIMIT 1",
+      [admin.id],
+    )).rows[0];
+    assert.equal(audit.action,'wheel_v3_cutover');
+    assert.equal(audit.target_type,'system');
+    assert.equal(audit.data.previousEngine,'wheel-v2');
+    assert.equal(audit.data.engine,'wheel-v3');
+    assert.equal(audit.data.releaseSha,sha);
+    await client.query('ROLLBACK');
+  }finally{client.release();}
+});
+
+test('audited cutover rejects a non-admin actor',async()=>{
+  const player=(await pool.query(
+    "INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender,role,verification_status) VALUES('Cutover','Player','79999998','79999998','x','male','player','verified') RETURNING id"
+  )).rows[0];
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await assert.rejects(
+      activateWheelV3(client,{adminUserId:player.id,releaseSha:'0123456789abcdef0123456789abcdef01234567'}),
+      /Admin verificado/,
+    );
+    await client.query('ROLLBACK');
+  }finally{client.release();}
+});
