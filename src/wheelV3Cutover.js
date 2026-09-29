@@ -103,3 +103,24 @@ export async function assertWheelV3CutoverReady(client){
   }
   return state;
 }
+
+
+export async function activateWheelV3(client){
+  await q(client,`SELECT pg_advisory_xact_lock(8675309)`);
+  await q(client,`SELECT pg_advisory_xact_lock(8675310)`);
+  await q(client,`SELECT key FROM app_settings WHERE key='engine' FOR UPDATE`);
+  const before=await assertWheelV3CutoverReady(client);
+  const row=(await q(client,`
+    UPDATE app_settings
+    SET value=to_jsonb('wheel-v3'::text),updated_at=CURRENT_TIMESTAMP
+    WHERE key='engine'
+      AND value#>>'{}'='wheel-v2'
+    RETURNING value#>>'{}' engine,updated_at
+  `)).rows[0];
+  if(!row)throw new Error('No se pudo activar Wheel v3 de forma atómica');
+  return {
+    previousEngine:before.engine,
+    engine:row.engine,
+    activatedAt:row.updated_at,
+  };
+}
