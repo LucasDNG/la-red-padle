@@ -8,6 +8,10 @@ services:
     healthCheckPath: /api/health
     maxShutdownDelaySeconds: 15
     autoDeployTrigger: checksPass
+    buildFilter:
+      ignoredPaths:
+        - "*.md"
+        - "**/*.md"
     envVars:
       - key: NODE_ENV
         value: production
