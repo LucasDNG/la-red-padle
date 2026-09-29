@@ -32,7 +32,7 @@ test('authenticated production smoke validates player and admin read-only surfac
     const decoded=jwt.decode(auth.slice(7));
     if(path==='/api/admin/status'){
       if(Number(decoded.id)!==admin.id)return response({error:'Solo administrador'},{status:403});
-      return response({engine:'wheel-v3'});
+      return response({engine:'wheel-v3',whatsapp:true,outboxPending:2,outboxFailed:1});
     }
     if(path==='/api/me')return response({id:Number(decoded.id)});
     if(path.startsWith('/api/admin/'))return response([]);
@@ -53,6 +53,9 @@ test('authenticated production smoke validates player and admin read-only surfac
       anonymousRejected:true,
       adminVerified:true,
       adminReadEndpoints:7,
+      whatsappConfigured:true,
+      whatsappOutboxPending:2,
+      whatsappOutboxFailed:1,
       playerAvailable:true,
       playerReadEndpoints:4,
       pairedPlayerAvailable:true,
