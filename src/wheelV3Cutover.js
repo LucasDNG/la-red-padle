@@ -105,11 +105,25 @@ export async function assertWheelV3CutoverReady(client){
 }
 
 
-export async function activateWheelV3(client){
+export async function activateWheelV3(client,{adminUserId=null,releaseSha=null}={}){
   await q(client,`SELECT pg_advisory_xact_lock(8675309)`);
   await q(client,`SELECT pg_advisory_xact_lock(8675310)`);
   await q(client,`SELECT key FROM app_settings WHERE key='engine' FOR UPDATE`);
   const before=await assertWheelV3CutoverReady(client);
+
+  let admin=null;
+  if(adminUserId!=null){
+    admin=(await q(client,`
+      SELECT id,role,verification_status
+      FROM users
+      WHERE id=$1
+      FOR UPDATE
+    `,[adminUserId])).rows[0];
+    if(!admin||admin.role!=='admin'||admin.verification_status!=='verified'){
+      throw new Error('El cutover requiere un Admin verificado');
+    }
+  }
+
   const row=(await q(client,`
     UPDATE app_settings
     SET value=to_jsonb('wheel-v3'::text),updated_at=CURRENT_TIMESTAMP
@@ -118,10 +132,27 @@ export async function activateWheelV3(client){
     RETURNING value#>>'{}' engine,updated_at
   `)).rows[0];
   if(!row)throw new Error('No se pudo activar Wheel v3 de forma atómica');
+
+  if(admin){
+    await q(client,`
+      INSERT INTO admin_audit_events(admin_user_id,action,target_type,data)
+      VALUES($1,'wheel_v3_cutover','system',$2::jsonb)
+    `,[
+      admin.id,
+      JSON.stringify({
+        previousEngine:before.engine,
+        engine:row.engine,
+        releaseSha:releaseSha||null,
+      }),
+    ]);
+  }
+
   return {
     previousEngine:before.engine,
     engine:row.engine,
     activatedAt:row.updated_at,
+    adminUserId:admin?.id??null,
+    releaseSha:releaseSha||null,
   };
 }
 
