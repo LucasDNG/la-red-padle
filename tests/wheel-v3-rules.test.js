@@ -706,3 +706,19 @@ test('compulsory defense persists after an attack and clears only after a real d
     {role:'attack',roleStreak:2,defenseRequiredUntilReal:false},
   );
 });
+
+
+test('immediate repeat expands to the next window when a fresh superior defender exists',()=>{
+  const attacker={id:8,position:8,role:'attack',active:true,free:true,realWaitingSince:'2026-09-01T00:00:00Z'};
+  const defender=chooseDefenderForAttacker(attacker,[
+    {id:7,position:7,role:'defense',active:true,free:true,realWaitingSince:'2026-08-01T00:00:00Z'},
+    {id:4,position:4,role:'defense',active:true,free:true,realWaitingSince:'2026-09-20T00:00:00Z'},
+  ],{lastOpponentId:7});
+  assert.equal(defender.id,4);
+});
+
+test('population acceleration requires strict improvement, not equal combined deviation',()=>{
+  const counts=[20,18,10,10,10,10,10];
+  assert.equal(populationMoveImprovesBalance(counts,0,1),false);
+  assert.equal(populationDirectionalThreshold(counts,0,1),3);
+});
