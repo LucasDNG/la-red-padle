@@ -14,6 +14,7 @@ const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfRe
 const {pool:appPool}=await import('../../src/db.js');
 const {withCompetitiveWrite,COMPETITIVE_WRITE_LOCK_KEY}=await import('../../src/competitionRuntime.js');
 const {wheelV3CutoverReadiness,activateWheelV3,wheelV3OperationalReadiness}=await import('../../src/wheelV3Cutover.js');
+const {expireObsoleteWhatsAppOutbox}=await import('../../src/notifications.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
 const patch=fs.readFileSync(path.resolve(__dirname,'../../database/PATCH_WHEEL_V3_STATE_2026-09-28.sql'),'utf8');
@@ -2541,4 +2542,70 @@ test('competitive write barrier uses a dedicated advisory key distinct from assi
   assert.equal(COMPETITIVE_WRITE_LOCK_KEY,8675311);
   assert.notEqual(COMPETITIVE_WRITE_LOCK_KEY,8675309);
   assert.notEqual(COMPETITIVE_WRITE_LOCK_KEY,8675310);
+});
+
+
+test('WhatsApp outbox expires only obsolete domain messages before delivery',async()=>{
+  const u1=(await pool.query(
+    "INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('Outbox','Uno','78888001','5493329000001','x','male') RETURNING id"
+  )).rows[0];
+  const u2=(await pool.query(
+    "INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender) VALUES('Outbox','Dos','78888002','5493329000002','x','male') RETURNING id"
+  )).rows[0];
+
+  const expiredRecovery=(await pool.query(
+    "INSERT INTO password_recovery_codes(user_id,code_hash,expires_at) VALUES($1,'x',CURRENT_TIMESTAMP-interval '1 minute') RETURNING id",
+    [u1.id],
+  )).rows[0];
+  const validRecovery=(await pool.query(
+    "INSERT INTO password_recovery_codes(user_id,code_hash,expires_at) VALUES($1,'x',CURRENT_TIMESTAMP+interval '15 minutes') RETURNING id",
+    [u1.id],
+  )).rows[0];
+
+  const validInvite=(await pool.query(
+    "INSERT INTO pair_invitations(inviter_user_id,invitee_user_id,resulting_category_number,expires_at) VALUES($1,$2,7,CURRENT_TIMESTAMP+interval '1 day') RETURNING id",
+    [u1.id,u2.id],
+  )).rows[0];
+  const acceptedInvite=(await pool.query(
+    "INSERT INTO pair_invitations(inviter_user_id,invitee_user_id,resulting_category_number,status,expires_at,responded_at) VALUES($1,$2,7,'accepted',CURRENT_TIMESTAMP+interval '1 day',CURRENT_TIMESTAMP) RETURNING id",
+    [u2.id,u1.id],
+  )).rows[0];
+
+  const expiredPhone=(await pool.query(
+    "INSERT INTO phone_change_codes(user_id,new_phone,code_hash,expires_at) VALUES($1,'5493329111111','x',CURRENT_TIMESTAMP-interval '1 minute') RETURNING id",
+    [u1.id],
+  )).rows[0];
+  const validPhone=(await pool.query(
+    "INSERT INTO phone_change_codes(user_id,new_phone,code_hash,expires_at) VALUES($1,'5493329222222','x',CURRENT_TIMESTAMP+interval '15 minutes') RETURNING id",
+    [u1.id],
+  )).rows[0];
+
+  const rows=[
+    [u1.id,'password_recovery',{recoveryId:expiredRecovery.id},'wa:recovery-expired'],
+    [u1.id,'password_recovery',{recoveryId:validRecovery.id},'wa:recovery-valid'],
+    [u2.id,'pair_invitation',{invitationId:validInvite.id},'wa:invite-valid'],
+    [u1.id,'pair_invitation',{invitationId:acceptedInvite.id},'wa:invite-accepted'],
+    [u1.id,'phone_change',{body:'legacy'},`phone-change-code:${expiredPhone.id}`],
+    [u1.id,'phone_change',{phoneChangeId:validPhone.id},'phone-change-valid'],
+  ];
+  for(const [userId,type,payload,dedupe] of rows){
+    await pool.query(
+      "INSERT INTO notification_outbox(user_id,channel,type,payload,dedupe_key) VALUES($1,'whatsapp',$2,$3::jsonb,$4)",
+      [userId,type,JSON.stringify(payload),dedupe],
+    );
+  }
+
+  const result=await expireObsoleteWhatsAppOutbox(pool);
+  assert.equal(result.expired,3);
+
+  const statuses=Object.fromEntries((await pool.query(
+    "SELECT dedupe_key,status FROM notification_outbox ORDER BY dedupe_key"
+  )).rows.map(r=>[r.dedupe_key,r.status]));
+
+  assert.equal(statuses['wa:recovery-expired'],'expired');
+  assert.equal(statuses['wa:recovery-valid'],'pending');
+  assert.equal(statuses['wa:invite-valid'],'pending');
+  assert.equal(statuses['wa:invite-accepted'],'expired');
+  assert.equal(statuses[`phone-change-code:${expiredPhone.id}`],'expired');
+  assert.equal(statuses['phone-change-valid'],'pending');
 });
