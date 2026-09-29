@@ -166,6 +166,10 @@ test('extreme position overrides the normal post-match role',()=>{
     roleAfterRealMatch({previousRole:'attack',wasAttacker:false,roleStreak:1,position:1,activeCount:8}),
     {role:'defense',roleStreak:1,defenseRequiredUntilReal:false},
   );
+  assert.deepEqual(
+    roleAfterRealMatch({previousRole:'defense',wasAttacker:false,roleStreak:2,position:1,activeCount:8,defenseRequiredUntilReal:true}),
+    {role:'defense',roleStreak:3,defenseRequiredUntilReal:false},
+  );
 });
 
 test('longest real wait is the primary ordering key',()=>{
@@ -662,4 +666,43 @@ test('occupied real leader does not turn free #2 into a fake structural defender
     {id:4,position:4,role:'attack',roleStreak:1,active:true,free:true,realWaitingSince:'2026-09-04T00:00:00Z'},
   ]);
   assert.equal(plan.pairs.find(x=>x.id===2).role,'attack');
+});
+
+
+test('compulsory defense persists after an attack and clears only after a real defense unless structurally impossible',()=>{
+  assert.deepEqual(
+    roleAfterRealMatch({
+      previousRole:'attack',
+      wasAttacker:true,
+      roleStreak:1,
+      position:4,
+      activeCount:8,
+      defenseRequiredUntilReal:true,
+    }),
+    {role:'defense',roleStreak:1,defenseRequiredUntilReal:true},
+  );
+
+  assert.deepEqual(
+    roleAfterRealMatch({
+      previousRole:'defense',
+      wasAttacker:false,
+      roleStreak:1,
+      position:4,
+      activeCount:8,
+      defenseRequiredUntilReal:true,
+    }),
+    {role:'attack',roleStreak:1,defenseRequiredUntilReal:false},
+  );
+
+  assert.deepEqual(
+    roleAfterRealMatch({
+      previousRole:'attack',
+      wasAttacker:true,
+      roleStreak:1,
+      position:8,
+      activeCount:8,
+      defenseRequiredUntilReal:true,
+    }),
+    {role:'attack',roleStreak:2,defenseRequiredUntilReal:false},
+  );
 });
