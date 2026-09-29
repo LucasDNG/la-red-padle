@@ -2037,7 +2037,7 @@ function wheelV3ResultPayload(row){
 }
 
 async function wheelV3ValidateFirstResultWindow(client,assignment,playedAt){
-  const now=(await q(client,`SELECT CURRENT_TIMESTAMP now`)).rows[0].now;
+  const now=(await q(client,`SELECT clock_timestamp() now`)).rows[0].now;
   const played=new Date(playedAt);
   if(Number.isNaN(played.getTime()))throw new Error('Fecha de partido inválida');
   if(played>new Date(now))throw new Error('La fecha jugada no puede estar en el futuro');
