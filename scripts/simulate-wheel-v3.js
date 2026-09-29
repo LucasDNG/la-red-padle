@@ -5,7 +5,7 @@ import {
 } from './wheel-v3-rule-model.js';
 
 export const TARGET_SHARE=1/7;
-export const entryPositionAntepenultimate=entryPositionPenultimate;
+export {entryPositionPenultimate};
 export const directionalThreshold=populationDirectionalThreshold;
 export const delayedResultMovement=delayedResultMovementRule;
 
@@ -150,7 +150,7 @@ export function simulateWheelV3({runs=120,years=20,counts:startCounts=Array(7).f
 }
 
 if(process.argv[1]&&new URL(import.meta.url).pathname===process.argv[1]){
-  console.log('Wheel v3 longitudinal model · antepenultimate entry');
+  console.log('Wheel v3 longitudinal model · penultimate entry');
   for(const skillGap of [0,0.7,1]){
     const r=simulateWheelV3({skillGap});
     console.log('gap='+skillGap.toFixed(1),'cats=['+r.counts.map(x=>x.toFixed(2)).join(', ')+']','P='+r.promotions.toFixed(1),'R='+r.relegations.toFixed(1),'empty='+(100*r.emptyRunRate).toFixed(1)+'%','RMSE='+r.stabilityRmse.toFixed(2),'top-bottom='+r.topMinusBottom.toFixed(2));
