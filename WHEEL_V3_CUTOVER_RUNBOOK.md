@@ -16,13 +16,15 @@ El cutover cambia únicamente cuando el código dual ya está desplegado y valid
 6. Todas las parejas, duplas exactas y circuitos deben tener su estado preparatorio v3.
 7. El backend debe quedar temporalmente quiesced durante el cambio para que ninguna request que ya haya elegido v2 escriba después del switch.
 
-El comando:
+El chequeo recomendado previo al cambio es:
 
 ```
-npm run check:wheel-v3-cutover
+npm run precutover:wheel-v3
 ```
 
-debe devolver `ready: true`.
+Combina configuración de producción, TLS, preflight de base y el gate competitivo v3. Debe devolver `ok: true` y `cutover.ready: true`.
+
+El chequeo competitivo aislado sigue disponible con `npm run check:wheel-v3-cutover`.
 
 ## Activación
 
@@ -46,6 +48,7 @@ Después se inicia/reanuda el backend.
 
 Confirmar:
 - `/api/health` informa `engine: wheel-v3`;
+- `npm run smoke:prod` se ejecuta con `EXPECTED_ENGINE=wheel-v3`;
 - liveness está verde;
 - ranking público responde;
 - login y `/api/me/league` responden;
