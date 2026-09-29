@@ -1,7 +1,7 @@
 # LA RED Pádel — Arquitectura final
 
 ## Principio
-Una sola aplicación, un solo motor competitivo y una sola base. No existe coexistencia con el runtime histórico.
+Una sola aplicación y una sola base. Durante la transición existe routing dual `wheel-v2` / `wheel-v3` detrás de `app_settings.engine`; sólo un engine aplica consecuencias competitivas en cada momento. Tras el cutover estable se retirará el runtime legacy.
 
 ## Backend
 Node.js 22 + Express 5 + PostgreSQL/Neon.
@@ -9,9 +9,15 @@ Node.js 22 + Express 5 + PostgreSQL/Neon.
 Módulos:
 - `src/core.js`: reglas puras, score, fechas, categorías.
 - `src/account.js`: identidad, legales, recuperación y teléfono.
-- `src/pairs.js`: invitaciones, parejas, pausa y disolución.
-- `src/competitionEngine.js`: escalera, rachas, ascensos/descensos y eventos. La lógica numérica paralela aún presente pertenece a Wheel v2 y debe retirarse al implementar Wheel v3.
-- `src/wheel.js`: asignación automática, programación, no-show, extensión, resultados y mantenimiento.
+- `src/pairs.js`: implementación legacy Wheel v2 para invitaciones, parejas, pausa y disolución.
+- `src/pairsV3Api.js` + `src/pairsRuntime.js`: fachada y routing de parejas para Wheel v3.
+- `src/competitionEngine.js`: motor deportivo legacy Wheel v2; queda sólo durante la transición.
+- `src/wheel.js`: runtime legacy Wheel v2.
+- `src/wheelV3Rules.js`: reglas puras Wheel v3.
+- `src/wheelV3Engine.js`: motor transaccional Wheel v3.
+- `src/wheelV3Api.js` + `src/wheelRuntime.js`: fachada y selector de runtime competitivo.
+- `src/adminV3Api.js` + `src/adminRuntime.js`: superficie administrativa dual.
+- `src/wheelV3Cutover.js`: readiness pre/post-cutover y activación atómica.
 - `src/discipline.js`: reportes y estados disciplinarios.
 - `src/notifications.js`: notificaciones internas + outbox WhatsApp.
 - `src/admin.js`: excepciones administrativas.
@@ -54,7 +60,7 @@ Superficies:
 - PWA instalable.
 
 ## Motor
-`wheel-v2` es el único motor activo.
+`wheel-v2` sigue siendo el engine seleccionado antes del cutover. El código ya soporta `wheel-v3` de forma completa detrás de `app_settings.engine`; no se ejecutan reglas de ambos engines sobre un mismo compromiso.
 
 Invariantes:
 - máximo un assignment abierto por pareja;
@@ -87,7 +93,7 @@ GitHub Actions ejecuta backend syntax/check, tests y build frontend en cada push
 
 La presentación está desacoplada del motor deportivo, pero su identidad es estable.
 
-`frontend/src/App.jsx` contiene las superficies wheel-v2 y `frontend/src/styles.css` aplica el sistema visual oficial. Los assets de marca/hero viven en `frontend/public/`.
+`frontend/src/App.jsx` contiene una superficie dual condicionada por engine: conserva compatibilidad v2 mientras `wheel-v3` oculta extensión y ranking numérico legacy y expone roles, inactividad, no-show v3 y demás acciones nuevas. `frontend/src/styles.css` aplica el sistema visual oficial. Los assets de marca/hero viven en `frontend/public/`.
 
 Una corrección visual no debe cambiar reglas competitivas ni contratos de API. Una reconstrucción de backend tampoco debe borrar la identidad visual aprobada.
 
@@ -169,7 +175,7 @@ El backend declara un Blueprint `render.yaml` en la raíz. Render debe esperar c
 
 La misma rutina corre automáticamente en `src/index.js` antes de `app.listen()` cuando `NODE_ENV=production`. Usa un advisory lock PostgreSQL para que múltiples instancias que arranquen juntas no ejecuten migraciones en paralelo. Esto evita depender de `preDeployCommand`, que no está disponible en todos los planes de Render.
 
-El health no es estático: depende de PostgreSQL y valida `app_settings.engine = wheel-v2`. Por eso una instancia sin DB funcional no puede quedar verde solo porque Express arrancó.
+El health no es estático: depende de PostgreSQL y acepta únicamente `app_settings.engine` en `wheel-v2` o `wheel-v3`. Por eso una instancia sin DB funcional o con un engine desconocido no puede quedar verde solo porque Express arrancó.
 
 ## Tiempo y deadlines
 
