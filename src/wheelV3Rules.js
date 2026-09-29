@@ -215,7 +215,7 @@ export function populationMoveImprovesBalance(counts,srcIndex,dstIndex){
   const dev=(a,b)=>Math.abs(a/total-WHEEL_V3_TARGET_SHARE)+Math.abs(b/total-WHEEL_V3_TARGET_SHARE);
   const before=dev(values[srcIndex],values[dstIndex]);
   const after=dev(values[srcIndex]-1,values[dstIndex]+1);
-  return after<before-1e-12;
+  return after<=before+1e-12;
 }
 
 export function populationDirectionalThreshold(counts,srcIndex,dstIndex){
