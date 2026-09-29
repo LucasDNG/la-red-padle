@@ -372,3 +372,14 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - Vercel `ignoreCommand` quedó limitado a commits exclusivamente `.md`; cualquier cambio de código en backend o frontend sigue disparando build para conservar paridad exacta de SHA entre deploys.
 - `ARCHITECTURE.md` ahora marca explícitamente las secciones de `competitionEngine.js`/`wheel.js` como legacy Wheel v2 de transición y no como reglas vigentes v3.
 - `WHEEL_V3_IMPLEMENTATION_AUDIT_2026-09-28.md` ya declara que no quedan tareas funcionales conocidas; sólo resta el procedimiento operativo real de deploy/precutover/cutover/postcutover.
+
+### CIERRE FUNCIONAL WHEEL V3 — 2026-09-29
+- Candidato final de código validado: `8c4d0104bffd98df72ec473d1297c8f72832138e`.
+- GitHub Actions run `36519976313`: **success completo** — frontend build, `npm run check`, `npm test`, `npm run verify:db` y `npm run test:integration` verdes.
+- Corrección final de defensa obligatoria: una defensa real cumplida libera `defense_required_until_real` aunque la pareja permanezca #1/defensa; si la obligación es estructuralmente imposible por quedar última, se libera según la especificación.
+- Repetición de rival: si el rival anterior es la única opción de la primera ventana pero existe otro defensor superior fresco en una ventana siguiente, la búsqueda se expande y evita la repetición. Solo repite si no existe alternativa superior elegible.
+- Equilibrio poblacional: el gate vigente es no-empeorante. Un movimiento adyacente puede acelerar si reduce o mantiene exactamente el desvío conjunto respecto de 1/7; solo se bloquea si aumenta el desvío conjunto. `WHEEL_V3_SPEC.md` y `DECISIONS.md` quedaron explícitos.
+- Se eliminó el alias/nombre confuso `antepenultimate`; simulación y tests usan `entryPositionPenultimate` / ingreso anteúltimo. La regla vigente sigue N=0=>#1, N=1=>#2, N>=2=>posición N.
+- `WHEEL_V3_AUDIT_2026-09-28.md` marca la antigua fórmula `floor(N/2)+1` como histórica/superada.
+- No quedan tareas funcionales conocidas de Wheel v3. Lo único pendiente es el procedimiento operativo de producción: lograr paridad de release Render/Vercel, ejecutar precutover, quiesce, activación atómica y postcutover.
+- NO se activó producción en esta sesión; `app_settings.engine` debe continuar `wheel-v2` hasta completar el runbook.
