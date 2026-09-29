@@ -1,0 +1,48 @@
+name: WhatsApp outbox type audit
+
+on:
+  push:
+    branches:
+      - wheel-v3-whatsapp-outbox-audit
+    paths:
+      - .github/workflows/whatsapp-outbox-audit.yml
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      NODE_ENV: production
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - name: Aggregate WhatsApp outbox without PII
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import pg from 'pg';
+          import {databasePoolOptions} from './src/config.js';
+          const {Client}=pg;
+          const client=new Client(databasePoolOptions(process.env));
+          await client.connect();
+          try{
+            const rows=(await client.query(`
+              SELECT status,type,count(*)::int n,
+                     min(created_at) oldest,
+                     max(created_at) newest
+              FROM notification_outbox
+              GROUP BY status,type
+              ORDER BY status,type
+            `)).rows;
+            console.log(JSON.stringify(rows,null,2));
+          }finally{
+            await client.end();
+          }
+          NODE
