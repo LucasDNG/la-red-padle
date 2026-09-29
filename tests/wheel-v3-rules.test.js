@@ -722,7 +722,7 @@ test('population acceleration may use an equal combined deviation but never a wo
   assert.equal(populationMoveImprovesBalance(equal,0,1),true);
   assert.equal(populationDirectionalThreshold(equal,0,1),1);
 
-  const worse=[20,8,20,10,10,10,10];
-  assert.equal(populationMoveImprovesBalance(worse,0,2),false);
-  assert.equal(populationDirectionalThreshold(worse,0,2),3);
+  const worse=[12,20,10,10,10,10,12];
+  assert.equal(populationMoveImprovesBalance(worse,0,1),false);
+  assert.equal(populationDirectionalThreshold(worse,0,1),3);
 });
