@@ -2312,12 +2312,14 @@ test('cutover gate refuses pending pair transitions and global clock pause',asyn
 
 
 test('atomic cutover acquires wheel locks, rechecks readiness and switches only inside its transaction',async()=>{
+  const admin=await seedAdmin(40);
+  const releaseSha='0123456789abcdef0123456789abcdef01234567';
   const client=await pool.connect();
   try{
     await client.query('BEGIN');
     const before=await wheelV3CutoverReadiness(client);
     assert.equal(before.ready,true);
-    const activated=await activateWheelV3(client);
+    const activated=await activateWheelV3(client,{adminUserId:admin.id,releaseSha});
     assert.equal(activated.previousEngine,'wheel-v2');
     assert.equal(activated.engine,'wheel-v3');
     assert.ok(activated.activatedAt);
@@ -2329,6 +2331,8 @@ test('atomic cutover acquires wheel locks, rechecks readiness and switches only 
 });
 
 test('atomic cutover refuses to switch while a live legacy assignment exists',async()=>{
+  const admin=await seedAdmin(41);
+  const releaseSha='0123456789abcdef0123456789abcdef01234567';
   const c=await category(2);
   const a=await seedPairWithMembers(1,2,{tag:250});
   const b=await seedPairWithMembers(2,2,{tag:251});
@@ -2342,7 +2346,7 @@ test('atomic cutover refuses to switch while a live legacy assignment exists',as
   try{
     await client.query('BEGIN');
     await assert.rejects(
-      activateWheelV3(client),
+      activateWheelV3(client,{adminUserId:admin.id,releaseSha}),
       error=>error?.code==='WHEEL_V3_CUTOVER_BLOCKED'&&error?.state?.blockers?.includes('live_legacy_assignments'),
     );
     await client.query('ROLLBACK');
@@ -2413,4 +2417,23 @@ test('audited cutover rejects a non-admin actor',async()=>{
     );
     await client.query('ROLLBACK');
   }finally{client.release();}
+});
+
+
+test('cutover engine refuses missing audit identity or malformed release SHA before switching',async()=>{
+  const admin=await seedAdmin(42);
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await assert.rejects(
+      activateWheelV3(client,{releaseSha:'0123456789abcdef0123456789abcdef01234567'}),
+      /Admin verificado/,
+    );
+    await assert.rejects(
+      activateWheelV3(client,{adminUserId:admin.id,releaseSha:'short'}),
+      /release SHA Git completo/,
+    );
+    await client.query('ROLLBACK');
+  }finally{client.release();}
+  assert.equal((await pool.query("SELECT value#>>'{}' value FROM app_settings WHERE key='engine'")).rows[0].value,'wheel-v2');
 });
