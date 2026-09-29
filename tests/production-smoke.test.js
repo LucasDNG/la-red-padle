@@ -39,11 +39,11 @@ test('production smoke validates DB-aware health, CORS and public endpoints',asy
   });
   assert.equal(result.ok,true);
   assert.equal(result.cors,true);
-  assert.equal(result.publicEndpoints,5);
+  assert.equal(result.publicEndpoints,6);
   assert.equal(result.securityHeaders,true);
   assert.equal(result.privateNoStore,true);
   assert.equal(result.process,'ok');
-  assert.equal(seen.length,9);
+  assert.equal(seen.length,10);
 });
 
 test('production smoke rejects wrong CORS even when health is otherwise green',async()=>{
@@ -171,5 +171,47 @@ test('production smoke rejects missing request correlation header',async()=>{
       fetchImpl
     }),
     /X-Request-ID/
+  );
+});
+
+
+test('production smoke can require Wheel v3 explicitly after cutover',async()=>{
+  const fetchImpl=async(url)=>{
+    if(url.endsWith('/api/live'))return response({ok:true,engine:'database-selected',process:'ok'});
+    if(url.endsWith('/api/health'))return response(
+      {ok:true,engine:'wheel-v3',database:'ok'},
+      {headers:{'access-control-allow-origin':'https://app.example.com'}}
+    );
+    if(url.endsWith('/api/auth/__smoke_no_store__'))return response('not found',{status:404,headers:{'cache-control':'no-store','pragma':'no-cache'}});
+    if(url==='https://app.example.com')return response('<div id="root"></div>');
+    if(url.endsWith('/api/legal/versions'))return response({});
+    return response([]);
+  };
+  const result=await runProductionSmoke({
+    apiUrl:'https://api.example.com',
+    frontendUrl:'https://app.example.com',
+    expectedEngine:'wheel-v3',
+    fetchImpl,
+  });
+  assert.equal(result.engine,'wheel-v3');
+});
+
+test('production smoke rejects a deployment whose engine differs from the expected cutover engine',async()=>{
+  const fetchImpl=async(url)=>{
+    if(url.endsWith('/api/live'))return response({ok:true,engine:'database-selected',process:'ok'});
+    if(url.endsWith('/api/health'))return response(
+      {ok:true,engine:'wheel-v2',database:'ok'},
+      {headers:{'access-control-allow-origin':'https://app.example.com'}}
+    );
+    throw new Error('no debería continuar después de health');
+  };
+  await assert.rejects(
+    ()=>runProductionSmoke({
+      apiUrl:'https://api.example.com',
+      frontendUrl:'https://app.example.com',
+      expectedEngine:'wheel-v3',
+      fetchImpl,
+    }),
+    /Engine productivo inesperado/,
   );
 });
