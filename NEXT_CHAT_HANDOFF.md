@@ -365,3 +365,10 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - Run `36515539015` sobre commit `6882784c356373cf618142730e3f5d27819d8705` terminó `success`: frontend, check, unit, verify DB e integración PostgreSQL verdes con el helper de release ya probado.
 - Render documenta `RENDER_GIT_COMMIT`; Vercel documenta `VERCEL_GIT_COMMIT_SHA` y `VITE_VERCEL_GIT_COMMIT_SHA`. Si Vercel no expone esas variables, el precutover debe fallar hasta habilitar System Environment Variables y redeployar.
 - No hacer cutover mientras Vercel siga en build-rate-limit o el frontend productivo no demuestre el mismo `EXPECTED_RELEASE_SHA` que backend.
+
+### Cierre de desarrollo Wheel v3 — 2026-09-29
+- GitHub distingue actualmente dos check runs (`backend`, `frontend`) de GitHub Actions, ambos verdes en los HEADs validados, y un status separado de Vercel.
+- Render `checksPass` espera los CI checks detectados; Vercel figura como commit status separado, por lo que el backend puede avanzar mientras Vercel quede viejo. El gate de SHA existe justamente para impedir cutover en ese estado.
+- Vercel `ignoreCommand` quedó limitado a commits exclusivamente `.md`; cualquier cambio de código en backend o frontend sigue disparando build para conservar paridad exacta de SHA entre deploys.
+- `ARCHITECTURE.md` ahora marca explícitamente las secciones de `competitionEngine.js`/`wheel.js` como legacy Wheel v2 de transición y no como reglas vigentes v3.
+- `WHEEL_V3_IMPLEMENTATION_AUDIT_2026-09-28.md` ya declara que no quedan tareas funcionales conocidas; sólo resta el procedimiento operativo real de deploy/precutover/cutover/postcutover.
