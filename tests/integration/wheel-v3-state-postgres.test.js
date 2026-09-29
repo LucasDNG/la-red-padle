@@ -93,7 +93,7 @@ test('only one first-place reign can remain open per circuit',async()=>{
 
 test('sanction auto-reactivation uses an exact 30-day DB deadline',async()=>{
   const p=await seedPair(1,6);
-  await pool.query("INSERT INTO pair_wheel_state(pair_id,inactive_since,return_position_base,inactive_reason,auto_reactivate_at) VALUES($1,CURRENT_TIMESTAMP,1,'three_failures',CURRENT_TIMESTAMP+interval '30 days')",[p.id]);
+  await pool.query("UPDATE pair_wheel_state SET inactive_since=CURRENT_TIMESTAMP,return_position_base=1,inactive_reason='three_failures',auto_reactivate_at=CURRENT_TIMESTAMP+interval '30 days' WHERE pair_id=$1",[p.id]);
   const row=(await pool.query('SELECT EXTRACT(EPOCH FROM (auto_reactivate_at-inactive_since)) seconds FROM pair_wheel_state WHERE pair_id=$1',[p.id])).rows[0];
   assert.equal(Number(row.seconds),30*24*60*60);
 });
@@ -187,6 +187,26 @@ test('pre-v3 wheel-v2 schema migrates forward without changing engine or sportin
       assigned_at timestamptz NOT NULL DEFAULT now(),
       deadline_at timestamptz NOT NULL DEFAULT (now()+interval '30 days'),
       confirmation_deadline_at timestamptz
+    );
+
+    CREATE TABLE wheel_result_versions(
+      id bigserial PRIMARY KEY,
+      assignment_id bigint NOT NULL REFERENCES wheel_assignments(id),
+      pair_id bigint NOT NULL REFERENCES pairs(id),
+      winner_pair_id bigint NOT NULL REFERENCES pairs(id),
+      result_type text NOT NULL CHECK(result_type IN('normal','injury_abandonment','dissolution_forfeit')),
+      played_at timestamptz NOT NULL DEFAULT now()
+    );
+
+    CREATE TABLE matches(
+      id bigserial PRIMARY KEY,
+      assignment_id bigint REFERENCES wheel_assignments(id),
+      league_id bigint NOT NULL REFERENCES leagues(id),
+      pair_a_id bigint NOT NULL REFERENCES pairs(id),
+      pair_b_id bigint NOT NULL REFERENCES pairs(id),
+      winner_pair_id bigint NOT NULL REFERENCES pairs(id),
+      result_type text NOT NULL CHECK(result_type IN('normal','injury_abandonment','dissolution_forfeit')),
+      played_at timestamptz NOT NULL DEFAULT now()
     );
   `);
 
