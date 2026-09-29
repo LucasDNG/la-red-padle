@@ -14,7 +14,7 @@ El cutover cambia únicamente cuando el código dual ya está desplegado y valid
 4. No puede haber assignments vivos (`open`, `result_pending`, `disputed`).
 5. No puede haber pausas/disoluciones pendientes ni `pause_after_current`.
 6. Todas las parejas, duplas exactas y circuitos deben tener su estado preparatorio v3.
-7. El backend debe quedar temporalmente quiesced durante el cambio para que ninguna request que ya haya elegido v2 escriba después del switch.
+7. La release desplegada debe incluir la barrera global de escrituras competitivas (`8675311`): writes normales toman lock compartido y el cutover lo toma en exclusivo. Esa barrera sustituye el quiesce manual de Render.
 
 El chequeo recomendado previo al cambio es:
 
@@ -30,21 +30,24 @@ El chequeo competitivo aislado sigue disponible con `npm run check:wheel-v3-cuto
 
 ## Activación
 
-Con el backend quiesced:
+Con el precutover verde:
 
 ```
-CONFIRM_WHEEL_V3_CUTOVER=YES WHEEL_V3_BACKEND_QUIESCED=YES EXPECTED_BACKEND_SHA=<sha-backend> EXPECTED_FRONTEND_SHA=<sha-frontend> CUTOVER_ADMIN_USER_ID=<admin_id> npm run activate:wheel-v3
+CONFIRM_WHEEL_V3_CUTOVER=YES EXPECTED_BACKEND_SHA=<sha-backend> EXPECTED_FRONTEND_SHA=<sha-frontend> CUTOVER_ADMIN_USER_ID=<admin_id> npm run activate:wheel-v3
 ```
+
+Si existe exactamente un único Admin verificado, `CUTOVER_ADMIN_USER_ID` puede omitirse y el script lo resuelve de forma determinista.
 
 El comando:
 - abre una transacción;
-- toma los advisory locks del asignador y mantenimiento;
+- toma primero el lock exclusivo de la barrera global de writes (`8675311`), esperando cualquier escritura competitiva en curso;
+- luego toma los advisory locks del asignador y mantenimiento;
 - vuelve a comprobar todos los blockers;
 - bloquea la fila de engine;
 - cambia `wheel-v2 -> wheel-v3` de forma atómica;
 - hace rollback ante cualquier error.
 
-Después se inicia/reanuda el backend.
+El backend permanece online durante todo el cambio; las escrituras competitivas quedan serializadas por la barrera PostgreSQL.
 
 ## Verificación inmediata
 
@@ -110,3 +113,17 @@ Ambos usan el environment `production` y los secretos/variables ya configurados 
 El precutover es no destructivo: valida configuración, TLS, DB, blockers deportivos, health/smoke y ambos SHA. El postcutover hace la misma verificación exigiendo además `engine=wheel-v3`.
 
 **No existe workflow automático de activación**: el cambio de engine sigue requiriendo quiescer realmente el backend y ejecutar la activación controlada, para no fingir desde GitHub que no hay requests v2 en vuelo.
+
+
+## Estado actual — CUTOVER COMPLETADO
+
+El procedimiento se ejecutó exitosamente el 2026-09-29 mediante GitHub Actions run `36522396511`.
+
+- activación: `2026-09-29T04:36:57.554Z`;
+- engine: `wheel-v3`;
+- backend del switch: `209f8164920a20fa6ee3a540b0c1d4b205112e70`;
+- frontend del switch: `87532489ca44d8ed5cd9378a5e17db64f360c032`;
+- precutover: `ready:true`, `blockers:[]`;
+- postcutover: `ok:true`, DB ok, engine v3, readiness v3 verde.
+
+Este runbook queda como procedimiento de recuperación/auditoría. No volver a ejecutar el switch v2→v3 sobre la producción ya activada.
