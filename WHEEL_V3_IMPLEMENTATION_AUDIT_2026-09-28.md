@@ -144,25 +144,20 @@ La estrategia sigue siendo expand -> validar -> integrar -> cutover -> limpiar l
 
 ## Aún pendiente antes del cutover
 
-1. **Ejecutar realmente todas las suites PostgreSQL/Node** en un entorno con DB de test. Desde el entorno de edición actual no se pudo verificar un run completo; los tests están escritos pero no deben declararse verdes sin ejecución.
-2. Crear la **fachada de API v3** y enrutar los endpoints actuales sin cambiar todavía el engine.
-3. Integrar formación/invitaciones/inactividad/disolución de `pairs.js` con el motor v3 detrás del selector de engine.
-4. Integrar disputas/no-show de Admin con las funciones v3.
-5. Conectar `runWheelV3Maintenance` al background únicamente cuando el selector sea `wheel-v3`.
-6. Actualizar health/preflight para aceptar y verificar `wheel-v3` cuando llegue el cutover.
-7. Adaptar frontend:
-   - eliminar Elo y extensiones;
-   - mostrar acción siguiente;
-   - ataque/defensa sin exponer fórmulas poblacionales;
-   - “No pude jugar”;
-   - aceptar/cancelar/objetar no-show;
-   - inactividad;
-   - últimos 5 movimientos;
-   - récord de Primera;
-   - deadlines + `server_now`.
-8. Ejecutar regresión longitudinal final y pruebas de concurrencia reales.
-9. Recién entonces cambiar `app_settings.engine` a `wheel-v3`.
-10. Después de estabilidad, retirar ELO, extensión extraordinaria y demás estado/runtime legacy.
+La implementación funcional previa al cutover ya está integrada detrás del selector y las suites ejecutadas están verdes.
+
+Pendiente operativo:
+
+1. Confirmar que el commit final que contiene el comando de cutover también tenga CI verde.
+2. Desplegar el código dual final manteniendo `app_settings.engine=wheel-v2`.
+3. Ejecutar `npm run check:wheel-v3-cutover` contra la base productiva.
+4. Resolver cualquier blocker productivo real que reporte el gate, sin forzarlo.
+5. Quiescer temporalmente el backend para evitar requests v2 en vuelo.
+6. Ejecutar el comando controlado `npm run activate:wheel-v3` con las confirmaciones explícitas requeridas.
+7. Reiniciar/reanudar backend y verificar health, smoke y flujos públicos/privados con `engine=wheel-v3`.
+8. Observar estabilidad antes de retirar físicamente tablas/campos/runtime legacy.
+
+El runbook operativo está en `WHEEL_V3_CUTOVER_RUNBOOK.md`.
 
 ## Regla de seguridad de implementación
 
