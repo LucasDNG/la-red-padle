@@ -13,6 +13,7 @@ if(report.errors.length){
 
 if(!process.env.PROD_API_URL)throw new Error('PROD_API_URL es obligatorio');
 if(!process.env.PROD_FRONTEND_URL)throw new Error('PROD_FRONTEND_URL es obligatorio');
+if(!process.env.EXPECTED_RELEASE_SHA)throw new Error('EXPECTED_RELEASE_SHA es obligatorio');
 
 const {Pool}=pg;
 const pool=new Pool(databasePoolOptions(process.env));
@@ -25,6 +26,8 @@ try{
     apiUrl:process.env.PROD_API_URL,
     frontendUrl:process.env.PROD_FRONTEND_URL,
     expectedEngine:'wheel-v3',
+    expectedBackendSha:process.env.EXPECTED_RELEASE_SHA,
+    expectedFrontendSha:process.env.EXPECTED_RELEASE_SHA,
   });
 
   console.log(JSON.stringify({
