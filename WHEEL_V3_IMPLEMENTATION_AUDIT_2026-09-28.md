@@ -176,3 +176,14 @@ No conectar parcialmente `wheelV3Engine.js` a producción mientras unas rutas si
 - Últimos bordes cerrados: defensa obligatoria cumplida por defensa real, búsqueda de rival fresco más allá de la primera ventana, semántica poblacional no-empeorante y nomenclatura inequívoca de ingreso anteúltimo.
 - No quedan defectos funcionales conocidos ni tareas de implementación Wheel v3 abiertas en esta auditoría.
 - El único trabajo pendiente es operativo y está descrito en `WHEEL_V3_CUTOVER_RUNBOOK.md`; hasta ejecutarlo, producción permanece en `wheel-v2`.
+
+
+## Releases de backend/frontend desacopladas — 2026-09-29
+
+El requisito operativo ya no es identidad de commit entre proveedores, sino **compatibilidad demostrada + verificación exacta de cada artefacto desplegado**.
+
+- `precutover:wheel-v3` y `postcutover:wheel-v3` validan `EXPECTED_BACKEND_SHA` y `EXPECTED_FRONTEND_SHA` por separado.
+- `activateWheelV3()` exige ambos SHA y los registra en auditoría.
+- Run `36521118598` sobre `eba415f82579d7dc763513531cbb7c6f4c35f831`: success completo.
+- Vercel `87532489ca44d8ed5cd9378a5e17db64f360c032` es compatible con ese backend según diff de repositorio sin cambios de frontend/API pública entre ambos.
+- Aun así, el SHA real de cada proveedor debe ser leído por smoke/precutover; no se adivina.
