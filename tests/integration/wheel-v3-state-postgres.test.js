@@ -12,6 +12,7 @@ const {Pool}=pg;
 const pool=new Pool({connectionString});
 const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity,reportWheelV3NoShow,cancelWheelV3NoShow,contestWheelV3NoShow,acceptWheelV3NoShow,escalateExpiredWheelV3NoShows,submitWheelV3ResultVersion,confirmWheelV3Result,autoValidateDueWheelV3Results,expireDueWheelV3Assignments,expireWheelV3ScheduleProposals,formWheelV3Pair,archiveWheelV3Pair,resolveWheelV3FormationCategory,proposeWheelV3Schedule,acceptWheelV3Schedule,cancelWheelV3ScheduleProposal,wheelV3RecentMovements,resolveWheelV3ResultDispute,dismissWheelV3NoShowByAdmin,resolveWheelV3NoShowByAdmin}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
+const {withCompetitiveWrite,COMPETITIVE_WRITE_LOCK_KEY}=await import('../../src/competitionRuntime.js');
 const {wheelV3CutoverReadiness,activateWheelV3,wheelV3OperationalReadiness}=await import('../../src/wheelV3Cutover.js');
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const schema=fs.readFileSync(path.resolve(__dirname,'../../database/schema.sql'),'utf8');
@@ -2460,4 +2461,84 @@ test('cutover audit supports explicit compatible frontend and backend releases w
     assert.equal(audit.data.frontendReleaseSha,frontendReleaseSha);
     await client.query('ROLLBACK');
   }finally{client.release();}
+});
+
+
+test('cutover waits for an in-flight competitive write protected by the shared barrier',async()=>{
+  const admin=await seedAdmin(50);
+  const backendReleaseSha='0123456789abcdef0123456789abcdef01234567';
+  const frontendReleaseSha='89abcdef0123456789abcdef0123456789abcdef';
+
+  let markStarted;
+  const started=new Promise(resolve=>{markStarted=resolve;});
+  let releaseWrite;
+  const hold=new Promise(resolve=>{releaseWrite=resolve;});
+
+  const writePromise=withCompetitiveWrite(async engine=>{
+    assert.equal(engine,'wheel-v2');
+    markStarted();
+    await hold;
+    return 'write-finished';
+  });
+  await started;
+
+  const client=await pool.connect();
+  let settled=false;
+  try{
+    await client.query('BEGIN');
+    const cutoverPromise=activateWheelV3(client,{adminUserId:admin.id,backendReleaseSha,frontendReleaseSha})
+      .then(result=>{settled=true;return result;});
+
+    await new Promise(resolve=>setTimeout(resolve,120));
+    assert.equal(settled,false,'cutover must wait while a shared competitive write lock is held');
+
+    releaseWrite();
+    assert.equal(await writePromise,'write-finished');
+    const result=await cutoverPromise;
+    assert.equal(result.engine,'wheel-v3');
+    await client.query('ROLLBACK');
+  }finally{
+    releaseWrite?.();
+    client.release();
+  }
+
+  assert.equal((await pool.query("SELECT value#>>'{}' value FROM app_settings WHERE key='engine'")).rows[0].value,'wheel-v2');
+});
+
+test('competitive write arriving during cutover waits and re-reads wheel-v3 after commit',async()=>{
+  const admin=await seedAdmin(51);
+  const backendReleaseSha='0123456789abcdef0123456789abcdef01234567';
+  const frontendReleaseSha='89abcdef0123456789abcdef0123456789abcdef';
+  const client=await pool.connect();
+
+  try{
+    await client.query('BEGIN');
+    const result=await activateWheelV3(client,{adminUserId:admin.id,backendReleaseSha,frontendReleaseSha});
+    assert.equal(result.engine,'wheel-v3');
+
+    let writeSettled=false;
+    const writePromise=withCompetitiveWrite(async engine=>{
+      writeSettled=true;
+      return engine;
+    });
+
+    await new Promise(resolve=>setTimeout(resolve,120));
+    assert.equal(writeSettled,false,'new competitive write must wait behind the exclusive cutover barrier');
+
+    await client.query('COMMIT');
+    assert.equal(await writePromise,'wheel-v3');
+  }catch(error){
+    try{await client.query('ROLLBACK');}catch{}
+    throw error;
+  }finally{
+    client.release();
+  }
+
+  await pool.query("UPDATE app_settings SET value=to_jsonb($1::text) WHERE key='engine'",['wheel-v2']);
+});
+
+test('competitive write barrier uses a dedicated advisory key distinct from assignment and maintenance locks',()=>{
+  assert.equal(COMPETITIVE_WRITE_LOCK_KEY,8675311);
+  assert.notEqual(COMPETITIVE_WRITE_LOCK_KEY,8675309);
+  assert.notEqual(COMPETITIVE_WRITE_LOCK_KEY,8675310);
 });
