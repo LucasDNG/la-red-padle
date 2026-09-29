@@ -168,3 +168,11 @@ No conectar parcialmente `wheelV3Engine.js` a producción mientras unas rutas si
 - Resultado del workflow: `success`.
 - Pasaron build frontend, chequeo de sintaxis/imports, unit tests, `verify:db` y suite de integración PostgreSQL completa.
 - El motor productivo sigue seleccionado como `wheel-v2`; la validación corresponde al código dual y al motor v3 aislado/ruteable, no a un cutover productivo ya realizado.
+
+## Cierre funcional definitivo — 2026-09-29
+
+- Código final validado: `8c4d0104bffd98df72ec473d1297c8f72832138e`.
+- GitHub Actions: run `36519976313`, resultado `success` completo.
+- Últimos bordes cerrados: defensa obligatoria cumplida por defensa real, búsqueda de rival fresco más allá de la primera ventana, semántica poblacional no-empeorante y nomenclatura inequívoca de ingreso anteúltimo.
+- No quedan defectos funcionales conocidos ni tareas de implementación Wheel v3 abiertas en esta auditoría.
+- El único trabajo pendiente es operativo y está descrito en `WHEEL_V3_CUTOVER_RUNBOOK.md`; hasta ejecutarlo, producción permanece en `wheel-v2`.
