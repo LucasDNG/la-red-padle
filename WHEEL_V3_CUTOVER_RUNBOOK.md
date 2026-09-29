@@ -19,10 +19,10 @@ El cutover cambia únicamente cuando el código dual ya está desplegado y valid
 El chequeo recomendado previo al cambio es:
 
 ```
-npm run precutover:wheel-v3
+EXPECTED_RELEASE_SHA=<sha-git-completo> npm run precutover:wheel-v3
 ```
 
-Combina configuración de producción, TLS, preflight de base y el gate competitivo v3. Debe devolver `ok: true` y `cutover.ready: true`.
+Combina configuración de producción, TLS, preflight de base, gate competitivo v3 y smoke HTTP. Además exige que Render y Vercel expongan exactamente `EXPECTED_RELEASE_SHA`. Debe devolver `ok: true` y `cutover.ready: true`. Si Vercel no desplegó ese commit (por ejemplo por build-rate-limit), el cutover queda bloqueado.
 
 El chequeo competitivo aislado sigue disponible con `npm run check:wheel-v3-cutover`.
 
@@ -31,7 +31,7 @@ El chequeo competitivo aislado sigue disponible con `npm run check:wheel-v3-cuto
 Con el backend quiesced:
 
 ```
-CONFIRM_WHEEL_V3_CUTOVER=YES WHEEL_V3_BACKEND_QUIESCED=YES npm run activate:wheel-v3
+CONFIRM_WHEEL_V3_CUTOVER=YES WHEEL_V3_BACKEND_QUIESCED=YES EXPECTED_RELEASE_SHA=<sha> CUTOVER_ADMIN_USER_ID=<admin_id> npm run activate:wheel-v3
 ```
 
 El comando:
@@ -49,7 +49,7 @@ Después se inicia/reanuda el backend.
 Ejecutar:
 
 ```
-npm run postcutover:wheel-v3
+EXPECTED_RELEASE_SHA=<mismo-sha> npm run postcutover:wheel-v3
 ```
 
 Ese comando valida configuración productiva, TLS, preflight/estado operativo v3 y smoke HTTP exigiendo `engine=wheel-v3`.
