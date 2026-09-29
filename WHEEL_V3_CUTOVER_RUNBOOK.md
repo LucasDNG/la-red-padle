@@ -19,10 +19,10 @@ El cutover cambia únicamente cuando el código dual ya está desplegado y valid
 El chequeo recomendado previo al cambio es:
 
 ```
-EXPECTED_RELEASE_SHA=<sha-git-completo> npm run precutover:wheel-v3
+EXPECTED_BACKEND_SHA=<sha-backend> EXPECTED_FRONTEND_SHA=<sha-frontend> npm run precutover:wheel-v3
 ```
 
-Combina configuración de producción, TLS, preflight de base, gate competitivo v3 y smoke HTTP. Además exige que Render y Vercel expongan exactamente `EXPECTED_RELEASE_SHA`. Debe devolver `ok: true` y `cutover.ready: true`. Si Vercel no desplegó ese commit (por ejemplo por build-rate-limit), el cutover queda bloqueado.
+Combina configuración de producción, TLS, preflight de base, gate competitivo v3 y smoke HTTP. Exige el SHA exacto observado de Render (`EXPECTED_BACKEND_SHA`) y el SHA exacto observado de Vercel (`EXPECTED_FRONTEND_SHA`). Pueden ser distintos si la compatibilidad fue verificada explícitamente; ambos quedan auditados. Debe devolver `ok: true` y `cutover.ready: true`.
 
 Si el frontend responde sin `la-red-release`, revisar en Vercel que estén expuestas las System Environment Variables y volver a desplegar. El build usa `VERCEL_GIT_COMMIT_SHA` / `VITE_VERCEL_GIT_COMMIT_SHA`; no se debe saltear el gate poniendo un SHA manual dentro del código.
 
@@ -33,7 +33,7 @@ El chequeo competitivo aislado sigue disponible con `npm run check:wheel-v3-cuto
 Con el backend quiesced:
 
 ```
-CONFIRM_WHEEL_V3_CUTOVER=YES WHEEL_V3_BACKEND_QUIESCED=YES EXPECTED_RELEASE_SHA=<sha> CUTOVER_ADMIN_USER_ID=<admin_id> npm run activate:wheel-v3
+CONFIRM_WHEEL_V3_CUTOVER=YES WHEEL_V3_BACKEND_QUIESCED=YES EXPECTED_BACKEND_SHA=<sha-backend> EXPECTED_FRONTEND_SHA=<sha-frontend> CUTOVER_ADMIN_USER_ID=<admin_id> npm run activate:wheel-v3
 ```
 
 El comando:
@@ -51,7 +51,7 @@ Después se inicia/reanuda el backend.
 Ejecutar:
 
 ```
-EXPECTED_RELEASE_SHA=<mismo-sha> npm run postcutover:wheel-v3
+EXPECTED_BACKEND_SHA=<mismo-sha-backend> EXPECTED_FRONTEND_SHA=<mismo-sha-frontend> npm run postcutover:wheel-v3
 ```
 
 Ese comando valida configuración productiva, TLS, preflight/estado operativo v3 y smoke HTTP exigiendo `engine=wheel-v3`.
@@ -81,3 +81,15 @@ Desde ese momento las semánticas de roles, assignments, ascenso/descenso, inact
 ## Estado validado antes del cutover
 
 GitHub Actions run `36509908405`, commit `9fa38f9a0529bafd3c7d36f82c72ac0d70b85710`: frontend build, check, unit tests, verify DB e integración PostgreSQL completos en verde.
+
+
+## Par compatible verificado antes del cutover
+
+A fecha 2026-09-29:
+
+- último build de Vercel observado como `success` con cambio real de frontend/config: `87532489ca44d8ed5cd9378a5e17db64f360c032`;
+- candidato backend/cutover validado por CI: `eba415f82579d7dc763513531cbb7c6f4c35f831`;
+- GitHub Actions run `36521118598`: frontend, check, unit, verify DB e integración PostgreSQL completos en verde;
+- comparación Git `87532489… -> eba415f8…`: sin cambios en `frontend/` ni en `src/wheelV3Api.js`, `src/pairsV3Api.js`, `src/adminV3Api.js` o `src/app.js`.
+
+Por eso ese par es compatible desde el punto de vista de código. **No asumir que Render ya sirve `eba415f8…`: el precutover debe comprobar el SHA real del backend antes de activar.**
