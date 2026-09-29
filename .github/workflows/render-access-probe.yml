@@ -1,0 +1,36 @@
+name: Probe Render production automation
+
+on:
+  push:
+    branches:
+      - wheel-v3-precutover-run
+    paths:
+      - .github/workflows/render-access-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+      RENDER_SERVICE_ID_VAR: ${{ vars.RENDER_SERVICE_ID }}
+      PROD_RENDER_SERVICE_ID_VAR: ${{ vars.PROD_RENDER_SERVICE_ID }}
+      RENDER_SERVICE_ID_SECRET: ${{ secrets.RENDER_SERVICE_ID }}
+      RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+    steps:
+      - name: Report Render automation capability
+        shell: bash
+        run: |
+          set -euo pipefail
+          api=no
+          service=no
+          hook=no
+          [ -n "${RENDER_API_KEY:-}" ] && api=yes
+          if [ -n "${RENDER_SERVICE_ID_VAR:-}" ] || [ -n "${PROD_RENDER_SERVICE_ID_VAR:-}" ] || [ -n "${RENDER_SERVICE_ID_SECRET:-}" ]; then service=yes; fi
+          [ -n "${RENDER_DEPLOY_HOOK_URL:-}" ] && hook=yes
+          echo "render_api_key_present=$api"
+          echo "render_service_id_present=$service"
+          echo "render_deploy_hook_present=$hook"
