@@ -12,14 +12,21 @@ const expectedBackendSha=process.env.EXPECTED_BACKEND_SHA||process.env.EXPECTED_
 const expectedFrontendSha=process.env.EXPECTED_FRONTEND_SHA||process.env.EXPECTED_RELEASE_SHA;
 if(!/^[0-9a-f]{40}$/i.test(expectedBackendSha||''))throw new Error('EXPECTED_BACKEND_SHA debe ser un SHA Git completo de 40 caracteres');
 if(!/^[0-9a-f]{40}$/i.test(expectedFrontendSha||''))throw new Error('EXPECTED_FRONTEND_SHA debe ser un SHA Git completo de 40 caracteres');
-const adminUserId=Number(process.env.CUTOVER_ADMIN_USER_ID);
-if(!Number.isInteger(adminUserId)||adminUserId<=0)throw new Error('CUTOVER_ADMIN_USER_ID debe ser un ID de Admin válido');
+let adminUserId=Number(process.env.CUTOVER_ADMIN_USER_ID);
 
 const {Client}=pg;
 const client=new Client(databasePoolOptions(process.env));
 await client.connect();
 
 try{
+  if(!Number.isInteger(adminUserId)||adminUserId<=0){
+    const admins=(await client.query(
+      "SELECT id FROM users WHERE role='admin' AND verification_status='verified' ORDER BY id"
+    )).rows;
+    if(admins.length!==1)throw new Error('CUTOVER_ADMIN_USER_ID es obligatorio salvo que exista exactamente un Admin verificado');
+    adminUserId=Number(admins[0].id);
+  }
+
   await client.query('BEGIN');
   const result=await activateWheelV3(client,{adminUserId,backendReleaseSha:expectedBackendSha,frontendReleaseSha:expectedFrontendSha});
   await client.query('COMMIT');
