@@ -94,12 +94,19 @@ export function forcedRoleForPosition({position,activeCount}){
 
 export function roleAfterRealMatch({previousRole,wasAttacker,roleStreak=0,position,activeCount,defenseRequiredUntilReal=false}){
   const forced=forcedRoleForPosition({position,activeCount});
-  if(forced)return {role:forced,roleStreak:previousRole===forced?Number(roleStreak)+1:1,defenseRequiredUntilReal:forced==='defense'?Boolean(defenseRequiredUntilReal):false};
+  const obligationStillPending=Boolean(defenseRequiredUntilReal)&&Boolean(wasAttacker);
+  if(forced){
+    return {
+      role:forced,
+      roleStreak:previousRole===forced?Number(roleStreak)+1:1,
+      defenseRequiredUntilReal:forced==='attack'?false:obligationStillPending,
+    };
+  }
   const next=wasAttacker?'defense':'attack';
   return {
     role:next,
     roleStreak:previousRole===next?Number(roleStreak)+1:1,
-    defenseRequiredUntilReal:false,
+    defenseRequiredUntilReal:obligationStillPending,
   };
 }
 
