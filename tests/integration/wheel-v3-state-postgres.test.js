@@ -2319,7 +2319,7 @@ test('atomic cutover acquires wheel locks, rechecks readiness and switches only 
     await client.query('BEGIN');
     const before=await wheelV3CutoverReadiness(client);
     assert.equal(before.ready,true);
-    const activated=await activateWheelV3(client,{adminUserId:admin.id,releaseSha});
+    const activated=await activateWheelV3(client,{adminUserId:admin.id,backendReleaseSha:releaseSha,frontendReleaseSha:releaseSha});
     assert.equal(activated.previousEngine,'wheel-v2');
     assert.equal(activated.engine,'wheel-v3');
     assert.ok(activated.activatedAt);
@@ -2346,7 +2346,7 @@ test('atomic cutover refuses to switch while a live legacy assignment exists',as
   try{
     await client.query('BEGIN');
     await assert.rejects(
-      activateWheelV3(client,{adminUserId:admin.id,releaseSha}),
+      activateWheelV3(client,{adminUserId:admin.id,backendReleaseSha:releaseSha,frontendReleaseSha:releaseSha}),
       error=>error?.code==='WHEEL_V3_CUTOVER_BLOCKED'&&error?.state?.blockers?.includes('live_legacy_assignments'),
     );
     await client.query('ROLLBACK');
@@ -2388,9 +2388,11 @@ test('audited cutover records verified admin and release SHA in the same transac
   const client=await pool.connect();
   try{
     await client.query('BEGIN');
-    const activated=await activateWheelV3(client,{adminUserId:admin.id,releaseSha:sha});
+    const frontendSha='89abcdef0123456789abcdef0123456789abcdef';
+    const activated=await activateWheelV3(client,{adminUserId:admin.id,backendReleaseSha:sha,frontendReleaseSha:frontendSha});
     assert.equal(Number(activated.adminUserId),Number(admin.id));
-    assert.equal(activated.releaseSha,sha);
+    assert.equal(activated.backendReleaseSha,sha);
+    assert.equal(activated.frontendReleaseSha,frontendSha);
     const audit=(await client.query(
       "SELECT action,target_type,data FROM admin_audit_events WHERE admin_user_id=$1 ORDER BY id DESC LIMIT 1",
       [admin.id],
@@ -2399,7 +2401,8 @@ test('audited cutover records verified admin and release SHA in the same transac
     assert.equal(audit.target_type,'system');
     assert.equal(audit.data.previousEngine,'wheel-v2');
     assert.equal(audit.data.engine,'wheel-v3');
-    assert.equal(audit.data.releaseSha,sha);
+    assert.equal(audit.data.backendReleaseSha,sha);
+    assert.equal(audit.data.frontendReleaseSha,frontendSha);
     await client.query('ROLLBACK');
   }finally{client.release();}
 });
@@ -2412,7 +2415,7 @@ test('audited cutover rejects a non-admin actor',async()=>{
   try{
     await client.query('BEGIN');
     await assert.rejects(
-      activateWheelV3(client,{adminUserId:player.id,releaseSha:'0123456789abcdef0123456789abcdef01234567'}),
+      activateWheelV3(client,{adminUserId:player.id,backendReleaseSha:'0123456789abcdef0123456789abcdef01234567',frontendReleaseSha:'89abcdef0123456789abcdef0123456789abcdef'}),
       /Admin verificado/,
     );
     await client.query('ROLLBACK');
@@ -2426,14 +2429,35 @@ test('cutover engine refuses missing audit identity or malformed release SHA bef
   try{
     await client.query('BEGIN');
     await assert.rejects(
-      activateWheelV3(client,{releaseSha:'0123456789abcdef0123456789abcdef01234567'}),
+      activateWheelV3(client,{backendReleaseSha:'0123456789abcdef0123456789abcdef01234567',frontendReleaseSha:'89abcdef0123456789abcdef0123456789abcdef'}),
       /Admin verificado/,
     );
     await assert.rejects(
-      activateWheelV3(client,{adminUserId:admin.id,releaseSha:'short'}),
-      /release SHA Git completo/,
+      activateWheelV3(client,{adminUserId:admin.id,backendReleaseSha:'short',frontendReleaseSha:'89abcdef0123456789abcdef0123456789abcdef'}),
+      /backend release SHA Git completo/,
     );
     await client.query('ROLLBACK');
   }finally{client.release();}
   assert.equal((await pool.query("SELECT value#>>'{}' value FROM app_settings WHERE key='engine'")).rows[0].value,'wheel-v2');
+});
+
+
+test('cutover audit supports explicit compatible frontend and backend releases with different SHAs',async()=>{
+  const admin=await seedAdmin(43);
+  const backendReleaseSha='0123456789abcdef0123456789abcdef01234567';
+  const frontendReleaseSha='89abcdef0123456789abcdef0123456789abcdef';
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const result=await activateWheelV3(client,{adminUserId:admin.id,backendReleaseSha,frontendReleaseSha});
+    assert.equal(result.backendReleaseSha,backendReleaseSha);
+    assert.equal(result.frontendReleaseSha,frontendReleaseSha);
+    const audit=(await client.query(
+      "SELECT data FROM admin_audit_events WHERE admin_user_id=$1 AND action='wheel_v3_cutover' ORDER BY id DESC LIMIT 1",
+      [admin.id],
+    )).rows[0];
+    assert.equal(audit.data.backendReleaseSha,backendReleaseSha);
+    assert.equal(audit.data.frontendReleaseSha,frontendReleaseSha);
+    await client.query('ROLLBACK');
+  }finally{client.release();}
 });
