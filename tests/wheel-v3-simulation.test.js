@@ -1,17 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  entryPositionAntepenultimate,
+  entryPositionPenultimate,
   directionalThreshold,
   delayedResultMovement,
   simulateWheelV3,
 } from '../scripts/simulate-wheel-v3.js';
 
-test('antepenultimate entry keeps the only leader when N=1',()=>{
-  assert.equal(entryPositionAntepenultimate(0),1);
-  assert.equal(entryPositionAntepenultimate(1),2);
-  assert.equal(entryPositionAntepenultimate(2),2);
-  assert.equal(entryPositionAntepenultimate(10),10);
+test('penultimate entry keeps the only leader when N=1',()=>{
+  assert.equal(entryPositionPenultimate(0),1);
+  assert.equal(entryPositionPenultimate(1),2);
+  assert.equal(entryPositionPenultimate(2),2);
+  assert.equal(entryPositionPenultimate(10),10);
 });
 
 test('delayed result never pushes the winner below the loser',()=>{
@@ -31,7 +31,7 @@ test('population acceleration is directional and conservative',()=>{
   assert.equal(directionalThreshold([8,8,12,12,12,12,20],6,5),1);
 });
 
-test('Wheel v3 antepenultimate entry is longitudinally stable from balanced populations',()=>{
+test('Wheel v3 penultimate entry is longitudinally stable from balanced populations',()=>{
   for(const skillGap of [0,0.7,1]){
     const r=simulateWheelV3({
       runs:18,
