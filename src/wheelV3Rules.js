@@ -147,14 +147,15 @@ export function chooseDefenderForAttacker(attacker,candidates,{lastOpponentId=nu
   }
 
   const maxDistance=Number(attacker.position)-Math.min(...superior.map(c=>Number(c.position)));
+  const freshSuperior=lastOpponentId==null
+    ?superior
+    :superior.filter(c=>Number(c.id)!==Number(lastOpponentId));
+  const preferredPool=freshSuperior.length?freshSuperior:superior;
+
   for(let limit=size;limit<=maxDistance+size;limit+=size){
-    const window=superior.filter(c=>Number(attacker.position)-Number(c.position)<=limit);
+    const window=preferredPool.filter(c=>Number(attacker.position)-Number(c.position)<=limit);
     if(!window.length)continue;
-    const fresh=lastOpponentId==null?window:window.filter(c=>Number(c.id)!==Number(lastOpponentId));
-    const pool=fresh.length?fresh:window;
-    if(pool.length){
-      return sortByLongestRealWait(pool)[0];
-    }
+    return sortByLongestRealWait(window)[0];
   }
   return null;
 }
@@ -212,7 +213,9 @@ export function populationMoveImprovesBalance(counts,srcIndex,dstIndex){
   const total=values.reduce((s,n)=>s+n,0);
   if(total<=0||values[srcIndex]<=0)return false;
   const dev=(a,b)=>Math.abs(a/total-WHEEL_V3_TARGET_SHARE)+Math.abs(b/total-WHEEL_V3_TARGET_SHARE);
-  return dev(values[srcIndex]-1,values[dstIndex]+1)<=dev(values[srcIndex],values[dstIndex])+1e-12;
+  const before=dev(values[srcIndex],values[dstIndex]);
+  const after=dev(values[srcIndex]-1,values[dstIndex]+1);
+  return after<before-1e-12;
 }
 
 export function populationDirectionalThreshold(counts,srcIndex,dstIndex){
