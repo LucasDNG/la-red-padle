@@ -85,7 +85,7 @@ Cuando una categoría necesita recibir o expulsar población:
 - si el porcentaje vuelve a zona normal, la ayuda poblacional se apaga;
 - si sigue fuera de zona, el motor continúa esperando nuevos resultados.
 
-Antes de acelerar un movimiento entre categorías vecinas, el motor debe comprobar que ese movimiento **mejora el equilibrio conjunto** de las dos categorías respecto del objetivo teórico de 14,2857 %. Si arreglar una categoría empeora más a la vecina, no se reduce el requisito y se conserva el umbral normal.
+Antes de acelerar un movimiento entre categorías vecinas, el motor debe comprobar que ese movimiento **mejora o, como mínimo, no empeora el equilibrio conjunto** de las dos categorías respecto del objetivo teórico de 14,2857 %. Un empate exacto del desvío conjunto es admisible porque reduce presión de la categoría que necesita expulsar/recibir población sin empeorar el par. Si el movimiento aumenta el desvío conjunto, no se reduce el requisito y se conserva el umbral normal.
 
 El requisito 1/2/3 se **recalcula al confirmar cada nuevo resultado** usando la población activa existente en ese momento; no queda congelado cuando comenzó una racha.
 
