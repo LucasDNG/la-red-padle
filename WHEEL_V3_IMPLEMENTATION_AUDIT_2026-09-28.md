@@ -144,18 +144,16 @@ La estrategia sigue siendo expand -> validar -> integrar -> cutover -> limpiar l
 
 ## Aún pendiente antes del cutover
 
-La implementación funcional previa al cutover ya está integrada detrás del selector y las suites ejecutadas están verdes.
+No quedan tareas funcionales conocidas de implementación Wheel v3. El pendiente es operativo:
 
-Pendiente operativo:
-
-1. Confirmar que el commit final que contiene el comando de cutover también tenga CI verde.
-2. Desplegar el código dual final manteniendo `app_settings.engine=wheel-v2`.
-3. Ejecutar `npm run check:wheel-v3-cutover` contra la base productiva.
-4. Resolver cualquier blocker productivo real que reporte el gate, sin forzarlo.
-5. Quiescer temporalmente el backend para evitar requests v2 en vuelo.
-6. Ejecutar el comando controlado `npm run activate:wheel-v3` con las confirmaciones explícitas requeridas.
-7. Reiniciar/reanudar backend y verificar health, smoke y flujos públicos/privados con `engine=wheel-v3`.
-8. Observar estabilidad antes de retirar físicamente tablas/campos/runtime legacy.
+1. Elegir el SHA final y exigir que GitHub Actions esté completamente verde.
+2. Lograr que Render y Vercel desplieguen ese mismo SHA. Vercel actualmente puede quedar bloqueado por `build-rate-limit`; no se fuerza el cutover mientras eso ocurra.
+3. Ejecutar `EXPECTED_RELEASE_SHA=<sha> npm run precutover:wheel-v3` contra producción y exigir `ok: true`.
+4. Resolver cualquier blocker real reportado por el precutover, sin omitir ni desactivar gates.
+5. Quiescer temporalmente el backend para que no queden requests v2 en vuelo.
+6. Ejecutar la activación atómica con `CONFIRM_WHEEL_V3_CUTOVER=YES`, `WHEEL_V3_BACKEND_QUIESCED=YES`, `EXPECTED_RELEASE_SHA=<sha>` y `CUTOVER_ADMIN_USER_ID=<admin verificado>`.
+7. Reanudar backend y ejecutar `EXPECTED_RELEASE_SHA=<mismo sha> npm run postcutover:wheel-v3`.
+8. Observar estabilidad antes de retirar físicamente tablas, columnas o runtime legacy.
 
 El runbook operativo está en `WHEEL_V3_CUTOVER_RUNBOOK.md`.
 
