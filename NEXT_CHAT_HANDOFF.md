@@ -338,3 +338,15 @@ Se corrigió un fallo real de producción: ante error transitorio de red, el Ser
 - Runbook operativo: `WHEEL_V3_CUTOVER_RUNBOOK.md`.
 - Vercel reportó `success` en el commit del runbook durante esta tanda.
 - No se ejecutó el cutover productivo: el engine debe seguir en `wheel-v2` hasta correr el gate contra la DB real y quiescer el backend.
+
+### Operación productiva Wheel v3 cerrada en tres comandos — 2026-09-29
+- `npm run precutover:wheel-v3`: valida configuración productiva, TLS, preflight de DB y blockers competitivos. Debe devolver `ok: true` y `cutover.ready: true`.
+- `npm run activate:wheel-v3`: exige `NODE_ENV=production`, configuración válida, `CONFIRM_WHEEL_V3_CUTOVER=YES` y `WHEEL_V3_BACKEND_QUIESCED=YES`; toma locks, revalida blockers y cambia engine atómicamente.
+- `npm run postcutover:wheel-v3`: exige DB productiva en `wheel-v3`, ejecuta preflight operativo v3 y smoke HTTP con `EXPECTED_ENGINE=wheel-v3`.
+- `databasePreflight()` ahora, si engine=`wheel-v3`, ejecuta `wheelV3OperationalReadiness()` y falla si existen assignments legacy/malformados o estado preparatorio faltante.
+- `runProductionSmoke()` puede exigir un engine concreto y ahora incluye `/api/records` entre los endpoints públicos.
+- CI `36514482250` quedó completamente verde con smoke esperado y readiness post-cutover incluidos.
+- CI `36514763460` quedó completamente verde incluyendo los scripts postcutover y el runbook actualizado.
+- El entorno de herramientas de esta sesión no pudo resolver DNS hacia Render, por lo que no se verificó el endpoint público vivo desde aquí; eso debe hacerse con `postcutover:wheel-v3` en el entorno productivo.
+- `ARCHITECTURE.md` y `WHEEL_V3_IMPLEMENTATION_AUDIT_2026-09-28.md` fueron actualizados para reflejar el runtime dual real y eliminar afirmaciones obsoletas de 'frontend sólo v2'.
+- Producción NO fue activada desde esta sesión; el engine debe seguir en `wheel-v2` hasta ejecutar el procedimiento real.
