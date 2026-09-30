@@ -39,6 +39,7 @@ Después leer, como mínimo:
 - Las ramas temporales `wheel-v3-precutover-run` y `wheel-v3-cutover-run` quedaron neutralizadas (sin push-trigger automático); el probe temporal de Render fue eliminado.
 - Advertencia: no volver a `wheel-v2` cambiando sólo `app_settings.engine`. Cualquier rollback posterior debe conservar semántica v3 o tener una migración de recuperación explícita.
 - Próximo trabajo: observación/monitoreo de producción v3 y, sólo después de estabilidad suficiente, retiro del runtime/campos legacy.
+- Estado único vigente de salida pública: `PUBLIC_LAUNCH_STATUS.md`. Usarlo antes que listas históricas dispersas.
 
 ### Estabilización verificada — 2026-09-29 11:53 ART
 - Postcutover real de estabilidad run `36584434874`: success; `engine=wheel-v3`, DB ok, readiness `true`, `blockers=[]`, 0 assignments legacy/malformados y 0 estados v3 faltantes.
