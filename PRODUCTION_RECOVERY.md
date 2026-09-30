@@ -25,7 +25,7 @@ Verificar siempre el valor real visible en la consola antes del release.
 La prueba de recuperación debe hacerse sobre una restauración o branch aislada, sin cambiar la conexión productiva.
 
 Comprobar en esa recuperación:
-- `app_settings.engine = wheel-v2`;
+- `app_settings.engine = wheel-v3`;
 - tablas críticas presentes;
 - columna `matches.abandoned_pair_id`;
 - constraint `matches_abandonment_consistency`;
@@ -43,3 +43,12 @@ Marcar recuperación/backup como verde solamente cuando:
 - RPO/RTO estén definidos;
 - exista una prueba de recuperación aislada exitosa;
 - si hace falta más retención, exista una política de backup externo.
+
+
+## Estado 2026-09-30
+
+- producción actual: Wheel v3;
+- ventana histórica observada en Neon: 8 horas;
+- el drill debe restaurar a un branch/base aislada y comprobar Wheel v3, no Wheel v2;
+- no cambiar `DATABASE_URL` productivo para la prueba;
+- todavía faltan acordar RPO/RTO y registrar una prueba aislada útil.
