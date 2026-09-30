@@ -15,7 +15,7 @@
 - [x] CI del checkpoint actual verde.
 
 ## Funcional deportivo pendiente
-- [x] dos jugadores verificados;
+- [x] flujos con dos jugadores verificados cubiertos automáticamente; producción real todavía no tiene una pareja verificada formada;
 - [x] invitación/aceptación;
 - [x] pareja única;
 - [x] categoría/posición;
@@ -26,7 +26,7 @@
 - [x] movimiento de ranking;
 - [x] ascenso/descenso;
 - [x] no-show;
-- [x] extensión extraordinaria;
+- [x] Wheel v3 sin extensión extraordinaria; la compatibilidad v2 queda sólo como legacy no productivo;
 - [x] lesión/abandono;
 - [x] pausa/reactivación;
 - [x] disolución;
@@ -52,7 +52,7 @@
 - [ ] RPO/RTO de recuperación acordados;
 - [ ] prueba de recuperación aislada completada; diferida intencionalmente hasta que haya datos/cambios útiles para validar;
 - [ ] backup externo definido si se necesita más retención que Instant Restore;
-- [x] pruebas PostgreSQL/concurrencia 46/46 verdes;
+- [x] suite PostgreSQL/concurrencia verde en CI tras Wheel v3 y barrera global de writes;
 - [x] logs de errores sanitizados para no persistir PII/SQL/details en producción;
 - [x] CORS de producción validado como orígenes HTTPS puros.
 - [x] headers HTTP de seguridad backend/Vercel validados en CI y deploy;
@@ -75,14 +75,14 @@
 - [x] guía exacta `PRODUCTION_ENVIRONMENT_SETUP.md` y validación de inputs preparadas y verdes en CI;
 - [x] secrets/variables core cargados en el Environment `production`;
 - [x] preflight `core` verde contra Neon real;
-- [ ] secrets/variables WhatsApp cargados;
-- [ ] preflight `full` verde antes del release público.
+- [ ] secrets/variables WhatsApp cargados en GitHub Environment `production` y Render;
+- [ ] preflight `full` verde antes del release público; run `36585295135` confirmó que hoy falla sólo por las 5 entradas Meta faltantes.
 
 ## Deploy
 - [x] GitHub Actions verde;
 - [x] Render health verde contra health DB-aware;
-- [ ] confirmar si el servicio Render existente se administra manualmente o mediante Blueprint; `render.yaml` solo gobierna servicios vinculados/sincronizados como Blueprint;
-- [x] Vercel build/deploy status verde reportado a GitHub;
+- [x] Render productivo desplegando `main` y health verificado durante cutover/estabilización; no hace falta resolver Blueprint para operar Wheel v3 actual.
+- [x] frontend productivo Vercel verificado por smoke. GitHub puede mostrar `build-rate-limit` en commits nuevos sin invalidar el artefacto actualmente servido.
 - [x] `VITE_API_URL` validado en build productivo y Vercel nuevamente verde;
 - [x] variables producción core correctas;
 - [x] no se requiere cancha comercial activa al lanzamiento; los lugares de partido son texto libre;
@@ -91,7 +91,7 @@
 - [x] smoke productivo valida headers de seguridad y `no-store` en el workflow preparado;
 - [x] ejecutar ese smoke contra producción real y confirmar headers efectivos;
 - [x] smoke público ejecutado contra Render/Vercel reales;
-- [ ] smoke completo autenticado/UX en producción.
+- [x] smoke autenticado read-only real en producción (`36585954395`); Admin/jugador/seguridad verdes. `Mi Liga` queda pendiente únicamente de que exista la primera pareja real verificada.
 
 ## Legal
 - [ ] términos revisados profesionalmente en Argentina;
@@ -121,3 +121,29 @@ Solo después de todo lo anterior: **lanzamiento público**.
 - [x] Login Admin real con contraseña + TOTP de 6 dígitos confirmado desde producción.
 
 - [x] fallback SPA del Service Worker verificado y corregido para rutas como `/liga`;
+
+
+## Estado real de lanzamiento — 2026-09-30
+
+### Verde técnico
+- [x] Wheel v3 activo en producción.
+- [x] cutover y postcutover reales verdes.
+- [x] smoke público real verde.
+- [x] smoke autenticado read-only real verde.
+- [x] Admin/TOTP real operativo.
+- [x] DB/TLS/migraciones/invariantes verdes.
+- [x] outbox WhatsApp saneado: mensajes temporales obsoletos expiran antes de enviar.
+- [x] UI Wheel v3 sin Elo/desafío manual; extensión extraordinaria oculta fuera de v2.
+- [x] documentación técnica fuente actualizada a Wheel v3.
+
+### Bloqueantes externos antes del lanzamiento público
+- [ ] cargar las 5 entradas Meta WhatsApp en GitHub Environment `production`;
+- [ ] cargar las mismas credenciales/configuración en Render;
+- [ ] ejecutar `preflight:full` verde;
+- [ ] ejecutar workflow `LA RED WhatsApp production test` y confirmar recepción;
+- [ ] revisión profesional en Argentina de términos, privacidad/DNI, riesgos y conducta;
+- [ ] evaluar seguro/RC/accidentes y decidir cobertura;
+- [ ] acordar RPO/RTO de Neon y completar drill aislado cuando haya una restauración útil que probar.
+
+### Validación diferida a primer uso real
+- [ ] verificar `Mi Liga` con la primera pareja real verificada; no crear datos ficticios en producción sólo para cubrir este punto.
