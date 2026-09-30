@@ -2,7 +2,7 @@
 
 ## 1. Estado consolidado
 - package `5.0.9`;
-- motor `wheel-v2`;
+- motor productivo `wheel-v3` desde 2026-09-29;
 - Neon nueva como base actual; la histórica fue eliminada;
 - 71/71 tests puros;
 - 46/46 integración PostgreSQL;
@@ -24,7 +24,7 @@ Ejecutar `npm run preflight:core` o el workflow `LA RED production preflight` en
 Debe validar, sin modificar datos:
 - TLS PostgreSQL;
 - JWT/TOTP/configuración;
-- engine `wheel-v2`;
+- engine `wheel-v3`;
 - timezone;
 - reloj global;
 - patch de abandono;
@@ -37,7 +37,7 @@ Confirmar startup productivo contra la Neon real. Las migraciones corren antes d
 
 Health:
 - `/api/live`: liveness sin DB;
-- `/api/health`: readiness DB-aware y engine `wheel-v2`.
+- `/api/health`: readiness DB-aware y engine `wheel-v3`.
 
 Si Render se administra mediante Blueprint, sincronizar `render.yaml`. Si el servicio existente es manual, mantener branch `main`, build `npm ci --ignore-scripts`, start `npm start` y health `/api/health`.
 
@@ -70,10 +70,9 @@ Configurar Phone Number ID, token, template, Graph version y language. Entregar 
 Ejecutar `npm run preflight:full` o el workflow en modo `full`. Es obligatorio antes del release público.
 
 ### Gate I — Smoke UX autenticado
-Recorrer en producción:
-registro → verificación → invitación → pareja → assignment → propuesta → aceptación → resultado → confirmación → ranking.
+Smoke autenticado read-only real: **VERDE** (`36585954395`). Admin, jugador y aislamiento de permisos verificados. El flujo `Mi Liga` real se comprobará con la primera pareja verificada productiva, sin fabricar datos.
 
-Luego casos seleccionados: no-show, disputa, lesión, pausa, disolución, disciplina y reenvío de DNI.
+Los flujos mutantes completos siguen cubiertos por tests/integración; los primeros usos reales deben observarse sin forzar datos ficticios.
 
 ### Gate J — Legal/seguro
 Revisión profesional en Argentina de términos, privacidad/DNI, riesgos, conducta y seguro/RC/accidentes.
@@ -108,8 +107,12 @@ Antes de continuar con smoke/TOTP/WhatsApp:
 - Gate C Render startup + health: VERDE.
 - Gate D Production smoke real: VERDE.
 - Gate E TOTP Admin real: VERDE.
-- Próximo gate operativo: Gate F Recuperación Neon.
-- Después: WhatsApp Meta real -> preflight full -> smoke UX autenticado -> legal/seguro.
+- Wheel v3 productivo + postcutover: VERDE.
+- Smoke autenticado read-only: VERDE.
+- WhatsApp Meta real: PENDIENTE por 5 entradas externas faltantes.
+- Preflight full: PENDIENTE de WhatsApp.
+- Legal/seguro: PENDIENTE externo.
+- Recuperación Neon: ventana histórica confirmada; RPO/RTO + drill aislado siguen pendientes.
 
 
 ## Recuperación Neon — estado 2026-09-22
@@ -122,3 +125,17 @@ Antes de continuar con smoke/TOTP/WhatsApp:
 
 ## Service Worker productivo
 Bug de fallback observado en navegador real y corregido. La navegación SPA offline/transitoria ya no devuelve valores inválidos; regresión automática incluida. Estado: 71/71 puros + 46/46 PostgreSQL, frontend y Vercel verdes.
+
+
+## Estado vigente 2026-09-30
+
+No quedan gates funcionales internos conocidos de Wheel v3. No seguir cambiando reglas por prevención.
+
+Orden restante:
+1. configurar Meta WhatsApp en GitHub + Render;
+2. ejecutar preflight full;
+3. enviar mensaje controlado de prueba;
+4. cerrar revisión legal/seguro;
+5. acordar RPO/RTO y realizar drill de recuperación aislado cuando sea útil;
+6. observar primer onboarding/pareja/partido real y corregir sólo bugs demostrados;
+7. después de estabilidad suficiente, retirar runtime/campos legacy Wheel v2.
