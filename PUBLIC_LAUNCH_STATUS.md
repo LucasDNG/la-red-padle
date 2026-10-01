@@ -1,6 +1,6 @@
 # LA RED Pádel — Estado para lanzamiento público
 
-Fecha de actualización: 2026-09-30
+Fecha de actualización: 2026-10-01
 
 ## Estado técnico
 
@@ -43,13 +43,15 @@ Faltan las cinco entradas productivas:
 - PROD_WHATSAPP_GRAPH_VERSION
 - PROD_WHATSAPP_TEMPLATE_LANGUAGE
 
+Confirmado en GitHub Environment `production` el 2026-10-01 13:36 ART: run `36893204527` detenido exclusivamente por ausencia de los cinco inputs full. Render no fue inspeccionado. CI de la corrección de WhatsApp y smoke/postcutover productivo están verdes; el bloqueo es externo de configuración.
+
 Deben cargarse en:
 1. GitHub Environment `production`;
 2. Render.
 
 Después:
 1. ejecutar `preflight:full`;
-2. ejecutar workflow `LA RED WhatsApp production test`;
+2. obtener confirmación explícita del propietario antes de habilitar envíos en Render (el dispatcher puede enviar automáticamente) y ejecutar workflow `LA RED WhatsApp production test`;
 3. confirmar recepción del mensaje.
 
 ### 2. Legal / seguro

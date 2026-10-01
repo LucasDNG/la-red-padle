@@ -42,6 +42,8 @@ Después leer, como mínimo:
 - Estado único vigente de salida pública: `PUBLIC_LAUNCH_STATUS.md`. Usarlo antes que listas históricas dispersas.
 
 ### WhatsApp y estabilidad verificados — 2026-10-01 13:11 ART
+Actualización 13:36 ART: chequeo aislado de inputs `preflight:full` run `36893204527` confirmó que las cinco entradas Meta siguen ausentes en GitHub Environment `production`. Falló exclusivamente `Validate production environment inputs`; checkout, instalación y preflight DB quedaron omitidos. No hubo envío. Render no fue inspeccionado. Rama `verify-meta-2026-10-01` neutralizada en `7ad646a`, sin push-trigger. El siguiente paso requiere cargar Meta en GitHub; no habilitar Render/dispatcher ni lanzar prueba real sin autorización explícita.
+
 - HEAD inicial real: `34190582f916efa65743594a6c20dfbf01fc6375`; Actions `36774226465` y Vercel success.
 - El bloque original de sender/script/tests/workflow WhatsApp (`ca916aa1be1a3de950ebf79bcc20a9bb0d55ac8a`) ya tenía CI success: run `36586440051`.
 - Bug comprobado corregido en `9a7c1a022a2d3a3fe3983e29d4db24999093dde9`: el preflight full y el sender/dispatcher exigían solo cuatro variables Meta y usaban idioma implícito. Ahora exigen las cinco, incluido `WHATSAPP_TEMPLATE_LANGUAGE`; no se llama a Meta si falta cualquiera.

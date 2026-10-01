@@ -161,6 +161,8 @@ Las cinco entradas de Meta deben existir en **dos lugares**:
 
 ## Verificación 2026-10-01
 
+Chequeo actualizado a las 13:36 ART: run `36893204527` falló únicamente al validar inputs full porque faltan las cinco entradas Meta en GitHub Environment `production`. No llegó a instalar dependencias ni a ejecutar el preflight DB; no envió mensajes. Este resultado confirma un pendiente de configuración, no un bug de aplicación. Render no fue inspeccionado. Cargar primero GitHub y comprobar full; coordinar la habilitación de Render con autorización explícita para el dispatcher/outbox.
+
 - CI del bloque original WhatsApp: `36586440051`, success.
 - Corrección de las cinco variables y manejo de confirmación: `9a7c1a022a2d3a3fe3983e29d4db24999093dde9`, CI `36890000756` success, incluyendo 153 tests puros, integración PostgreSQL, verify:db y frontend build.
 - Postcutover productivo con smoke incluido: `36890116464`, success el 2026-10-01 13:11 ART; backend/frontend sirvieron esa misma corrección, engine wheel-v3, DB/TLS/migraciones verdes, readiness true, sin blockers ni estados faltantes/assignments legacy o malformados.
