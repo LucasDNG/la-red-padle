@@ -1,7 +1,6 @@
 name: Verify Meta configuration without sending
 on:
-  push:
-    branches: [verify-meta-2026-10-01]
+  workflow_dispatch:
 permissions:
   contents: read
 
@@ -60,5 +59,6 @@ jobs:
           node-version: 22
       - run: npm ci --ignore-scripts
       - run: npm run preflight:prod
+
 
 
