@@ -1,0 +1,41 @@
+name: Verify Wheel v3 stability October 1
+on:
+  push:
+    branches: [verify-production-2026-10-01]
+permissions:
+  contents: read
+jobs:
+  postcutover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      NODE_ENV: production
+      DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+      JWT_SECRET: ${{ secrets.PROD_JWT_SECRET }}
+      FRONTEND_URL: ${{ vars.PROD_FRONTEND_URL }}
+      ADMIN_TOTP_SECRET: ${{ secrets.PROD_ADMIN_TOTP_SECRET }}
+      PROD_API_URL: ${{ vars.PROD_API_URL }}
+      PROD_FRONTEND_URL: ${{ vars.PROD_FRONTEND_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --ignore-scripts
+      - name: Read current production releases
+        run: |
+          node --input-type=module <<'NODE'
+          import {appendFileSync} from 'node:fs';
+          const healthResponse=await fetch(process.env.PROD_API_URL+'/api/health');
+          if(!healthResponse.ok)throw new Error('Health unavailable');
+          const health=await healthResponse.json();
+          const frontendResponse=await fetch(process.env.PROD_FRONTEND_URL);
+          if(!frontendResponse.ok)throw new Error('Frontend unavailable');
+          const html=await frontendResponse.text();
+          const frontend=html.match(/name="la-red-release"\s+content="([a-f0-9]{40})"/)?.[1];
+          if(!/^[a-f0-9]{40}$/.test(health.release||'')||!frontend)throw new Error('Invalid release metadata');
+          console.log(JSON.stringify({backend:health.release,frontend}));
+          appendFileSync(process.env.GITHUB_ENV,`EXPECTED_BACKEND_SHA=${health.release}\nEXPECTED_FRONTEND_SHA=${frontend}\n`);
+          NODE
+      - run: npm run postcutover:wheel-v3
