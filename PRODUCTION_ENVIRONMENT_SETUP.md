@@ -127,6 +127,12 @@ Run real 2026-09-29 `36585954395`: success. Había jugador verificado pero ningu
 
 Una vez cargadas las cinco entradas de Meta, usar GitHub → Actions → `LA RED WhatsApp production test`.
 
+Antes de ejecutarlo debe existir confirmación explícita del propietario para el envío real al destino elegido. No lanzar este workflow para comprobar solamente configuración o CI: envía un mensaje. `preflight:full` y postcutover son verificaciones sin envío.
+
+Desde `9a7c1a022a2d3a3fe3983e29d4db24999093dde9`, las cinco variables son obligatorias también en la validación y en el sender/dispatcher. El idioma no tiene fallback: debe coincidir con el idioma aprobado de la plantilla Meta. En Render usar los mismos nombres sin el prefijo `PROD_`.
+
+Coordinar la carga de la quinta variable en Render con la confirmación explícita de habilitación: el dispatcher de producción puede comenzar a enviar el outbox automáticamente cuando la configuración esté completa. El workflow de prueba no controla esa habilitación automática.
+
 El workflow pide:
 - `phone`: número de destino en formato internacional;
 - `confirmation`: exactamente `SEND-WHATSAPP-TEST`.
@@ -152,3 +158,12 @@ Estado productivo verificado el 2026-09-29: un recovery histórico fue marcado `
 Las cinco entradas de Meta deben existir en **dos lugares**:
 1. GitHub Environment `production`, para `preflight:full` y el workflow de prueba;
 2. Render, para que el backend productivo y su dispatcher realmente puedan enviar.
+
+## Verificación 2026-10-01
+
+- CI del bloque original WhatsApp: `36586440051`, success.
+- Corrección de las cinco variables y manejo de confirmación: `9a7c1a022a2d3a3fe3983e29d4db24999093dde9`, CI `36890000756` success, incluyendo 153 tests puros, integración PostgreSQL, verify:db y frontend build.
+- Postcutover productivo con smoke incluido: `36890116464`, success el 2026-10-01 13:11 ART; backend/frontend sirvieron esa misma corrección, engine wheel-v3, DB/TLS/migraciones verdes, readiness true, sin blockers ni estados faltantes/assignments legacy o malformados.
+- El chequeo no inyectó variables Meta ni auditó su carga actual en GitHub/Render. No equivale a preflight full ni a confirmación de entrega de WhatsApp.
+- No se ejecutó la prueba real ni se enviaron mensajes. Sigue pendiente verificar la configuración Meta en ambos lugares, ejecutar preflight full y obtener autorización explícita antes del envío.
+- Disparador temporal de estabilidad neutralizado; no quedó ninguna verificación automática adicional por push.

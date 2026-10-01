@@ -41,6 +41,17 @@ Después leer, como mínimo:
 - Próximo trabajo: observación/monitoreo de producción v3 y, sólo después de estabilidad suficiente, retiro del runtime/campos legacy.
 - Estado único vigente de salida pública: `PUBLIC_LAUNCH_STATUS.md`. Usarlo antes que listas históricas dispersas.
 
+### WhatsApp y estabilidad verificados — 2026-10-01 13:11 ART
+- HEAD inicial real: `34190582f916efa65743594a6c20dfbf01fc6375`; Actions `36774226465` y Vercel success.
+- El bloque original de sender/script/tests/workflow WhatsApp (`ca916aa1be1a3de950ebf79bcc20a9bb0d55ac8a`) ya tenía CI success: run `36586440051`.
+- Bug comprobado corregido en `9a7c1a022a2d3a3fe3983e29d4db24999093dde9`: el preflight full y el sender/dispatcher exigían solo cuatro variables Meta y usaban idioma implícito. Ahora exigen las cinco, incluido `WHATSAPP_TEMPLATE_LANGUAGE`; no se llama a Meta si falta cualquiera.
+- La confirmación del workflow se pasa por variable de entorno, evitando interpretar el input como código shell; sigue exigiendo exactamente `SEND-WHATSAPP-TEST`.
+- CI de la corrección run `36890000756`: success (check, 153 tests puros, verify:db, integración PostgreSQL y frontend build). Pruebas locales check + 153/153 verdes; runtime local Node 24, CI autoritativo Node 22.
+- Postcutover + smoke reales run `36890116464`: success, backend y frontend `9a7c1a022a2d3a3fe3983e29d4db24999093dde9`. DB/TLS/migraciones ok, reloj activo, readiness `true`, blockers `[]`, legacy/malformed assignments y estados pair/duo/league faltantes todos `0`; 24 controles DB y 6 endpoints públicos verdes; outbox failed `0`.
+- Rama temporal `verify-production-2026-10-01` neutralizada en `e0cb593`: solo workflow_dispatch, sin push-trigger. No se fusiona a main.
+- No se cambiaron reglas competitivas ni se enviaron mensajes WhatsApp reales. La carga actual de Meta en GitHub/Render no fue revalidada por este postcutover (no inyecta variables Meta); el pendiente externo anterior sigue abierto hasta verificar las cinco en ambos lugares.
+- Próximo gate: cinco variables Meta configuradas en GitHub Environment `production` y Render, preflight full verde y confirmación explícita del propietario antes de cualquier envío real. Configurar Render puede activar automáticamente el dispatcher; coordinar esa habilitación con la autorización de envío.
+
 ### Estabilización verificada — 2026-09-29 11:53 ART
 - Postcutover real de estabilidad run `36584434874`: success; `engine=wheel-v3`, DB ok, readiness `true`, `blockers=[]`, 0 assignments legacy/malformados y 0 estados v3 faltantes.
 - Backend observado en ese smoke: `0678256544ee23cf64dcab5944bf9823d24852c3`; frontend: `87532489ca44d8ed5cd9378a5e17db64f360c032`.
