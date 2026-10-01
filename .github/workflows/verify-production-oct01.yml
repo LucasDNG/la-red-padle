@@ -1,7 +1,6 @@
 name: Verify Wheel v3 stability October 1
 on:
-  push:
-    branches: [verify-production-2026-10-01]
+  workflow_dispatch:
 permissions:
   contents: read
 jobs:
