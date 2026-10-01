@@ -1,17 +1,7 @@
-name: LA RED production preflight
-
+name: Verify Meta configuration without sending
 on:
-  workflow_dispatch:
-    inputs:
-      mode:
-        description: core valida infraestructura; full agrega WhatsApp y es obligatorio antes del release
-        required: true
-        default: core
-        type: choice
-        options:
-          - core
-          - full
-
+  push:
+    branches: [verify-meta-2026-10-01]
 permissions:
   contents: read
 
@@ -70,4 +60,5 @@ jobs:
           node-version: 22
       - run: npm ci --ignore-scripts
       - run: npm run preflight:prod
+
 
