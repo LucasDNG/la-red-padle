@@ -49,6 +49,14 @@ test('complete production config passes runtime validation',()=>{
   assert.deepEqual(assertRuntimeConfig(strongEnv),{errors:[],warnings:[]});
 });
 
+test('strict preflight requires each of the five Meta variables',()=>{
+  for(const key of Object.keys(strongEnv).filter(key=>key.startsWith('WHATSAPP_'))){
+    const env={...strongEnv,[key]:''};
+    assert.ok(productionConfigReport(env,{strictIntegrations:true}).errors.some(x=>x.includes(key)),key);
+    assert.ok(productionConfigReport(env).warnings.some(x=>x.includes(key)),key);
+  }
+});
+
 
 test('production rejects weak or reused TOTP secrets',()=>{
   const weak=productionConfigReport({...strongEnv,ADMIN_TOTP_SECRET:'JBSWY3DPEHPK3PXP'});

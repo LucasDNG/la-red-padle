@@ -2,6 +2,26 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {sendWhatsAppTemplate} from '../src/notifications.js';
 
+test('WhatsApp sender never calls Meta if any of the five variables is missing',async()=>{
+  const values={WHATSAPP_PHONE_NUMBER_ID:'123',WHATSAPP_ACCESS_TOKEN:'fake',WHATSAPP_TEMPLATE_NAME:'notice',WHATSAPP_GRAPH_VERSION:'v23.0',WHATSAPP_TEMPLATE_LANGUAGE:'es_AR'};
+  const previous={...process.env};
+  const originalFetch=globalThis.fetch;
+  let calls=0;
+  globalThis.fetch=async()=>{calls++;throw new Error('Unexpected network call');};
+  try{
+    for(const key of Object.keys(values)){
+      Object.assign(process.env,values);
+      delete process.env[key];
+      await assert.rejects(sendWhatsAppTemplate('5493329123456',{body:'x'}),/WhatsApp (incompleto|Graph version no configurada)/);
+    }
+    assert.equal(calls,0);
+  }finally{
+    globalThis.fetch=originalFetch;
+    for(const key of Object.keys(process.env))if(!(key in previous))delete process.env[key];
+    Object.assign(process.env,previous);
+  }
+});
+
 test('WhatsApp template sender uses configured Meta endpoint without leaking payload semantics',async()=>{
   const previous={...process.env};
   process.env.WHATSAPP_GRAPH_VERSION='v23.0';

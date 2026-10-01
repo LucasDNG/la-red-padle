@@ -66,7 +66,7 @@ export function productionConfigReport(env=process.env,{strictIntegrations=false
   if(!base32Secret(env.ADMIN_TOTP_SECRET))errors.push('ADMIN_TOTP_SECRET debe ser Base32 y aportar al menos 160 bits (32 caracteres sin padding)');
   if(jwt&&clean(env.ADMIN_TOTP_SECRET)&&jwt===clean(env.ADMIN_TOTP_SECRET))errors.push('JWT_SECRET y ADMIN_TOTP_SECRET deben ser secretos distintos');
 
-  const whatsapp=['WHATSAPP_PHONE_NUMBER_ID','WHATSAPP_ACCESS_TOKEN','WHATSAPP_TEMPLATE_NAME','WHATSAPP_GRAPH_VERSION'];
+  const whatsapp=['WHATSAPP_PHONE_NUMBER_ID','WHATSAPP_ACCESS_TOKEN','WHATSAPP_TEMPLATE_NAME','WHATSAPP_GRAPH_VERSION','WHATSAPP_TEMPLATE_LANGUAGE'];
   const missingWhatsApp=whatsapp.filter(k=>!clean(env[k]));
   if(missingWhatsApp.length){
     const msg='WhatsApp incompleto: '+missingWhatsApp.join(', ');

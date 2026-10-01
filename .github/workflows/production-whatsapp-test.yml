@@ -36,9 +36,11 @@ jobs:
     steps:
       - name: Validate WhatsApp test confirmation
         shell: bash
+        env:
+          WHATSAPP_TEST_CONFIRMATION: ${{ inputs.confirmation }}
         run: |
           set -euo pipefail
-          [ "${{ inputs.confirmation }}" = "SEND-WHATSAPP-TEST" ] || {
+          [ "$WHATSAPP_TEST_CONFIRMATION" = "SEND-WHATSAPP-TEST" ] || {
             echo "Confirmation must be exactly SEND-WHATSAPP-TEST"
             exit 1
           }

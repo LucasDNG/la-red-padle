@@ -43,7 +43,8 @@ function metaConfigured(){
     process.env.WHATSAPP_PHONE_NUMBER_ID&&
     process.env.WHATSAPP_ACCESS_TOKEN&&
     process.env.WHATSAPP_TEMPLATE_NAME&&
-    process.env.WHATSAPP_GRAPH_VERSION
+    process.env.WHATSAPP_GRAPH_VERSION&&
+    process.env.WHATSAPP_TEMPLATE_LANGUAGE
   );
 }
 
@@ -52,6 +53,7 @@ export async function sendWhatsAppTemplate(phone,payload){
   if(!to)throw new Error('Usuario sin teléfono');
   const version=String(process.env.WHATSAPP_GRAPH_VERSION||'').trim();
   if(!/^v\d+\.\d+$/.test(version))throw new Error('WhatsApp Graph version no configurada');
+  if(!metaConfigured())throw new Error('WhatsApp incompleto: se requieren las cinco variables Meta');
   const url=`https://graph.facebook.com/${version}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
   const body={
     messaging_product:'whatsapp',
@@ -59,7 +61,7 @@ export async function sendWhatsAppTemplate(phone,payload){
     type:'template',
     template:{
       name:process.env.WHATSAPP_TEMPLATE_NAME,
-      language:{code:process.env.WHATSAPP_TEMPLATE_LANGUAGE||'es_AR'},
+      language:{code:process.env.WHATSAPP_TEMPLATE_LANGUAGE},
       components:[{
         type:'body',
         parameters:[{
