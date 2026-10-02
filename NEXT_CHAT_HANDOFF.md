@@ -52,3 +52,11 @@ Actualizado: 2026-10-02. Repositorio: `LucasDNG/la-red-padle`, rama `main`.
 - Push directo a main autorizado; cambios solo por bugs comprobados; validar con CI Node 22/PostgreSQL 16.
 - Runtime local disponible Node 24: distinguir sus pruebas del CI autoritativo.
 - No imprimir secretos ni datos personales; no enviar WhatsApp sin autorización explícita.
+
+## Cierre verificado — 2026-10-02
+
+- Correcciones publicadas en main: `d9a289318f3042cf81a087cf5abab50ea4cc4a3c`.
+- CI [37075045528](https://github.com/LucasDNG/la-red-padle/actions/runs/37075045528): backend y frontend success, incluyendo Node 22, PostgreSQL 16, verificación DB e integración.
+- Smoke HTTP posterior al despliegue: ok, wheel-v3, DB ok, seis endpoints públicos, CORS/cabeceras/no-store correctos. Backend y frontend reportan el SHA d9a2893 completo.
+- Ranking publicado comprobado en navegador: mensaje de categoría/circuito sin parejas visible.
+- Este cierre no amplía la cobertura privada: nueva inspección visual Admin y primer partido real siguen pendientes. WhatsApp continúa sin las cinco variables; no se enviaron mensajes.

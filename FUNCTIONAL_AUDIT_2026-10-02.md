@@ -63,3 +63,11 @@ Admin comprobaba solo tres variables, mientras el sender vigente exige cinco. Ah
 ## Continuidad
 
 `NEXT_CHAT_HANDOFF.md` queda corto y vigente; el contenido anterior se conserva en `NEXT_CHAT_HANDOFF_HISTORY_2026-10-02.md`. Se actualizan los encabezados fuente que todavía declaraban v3 pendiente y la contradicción del runbook sobre quiesce manual.
+
+## Cierre verificado — 2026-10-02
+
+- Correcciones publicadas en main: `d9a289318f3042cf81a087cf5abab50ea4cc4a3c`.
+- CI [37075045528](https://github.com/LucasDNG/la-red-padle/actions/runs/37075045528): backend y frontend success, incluyendo Node 22, PostgreSQL 16, verificación DB e integración.
+- Smoke HTTP posterior al despliegue: ok, wheel-v3, DB ok, seis endpoints públicos, CORS/cabeceras/no-store correctos. Backend y frontend reportan el SHA d9a2893 completo.
+- Ranking publicado comprobado en navegador: mensaje de categoría/circuito sin parejas visible.
+- Este cierre no amplía la cobertura privada: nueva inspección visual Admin y primer partido real siguen pendientes. WhatsApp continúa sin las cinco variables; no se enviaron mensajes.
