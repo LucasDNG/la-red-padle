@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {databasePoolOptions,productionConfigReport,assertRuntimeConfig,frontendOrigins,corsOrigins} from '../src/config.js';
+import {databasePoolOptions,productionConfigReport,assertRuntimeConfig,frontendOrigins,corsOrigins,whatsappConfiguration} from '../src/config.js';
 
 const strongEnv={
   NODE_ENV:'production',
@@ -14,6 +14,15 @@ const strongEnv={
   WHATSAPP_GRAPH_VERSION:'v26.0',
   WHATSAPP_TEMPLATE_LANGUAGE:'es_AR',
 };
+
+test('WhatsApp readiness matches sender requirements and exposes names only',()=>{
+  assert.deepEqual(whatsappConfiguration(strongEnv),{configured:true,missing:[],invalid:[]});
+  const report=whatsappConfiguration({...strongEnv,WHATSAPP_GRAPH_VERSION:'  '});
+  assert.deepEqual(report,{configured:false,missing:['WHATSAPP_GRAPH_VERSION'],invalid:[]});
+  assert.equal(whatsappConfiguration({...strongEnv,WHATSAPP_GRAPH_VERSION:'26'}).configured,false);
+  assert.equal(whatsappConfiguration({...strongEnv,WHATSAPP_ACCESS_TOKEN:'  '}).configured,false);
+  assert.equal(JSON.stringify(report).includes(strongEnv.WHATSAPP_ACCESS_TOKEN),false);
+});
 
 test('production DB without sslmode enables verified TLS by default',()=>{
   const options=databasePoolOptions({...strongEnv,DATABASE_URL:'postgresql://user:pass@db.example.com/app'});

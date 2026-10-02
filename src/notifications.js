@@ -1,4 +1,5 @@
 import {pool,q} from './db.js';
+import {whatsappConfiguration} from './config.js';
 
 export async function queueUserNotification(client,{userId,type,title,body,payload={},dedupeKey,whatsapp=true,overridePhone=null}){
   const row=(await q(client,`
@@ -38,15 +39,7 @@ export async function queueAssignmentNotification(client,a,msg){
   await queuePairNotification(client,a.pair_b_id,msg);
 }
 
-function metaConfigured(){
-  return Boolean(
-    process.env.WHATSAPP_PHONE_NUMBER_ID&&
-    process.env.WHATSAPP_ACCESS_TOKEN&&
-    process.env.WHATSAPP_TEMPLATE_NAME&&
-    process.env.WHATSAPP_GRAPH_VERSION&&
-    process.env.WHATSAPP_TEMPLATE_LANGUAGE
-  );
-}
+function metaConfigured(){return whatsappConfiguration().configured;}
 
 export async function sendWhatsAppTemplate(phone,payload){
   const to=String(payload.overridePhone||phone||'').replace(/\D/g,'');

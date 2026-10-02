@@ -1,6 +1,18 @@
 const INSECURE_SSL_MODES=new Set(['disable','allow','prefer','no-verify']);
 
 function clean(value){return String(value??'').trim();}
+export function whatsappConfiguration(env=process.env){
+  const required=['WHATSAPP_PHONE_NUMBER_ID','WHATSAPP_ACCESS_TOKEN','WHATSAPP_TEMPLATE_NAME','WHATSAPP_GRAPH_VERSION','WHATSAPP_TEMPLATE_LANGUAGE'];
+  const missing=required.filter(key=>!clean(env[key]));
+  const invalid=[];
+  for(const [key,pattern] of [
+    ['WHATSAPP_PHONE_NUMBER_ID',/^\d+$/],
+    ['WHATSAPP_TEMPLATE_NAME',/^[a-z0-9_]+$/],
+    ['WHATSAPP_GRAPH_VERSION',/^v\d+\.\d+$/],
+    ['WHATSAPP_TEMPLATE_LANGUAGE',/^[a-z]{2}_[A-Z]{2}$/],
+  ])if(clean(env[key])&&!pattern.test(clean(env[key])))invalid.push(key);
+  return {configured:missing.length===0&&invalid.length===0,missing,invalid};
+}
 function parseDatabaseUrl(raw){
   const value=clean(raw);
   if(!value)return null;
@@ -66,16 +78,12 @@ export function productionConfigReport(env=process.env,{strictIntegrations=false
   if(!base32Secret(env.ADMIN_TOTP_SECRET))errors.push('ADMIN_TOTP_SECRET debe ser Base32 y aportar al menos 160 bits (32 caracteres sin padding)');
   if(jwt&&clean(env.ADMIN_TOTP_SECRET)&&jwt===clean(env.ADMIN_TOTP_SECRET))errors.push('JWT_SECRET y ADMIN_TOTP_SECRET deben ser secretos distintos');
 
-  const whatsapp=['WHATSAPP_PHONE_NUMBER_ID','WHATSAPP_ACCESS_TOKEN','WHATSAPP_TEMPLATE_NAME','WHATSAPP_GRAPH_VERSION','WHATSAPP_TEMPLATE_LANGUAGE'];
-  const missingWhatsApp=whatsapp.filter(k=>!clean(env[k]));
+  const {missing:missingWhatsApp,invalid:invalidWhatsApp}=whatsappConfiguration(env);
   if(missingWhatsApp.length){
     const msg='WhatsApp incompleto: '+missingWhatsApp.join(', ');
     if(strictIntegrations)errors.push(msg);else warnings.push(msg);
   }
-  if(clean(env.WHATSAPP_PHONE_NUMBER_ID)&&!/^\d+$/.test(clean(env.WHATSAPP_PHONE_NUMBER_ID)))errors.push('WHATSAPP_PHONE_NUMBER_ID inválido');
-  if(clean(env.WHATSAPP_TEMPLATE_NAME)&&!/^[a-z0-9_]+$/.test(clean(env.WHATSAPP_TEMPLATE_NAME)))errors.push('WHATSAPP_TEMPLATE_NAME inválido');
-  if(clean(env.WHATSAPP_GRAPH_VERSION)&&!/^v\d+\.\d+$/.test(clean(env.WHATSAPP_GRAPH_VERSION)))errors.push('WHATSAPP_GRAPH_VERSION inválido');
-  if(clean(env.WHATSAPP_TEMPLATE_LANGUAGE)&&!/^[a-z]{2}_[A-Z]{2}$/.test(clean(env.WHATSAPP_TEMPLATE_LANGUAGE)))errors.push('WHATSAPP_TEMPLATE_LANGUAGE inválido');
+  for(const key of invalidWhatsApp)errors.push(key+' inválido');
 
   return {errors,warnings};
 }

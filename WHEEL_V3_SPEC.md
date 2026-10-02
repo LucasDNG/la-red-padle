@@ -4,10 +4,10 @@ Fecha: 2026-09-28
 ## Estado
 Este documento captura las decisiones funcionales acordadas antes de tocar el motor competitivo.
 
-- Estado: **diseño funcional pendiente de implementación**.
-- El código productivo sigue en `wheel-v2` hasta que se implemente y pruebe este diseño.
+- Estado: **implementado y activo en producción desde 2026-09-29**.
+- Producción usa `wheel-v3`; el runtime v2 se conserva temporalmente como compatibilidad legacy.
 - Para cualquier conflicto sobre asignación automática, ataque/defensa, fase de formación, equilibrio poblacional, inactividad, ascenso/descenso, incumplimientos o historial visible, **este archivo prevalece sobre las reglas anteriores**.
-- El reglamento funcional base está cerrado; antes de implementar se debe completar la auditoría/simulación y convertir sus hallazgos en tests.
+- El reglamento funcional base está cerrado y tiene cobertura de simulaciones y pruebas PostgreSQL. Cambiarlo solo ante un bug comprobado y con regresión.
 - No modificar el motor por intuición fuera de estas reglas.
 
 ## 1. Objetivo del motor

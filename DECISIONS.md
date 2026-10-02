@@ -2,7 +2,7 @@
 
 Este archivo contiene **solo decisiones que siguen vigentes**. Las decisiones reemplazadas se documentan en `PROJECT_JOURNEY.md`.
 
-> **Wheel v3 — 2026-09-28:** el diseño funcional nuevo está consolidado en `WHEEL_V3_SPEC.md`. El reglamento base está cerrado. El código productivo continúa en `wheel-v2` hasta completar auditoría/simulación, escribir tests e implementar la migración.
+> **Wheel v3 — 2026-09-28:** el diseño funcional nuevo está consolidado en `WHEEL_V3_SPEC.md`. El reglamento base está cerrado. Wheel v3 está implementado y activo en producción desde 2026-09-29; no modificar reglas salvo bug comprobado.
 
 ## Ranking y competencia
 

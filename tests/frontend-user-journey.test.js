@@ -63,3 +63,13 @@ test('extension extraordinaria queda condicionada fuera de Wheel v3',()=>{
   assert.match(frontSource,/!isV3&&extensionOpen/);
   assert.match(frontSource,/!isV3&&a\.extraordinary_used/);
 });
+
+test('result review shows submitted versions and keeps the response form reachable',()=>{
+  assert.match(frontSource,/\[a\.myVersion,a\.otherVersion\]\.filter\(Boolean\)\.map/);
+  assert.match(frontSource,/resultScoreText\(v\)/);
+  assert.match(frontSource,/canEditResult\(a\)&&/);
+  assert.match(frontSource,/ENVIAR MI VERSIÓN/);
+  assert.doesNotMatch(frontSource,/a\.otherVersion&&!a\.myVersion\?<button/);
+  assert.match(frontSource,/playedAt:argentinaInputToIso\(result\.playedAt\)/);
+  assert.match(frontSource,/scheduledAt:argentinaInputToIso\(schedule\.scheduledAt\)/);
+});

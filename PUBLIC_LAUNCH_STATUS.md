@@ -1,6 +1,6 @@
 # LA RED Pádel — Estado para lanzamiento público
 
-Fecha de actualización: 2026-10-01
+Fecha de actualización: 2026-10-02
 
 ## Estado técnico
 
@@ -22,7 +22,7 @@ Verificado en producción:
 
 ## No cambiar reglas
 
-No quedan bugs funcionales conocidos de Wheel v3.
+El motor competitivo conserva sus reglas. La auditoría funcional de 2026-10-02 detectó defectos de interfaz de revisión de resultados, horarios y estados operativos; ver `FUNCTIONAL_AUDIT_2026-10-02.md` para correcciones y límites de validación.
 
 Hasta que aparezca evidencia real de un defecto:
 - no modificar matching;
@@ -43,7 +43,7 @@ Faltan las cinco entradas productivas:
 - PROD_WHATSAPP_GRAPH_VERSION
 - PROD_WHATSAPP_TEMPLATE_LANGUAGE
 
-Confirmado en GitHub Environment `production` el 2026-10-01 13:36 ART: run `36893204527` detenido exclusivamente por ausencia de los cinco inputs full. Render no fue inspeccionado. CI de la corrección de WhatsApp y smoke/postcutover productivo están verdes; el bloqueo es externo de configuración.
+Confirmado en GitHub Environment `production` el 2026-10-01 13:36 ART: run `36893204527` detenido exclusivamente por ausencia de los cinco inputs full. Actualización 2026-10-02: los logs de arranque de Render a las 22:43:40 UTC (19:43:40 ART) confirman que también faltan las cinco variables en el servicio `la-red-padle-api`. No se habilitó el dispatcher ni se enviaron mensajes. CI de la corrección de WhatsApp y smoke/postcutover productivo están verdes; el bloqueo es externo de configuración.
 
 Deben cargarse en:
 1. GitHub Environment `production`;

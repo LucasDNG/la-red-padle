@@ -1,4 +1,6 @@
-# Release Manifest — estado actual
+# Release Manifest — referencia histórica y estado actual
+
+> Actualización 2026-10-02: producción usa Wheel v3 desde 2026-09-29. El estado vigente está en `PUBLIC_LAUNCH_STATUS.md` y `NEXT_CHAT_HANDOFF.md`; los conteos y pendientes del checkpoint inferior son históricos. La auditoría de UI actual está en `FUNCTIONAL_AUDIT_2026-10-02.md`.
 
 ## Candidato de referencia
 - fuente de verdad: repositorio `LucasDNG/la-red-padle`, rama `main`;

@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 import {pool} from './db.js';
+import {whatsappConfiguration} from './config.js';
 import {problem} from './core.js';
 import {recalcTarget} from './discipline.js';
 import {applySportingResult} from './competitionEngine.js';
@@ -146,7 +147,8 @@ export async function systemStatus(){
   const outboxMap=Object.fromEntries(outbox.rows.map(r=>[r.status,Number(r.n)]));
   return {
     engine:'wheel-v2',
-    whatsapp:Boolean(process.env.WHATSAPP_PHONE_NUMBER_ID&&process.env.WHATSAPP_ACCESS_TOKEN&&process.env.WHATSAPP_TEMPLATE_NAME),
+    whatsapp:whatsappConfiguration().configured,
+    whatsappConfiguration:whatsappConfiguration(),
     outbox:outbox.rows,
     outboxPending:outboxMap.pending||0,
     outboxFailed:outboxMap.failed||0,

@@ -112,7 +112,7 @@ Ambos usan el environment `production` y los secretos/variables ya configurados 
 
 El precutover es no destructivo: valida configuración, TLS, DB, blockers deportivos, health/smoke y ambos SHA. El postcutover hace la misma verificación exigiendo además `engine=wheel-v3`.
 
-**No existe workflow automático de activación**: el cambio de engine sigue requiriendo quiescer realmente el backend y ejecutar la activación controlada, para no fingir desde GitHub que no hay requests v2 en vuelo.
+El switch ya se ejecutó. Para un procedimiento equivalente, usar la activación controlada con la barrera PostgreSQL exclusiva descrita arriba; el quiesce manual no es un requisito del mecanismo actual. No repetir el cutover sobre producción v3.
 
 
 ## Estado actual — CUTOVER COMPLETADO
