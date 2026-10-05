@@ -36,7 +36,7 @@
 - [x] probar con Node 22 real;
 - [x] backend/preflight/smoke usan `npm ci` y lock raíz alineado;
 - [x] workflows con `contents: read` explícito y timeouts máximos validados;
-- [ ] generar y versionar `frontend/package-lock.json` para poder usar `npm ci` también en frontend;
+- [x] generar y versionar `frontend/package-lock.json`; el job frontend usa `npm ci --ignore-scripts`;
 - [x] eliminar bypass `rejectUnauthorized:false` y validar TLS por configuración; conexión Neon final todavía debe pasar preflight real;
 - [x] TOTP fail-closed y requisitos de secreto automatizados;
 - [x] generador local de secretos JWT/TOTP preparado;
