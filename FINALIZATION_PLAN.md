@@ -89,7 +89,7 @@ El build de producción falla cerrado si falta o es inválida.
 Solo después de todos los gates obligatorios verdes se considera LA RED lista para lanzamiento público.
 
 ## 5. Deuda no bloqueante
-Generar legítimamente `frontend/package-lock.json` y recién entonces sustituir `npm install` por `npm ci` en el job frontend.
+`frontend/package-lock.json` está versionado. El job frontend de CI usa `npm ci --ignore-scripts`.
 
 
 ## Actualización 2026-09-22 — gate de producción inmediato
