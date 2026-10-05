@@ -57,7 +57,7 @@ Actualizado: 2026-10-05. Repositorio: `LucasDNG/la-red-padle`, rama `main`.
 
 - HEAD de `main` al retomar: `4f25b5891fafb3cd6e266bc9f6a06c9926e3540d`. CI [37075215219](https://github.com/LucasDNG/la-red-padle/actions/runs/37075215219) success. Vercel de ese SHA: success por ignored build step, porque el commit solo toca Markdown.
 - Producción comprobada en vivo: `/api/health` y `/api/live` ok, engine `wheel-v3`, DB ok, release `4f25b58`. El frontend público `https://www.laredpadel.com.ar` sigue sirviendo el SHA de código `d9a289318f3042cf81a087cf5abab50ea4cc4a3c`. Ranking público vacío.
-- Deuda cerrada en esta rama: `frontend/package-lock.json` generado con npm 10.9.7 / Node 22.14.0 (`lockfileVersion` 3) y el job frontend de CI pasa de `npm install` a `npm ci --ignore-scripts`.
+- Deuda cerrada en esta rama: `frontend/package-lock.json` generado con npm 10.9.7 / Node 22.14.0 (`lockfileVersion` 3) y el job frontend de CI pasa de `npm install` a `npm ci --ignore-scripts`. CI de la rama: [37377935989](https://github.com/LucasDNG/la-red-padle/actions/runs/37377935989), backend y frontend success, incluido `npm ci` del frontend, Node 22, PostgreSQL 16, `verify:db` e integración.
 - No se cambiaron reglas, schema ni datos. No se tocaron variables Meta ni se enviaron mensajes. Render productivo sigue con build `npm install`, auto-deploy por commit y `healthCheckPath` vacío; alinearlo con `render.yaml` sigue siendo un trabajo operativo aparte, con autorización explícita, porque cambia el servicio en vivo.
 - Bloqueos externos sin cambio: cinco variables WhatsApp, revisión legal/seguro, RPO/RTO y drill Neon. Primera pareja real y nueva inspección visual Admin siguen pendientes de datos o sesión; no fabricar fixtures productivos.
 
