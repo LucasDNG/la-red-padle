@@ -96,6 +96,30 @@ test('official schedule changes only after rival acceptance and proposals expire
   assert.equal(dbAssignment.location_text,'Otra cancha libre');
 });
 
+test('accepting a schedule proposal after its slot is rejected and the official time stays',async()=>{
+  const {top,lower,assignment}=await seedAssignedMatch();
+  const official=new Date(Date.now()+2*86400000);
+  const accepted=await proposeSchedule(top.members[0].id,assignment.id,{scheduledAt:official.toISOString(),locationText:'Club oficial'});
+  await acceptSchedule(lower.members[0].id,assignment.id,accepted.id);
+  const stale=(await testPool.query(`
+    INSERT INTO wheel_schedule_proposals(assignment_id,proposed_by_pair_id,scheduled_at,location_text,response_deadline_at)
+    VALUES($1,$2,now()-interval '1 hour','Horario vencido',now()+interval '24 hours')
+    RETURNING id
+  `,[assignment.id,top.pair.id])).rows[0];
+  await assert.rejects(
+    ()=>acceptSchedule(lower.members[0].id,assignment.id,stale.id),
+    /La fecha propuesta ya pasó/,
+  );
+  let row=(await testPool.query('SELECT scheduled_at,location_text FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0];
+  assert.equal(new Date(row.scheduled_at).getTime(),official.getTime());
+  assert.equal(row.location_text,'Club oficial');
+  await maintenance();
+  assert.equal((await testPool.query('SELECT status FROM wheel_schedule_proposals WHERE id=$1',[stale.id])).rows[0].status,'expired');
+  row=(await testPool.query('SELECT scheduled_at,location_text FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0];
+  assert.equal(new Date(row.scheduled_at).getTime(),official.getTime());
+  assert.equal(row.location_text,'Club oficial');
+});
+
 test('first result can be revised before response, keeps one 15-day deadline, and opponent confirmation applies ladder once',async()=>{
   const {top,lower,assignment}=await seedAssignedMatch();
   const playedAt=new Date();

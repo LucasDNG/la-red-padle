@@ -2265,7 +2265,10 @@ export async function expireWheelV3ScheduleProposals(client){
     UPDATE wheel_schedule_proposals
     SET status='expired',responded_at=CURRENT_TIMESTAMP
     WHERE status='pending'
-      AND response_deadline_at<=CURRENT_TIMESTAMP
+      AND (
+        response_deadline_at<=CURRENT_TIMESTAMP
+        OR scheduled_at<=CURRENT_TIMESTAMP
+      )
     RETURNING *
   `)).rows;
 }
@@ -2672,6 +2675,8 @@ export async function acceptWheelV3Schedule(client,{
 
   const valid=(await q(client,`SELECT CURRENT_TIMESTAMP<=$1::timestamptz ok`,[proposal.response_deadline_at])).rows[0].ok;
   if(!valid)throw new Error('La propuesta venció');
+  const slotOpen=(await q(client,`SELECT CURRENT_TIMESTAMP<$1::timestamptz ok`,[proposal.scheduled_at])).rows[0].ok;
+  if(!slotOpen)throw new Error('La fecha propuesta ya pasó');
 
   await q(client,`
     UPDATE wheel_schedule_proposals
