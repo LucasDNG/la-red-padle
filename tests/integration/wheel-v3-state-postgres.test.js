@@ -1869,6 +1869,50 @@ test('schedule proposals use DB time, expire in 48 hours and never extend the as
   assert.equal(new Date(deadline).getTime(),new Date(assignment.deadline_at).getTime());
 });
 
+test('accepting a schedule proposal after its slot is rejected and the official schedule stays',async()=>{
+  const c=await category(3);
+  const a=await seedPair(1,3);
+  const b=await seedPair(2,3);
+  const officialAt=(await pool.query("SELECT CURRENT_TIMESTAMP+interval '5 days' t")).rows[0].t;
+  const assignment=(await pool.query(
+    "INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,assigned_at,deadline_at,scheduled_at,location_text,schedule_confirmed_at) VALUES($1,$2,$3,$4,$4,$3,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP+interval '30 days',$5,'Club oficial',CURRENT_TIMESTAMP) RETURNING *",
+    [a.league_id,c.id,a.id,b.id,officialAt],
+  )).rows[0];
+  const proposal=(await pool.query(
+    "INSERT INTO wheel_schedule_proposals(assignment_id,proposed_by_pair_id,scheduled_at,location_text,response_deadline_at) VALUES($1,$2,CURRENT_TIMESTAMP-interval '1 hour','Horario vencido',CURRENT_TIMESTAMP+interval '24 hours') RETURNING id",
+    [assignment.id,a.id],
+  )).rows[0];
+
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await assert.rejects(
+      ()=>acceptWheelV3Schedule(client,{assignmentId:assignment.id,proposalId:proposal.id,acceptingPairId:b.id}),
+      /La fecha propuesta ya pasó/,
+    );
+    await client.query('ROLLBACK');
+  }finally{client.release();}
+
+  const kept=(await pool.query('SELECT scheduled_at,location_text,schedule_confirmed_at FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0];
+  assert.equal(new Date(kept.scheduled_at).getTime(),new Date(officialAt).getTime());
+  assert.equal(kept.location_text,'Club oficial');
+  assert.ok(kept.schedule_confirmed_at);
+  assert.equal((await pool.query('SELECT status FROM wheel_schedule_proposals WHERE id=$1',[proposal.id])).rows[0].status,'pending');
+
+  const client2=await pool.connect();
+  let expired;
+  try{
+    await client2.query('BEGIN');
+    expired=await expireWheelV3ScheduleProposals(client2);
+    await client2.query('COMMIT');
+  }catch(e){await client2.query('ROLLBACK');throw e;}finally{client2.release();}
+  assert.equal(expired.some(x=>Number(x.id)===Number(proposal.id)),true);
+  assert.equal((await pool.query('SELECT status FROM wheel_schedule_proposals WHERE id=$1',[proposal.id])).rows[0].status,'expired');
+  const still=(await pool.query('SELECT scheduled_at,location_text FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0];
+  assert.equal(new Date(still.scheduled_at).getTime(),new Date(officialAt).getTime());
+  assert.equal(still.location_text,'Club oficial');
+});
+
 test('new schedule proposal replaces previous pending proposal without touching confirmed 30-day limit',async()=>{
   const c=await category(4);
   const a=await seedPair(1,4);
