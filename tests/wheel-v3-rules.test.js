@@ -104,6 +104,7 @@ test('inactivity uses complete calendar months instead of fixed 30-day blocks',(
   assert.equal(fullCalendarMonthsBetween('2026-01-31T15:00:00Z','2026-02-28T15:00:00Z'),1);
   assert.equal(fullCalendarMonthsBetween('2026-01-31T15:00:00Z','2026-04-30T15:00:00Z'),3);
   assert.equal(fullCalendarMonthsBetween('2026-01-31T15:00:00Z','2026-05-31T15:00:00Z'),4);
+  assert.equal(fullCalendarMonthsBetween('2026-03-01T02:00:00Z','2026-03-29T02:00:00Z'),1);
 });
 
 test('late result is admissible only when the match was played before cancellation',()=>{

@@ -1,3 +1,34 @@
+import {TZ} from './core.js';
+
+function argentinaCivil(value){
+  const date=new Date(value);
+  const parts=Object.fromEntries(new Intl.DateTimeFormat('en-US',{
+    timeZone:TZ,
+    year:'numeric',
+    month:'2-digit',
+    day:'2-digit',
+    hour:'2-digit',
+    minute:'2-digit',
+    second:'2-digit',
+    hourCycle:'h23',
+  }).formatToParts(date).filter(part=>part.type!=='literal').map(part=>[part.type,part.value]));
+  let hour=Number(parts.hour);
+  if(hour===24)hour=0;
+  return {
+    y:Number(parts.year),
+    m:Number(parts.month)-1,
+    d:Number(parts.day),
+    h:hour,
+    min:Number(parts.minute),
+    s:Number(parts.second),
+    ms:date.getUTCMilliseconds(),
+  };
+}
+
+function civilStamp(parts){
+  return Date.UTC(parts.y,parts.m,parts.d,parts.h,parts.min,parts.s,parts.ms);
+}
+
 export function pairKey(memberA,memberB){
   const a=Number(memberA),b=Number(memberB);
   if(!Number.isInteger(a)||!Number.isInteger(b)||a===b)throw new Error('invalid members');
@@ -47,20 +78,22 @@ export function recordReign({currentDefenses,historicalMax}){
 export function fullCalendarMonthsBetween(startValue,endValue){
   const start=new Date(startValue),end=new Date(endValue);
   if(Number.isNaN(start.getTime())||Number.isNaN(end.getTime())||end<start)throw new Error('invalid month range');
-  let months=(end.getUTCFullYear()-start.getUTCFullYear())*12+(end.getUTCMonth()-start.getUTCMonth());
-  const targetYear=start.getUTCFullYear()+Math.floor((start.getUTCMonth()+months)/12);
-  const targetMonth=(start.getUTCMonth()+months)%12;
+  const from=argentinaCivil(start),to=argentinaCivil(end);
+  let months=(to.y-from.y)*12+(to.m-from.m);
+  const cursor=from.m+months;
+  const targetYear=from.y+Math.floor(cursor/12);
+  const targetMonth=((cursor%12)+12)%12;
   const lastDay=new Date(Date.UTC(targetYear,targetMonth+1,0)).getUTCDate();
-  const anniversary=new Date(Date.UTC(
-    targetYear,
-    targetMonth,
-    Math.min(start.getUTCDate(),lastDay),
-    start.getUTCHours(),
-    start.getUTCMinutes(),
-    start.getUTCSeconds(),
-    start.getUTCMilliseconds(),
-  ));
-  if(anniversary>end)months--;
+  const anniversary=civilStamp({
+    y:targetYear,
+    m:targetMonth,
+    d:Math.min(from.d,lastDay),
+    h:from.h,
+    min:from.min,
+    s:from.s,
+    ms:from.ms,
+  });
+  if(anniversary>civilStamp(to))months--;
   return Math.max(0,months);
 }
 

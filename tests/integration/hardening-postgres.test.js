@@ -127,12 +127,45 @@ test('global clock pause shifts every live deadline by the paused duration and i
     VALUES($1,$2,now()+interval '7 days') RETURNING *
   `,[a.pair.id,a.members[0].id])).rows[0];
 
+  await testPool.query(`
+    UPDATE pair_wheel_state
+    SET inactive_since=now()-interval '10 days',
+        return_position_base=1,
+        inactive_reason='voluntary',
+        auto_reactivate_at=now()+interval '20 days'
+    WHERE pair_id=$1
+  `,[a.pair.id]);
+  await testPool.query(`
+    UPDATE pair_wheel_state
+    SET inactive_since=now()-interval '30 minutes',
+        return_position_base=2,
+        inactive_reason='three_failures',
+        auto_reactivate_at=now()-interval '3 hours'
+    WHERE pair_id=$1
+  `,[b.pair.id]);
+  const low=Math.min(Number(a.members[0].id),Number(a.members[1].id));
+  const high=Math.max(Number(a.members[0].id),Number(a.members[1].id));
+  const blow=Math.min(Number(b.members[0].id),Number(b.members[1].id));
+  const bhigh=Math.max(Number(b.members[0].id),Number(b.members[1].id));
+  await testPool.query(`
+    UPDATE pair_duo_state SET penalty_until=now()+interval '12 days'
+    WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3
+  `,[a.pair.league_id,low,high]);
+  await testPool.query(`
+    UPDATE pair_duo_state SET penalty_until=now()-interval '3 hours'
+    WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3
+  `,[b.pair.league_id,blow,bhigh]);
+
   const before={
     assignment:(await testPool.query('SELECT deadline_at,extraordinary_deadline_at,confirmation_deadline_at FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0],
     proposal:(await testPool.query('SELECT response_deadline_at FROM wheel_schedule_proposals WHERE id=$1',[proposal.id])).rows[0],
     noShow:(await testPool.query('SELECT response_deadline_at FROM wheel_no_shows WHERE id=$1',[noShow.id])).rows[0],
     invitation:(await testPool.query('SELECT expires_at FROM pair_invitations WHERE id=$1',[invitation.id])).rows[0],
     dissolution:(await testPool.query('SELECT deadline_at FROM pair_dissolution_requests WHERE id=$1',[dissolution.id])).rows[0],
+    activePause:(await testPool.query('SELECT inactive_since,auto_reactivate_at FROM pair_wheel_state WHERE pair_id=$1',[a.pair.id])).rows[0],
+    elapsedSanction:(await testPool.query('SELECT inactive_since,auto_reactivate_at FROM pair_wheel_state WHERE pair_id=$1',[b.pair.id])).rows[0],
+    livePenalty:(await testPool.query('SELECT penalty_until FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[a.pair.league_id,low,high])).rows[0],
+    spentPenalty:(await testPool.query('SELECT penalty_until FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[b.pair.league_id,blow,bhigh])).rows[0],
   };
 
   await setLeagueClockPause(admin.id,true);
@@ -145,6 +178,10 @@ test('global clock pause shifts every live deadline by the paused duration and i
     noShow:(await testPool.query('SELECT response_deadline_at FROM wheel_no_shows WHERE id=$1',[noShow.id])).rows[0],
     invitation:(await testPool.query('SELECT expires_at FROM pair_invitations WHERE id=$1',[invitation.id])).rows[0],
     dissolution:(await testPool.query('SELECT deadline_at FROM pair_dissolution_requests WHERE id=$1',[dissolution.id])).rows[0],
+    activePause:(await testPool.query('SELECT inactive_since,auto_reactivate_at FROM pair_wheel_state WHERE pair_id=$1',[a.pair.id])).rows[0],
+    elapsedSanction:(await testPool.query('SELECT inactive_since,auto_reactivate_at FROM pair_wheel_state WHERE pair_id=$1',[b.pair.id])).rows[0],
+    livePenalty:(await testPool.query('SELECT penalty_until FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[a.pair.league_id,low,high])).rows[0],
+    spentPenalty:(await testPool.query('SELECT penalty_until FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',[b.pair.league_id,blow,bhigh])).rows[0],
   };
 
   const deltas=[
@@ -155,8 +192,16 @@ test('global clock pause shifts every live deadline by the paused duration and i
     [before.noShow.response_deadline_at,after.noShow.response_deadline_at],
     [before.invitation.expires_at,after.invitation.expires_at],
     [before.dissolution.deadline_at,after.dissolution.deadline_at],
+    [before.activePause.inactive_since,after.activePause.inactive_since],
+    [before.activePause.auto_reactivate_at,after.activePause.auto_reactivate_at],
+    [before.livePenalty.penalty_until,after.livePenalty.penalty_until],
   ].map(([x,y])=>(new Date(y)-new Date(x))/1000);
   for(const seconds of deltas)assert.ok(seconds>=7198&&seconds<=7202,'deadline shift '+seconds);
+  const resumed=new Date(after.elapsedSanction.inactive_since).getTime();
+  assert.ok(resumed>new Date(before.elapsedSanction.inactive_since).getTime());
+  assert.ok(Math.abs(Date.now()-resumed)<5000,'inactivity started during the pause moves to unpause');
+  assert.equal(new Date(after.elapsedSanction.auto_reactivate_at).toISOString(),new Date(before.elapsedSanction.auto_reactivate_at).toISOString());
+  assert.equal(new Date(after.spentPenalty.penalty_until).toISOString(),new Date(before.spentPenalty.penalty_until).toISOString());
   const settings=(await testPool.query("SELECT key,value FROM app_settings WHERE key IN('league_clock_paused','league_clock_pause_started_at') ORDER BY key")).rows;
   assert.equal(settings.find(x=>x.key==='league_clock_paused').value,false);
   assert.equal(settings.find(x=>x.key==='league_clock_pause_started_at').value,null);
@@ -284,6 +329,12 @@ test('production migration is idempotent and leaves abandonment schema ready',as
     assert.equal(first.ok,true);
     assert.equal(second.ok,true);
     assert.ok(first.applied.includes('PATCH_MATCH_ABANDONMENT_2026-09-21.sql'));
+    assert.ok(first.applied.includes('PATCH_USERS_PHONE_UNIQUE_2026-10-15.sql'));
+    const phoneIndex=Number((await client.query(`
+      SELECT count(*) n FROM pg_indexes
+      WHERE schemaname='public' AND indexname='uq_users_phone'
+    `)).rows[0].n);
+    assert.equal(phoneIndex,1);
     const column=Number((await client.query(`
       SELECT count(*) n FROM information_schema.columns
       WHERE table_schema='public' AND table_name='matches' AND column_name='abandoned_pair_id'
@@ -295,6 +346,38 @@ test('production migration is idempotent and leaves abandonment schema ready',as
     assert.equal(column,1);
     assert.equal(constraint,1);
   }finally{client.release();}
+});
+
+test('phone uniqueness patch strips formatting, rejects digit duplicates and stays idempotent',async()=>{
+  const patch=fs.readFileSync(path.resolve(__dirname,'../../database/PATCH_USERS_PHONE_UNIQUE_2026-10-15.sql'),'utf8');
+  await testPool.query('DROP INDEX uq_users_phone');
+  const formatted=(await testPool.query(`
+    INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender)
+    VALUES('Tel','Uno','35000001','+54 9 332 940-0704','x','male')
+    RETURNING id
+  `)).rows[0];
+  await testPool.query(patch);
+  await testPool.query(patch);
+  const phone=(await testPool.query('SELECT phone FROM users WHERE id=$1',[formatted.id])).rows[0].phone;
+  assert.equal(phone,'5493329400704');
+  const index=Number((await testPool.query(`
+    SELECT count(*) n FROM pg_indexes WHERE schemaname='public' AND indexname='uq_users_phone'
+  `)).rows[0].n);
+  assert.equal(index,1);
+
+  await testPool.query('DROP INDEX uq_users_phone');
+  await testPool.query(`
+    INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender)
+    VALUES('Tel','Dos','35000002','5491100000001','x','male')
+  `);
+  await testPool.query(`
+    INSERT INTO users(first_name,last_name,dni,phone,password_hash,gender)
+    VALUES('Tel','Tres','35000003','+54 9 11 0000-0001','x','male')
+  `);
+  await assert.rejects(
+    ()=>testPool.query(patch),
+    /coinciden al comparar solo dígitos/,
+  );
 });
 
 test('health check verifies PostgreSQL and wheel-v2 engine instead of returning static green',async()=>{
