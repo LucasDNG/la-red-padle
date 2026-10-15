@@ -20,8 +20,15 @@ export function assignmentPairName(id,pair,assignment){
   return Number(id)===Number(pair.id)?pair.players:assignment.rival.players;
 }
 
+export function resultKindLabel(resultType){
+  if(resultType==='injury_abandonment')return 'Lesión / abandono';
+  if(resultType==='administrative_forfeit')return 'Incumplimiento administrativo';
+  if(resultType==='dissolution_forfeit')return 'Forfeit por disolución';
+  return 'Resultado oficial';
+}
+
 export function resultScoreText(version){
-  if(version.result_type==='injury_abandonment')return 'Lesión / abandono';
+  if(version.result_type&&version.result_type!=='normal')return resultKindLabel(version.result_type);
   return (version.score?.sets||[]).map(s=>`${s.pairA}–${s.pairB}${s.kind==='match_tiebreak'?' (super tie-break)':''}`).join(' · ');
 }
 

@@ -53,6 +53,15 @@ Actualizado: 2026-10-02. Repositorio: `LucasDNG/la-red-padle`, rama `main`.
 - Runtime local disponible Node 24: distinguir sus pruebas del CI autoritativo.
 - No imprimir secretos ni datos personales; no enviar WhatsApp sin autorización explícita.
 
+## Continuación — 2026-10-15
+
+- Corrección de cinco fallas de auditoría, sin cambiar reglas deportivas de Wheel v3. El 6-0 administrativo de “no pude jugar” / no-show aceptado se conserva. El forfeit por disolución no inventa games.
+- La salida unilateral a los 7 días corre en el mantenimiento v3 antes del vencimiento del assignment: sin resultado cargado cierra `dissolution_forfeit` (marcador nulo, 0 games), aplica el movimiento de incumplimiento y archiva. Si ya hay resultado, espera. Antes del plazo no disuelve.
+- El perfil y el marcador distinguen incumplimiento administrativo y forfeit por disolución. El ranking sigue contando solo partidos reales.
+- Alta y cambio de WhatsApp exigen `549` + 10 dígitos y rechazan duplicados. `PATCH_USERS_PHONE_UNIQUE_2026-10-15.sql` falla si ya hay dígitos repetidos, normaliza y crea `uq_users_phone`. No hay CHECK de formato, para no romper teléfonos de prueba.
+- Al reanudar el reloj se corren `auto_reactivate_at` y `penalty_until` si vencen después del inicio de la pausa, y `inactive_since` solo por el tramo de pausa que pisó la inactividad. Los meses de inactividad usan el calendario de America/Argentina/Buenos_Aires.
+- No se envió WhatsApp ni se tocaron variables Meta ni Render.
+
 ## Cierre verificado — 2026-10-02
 
 - Correcciones publicadas en main: `d9a289318f3042cf81a087cf5abab50ea4cc4a3c`.

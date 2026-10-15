@@ -7,7 +7,8 @@ export const PRODUCTION_MIGRATIONS=[
   path.resolve(__dirname,'../database/PATCH_MATCH_ABANDONMENT_2026-09-21.sql'),
   path.resolve(__dirname,'../database/PATCH_FREE_TEXT_LOCATIONS_2026-09-22.sql'),
   path.resolve(__dirname,'../database/PATCH_WHEEL_V3_STATE_2026-09-28.sql'),
-  path.resolve(__dirname,'../database/PATCH_WHATSAPP_OUTBOX_EXPIRY_2026-09-29.sql')
+  path.resolve(__dirname,'../database/PATCH_WHATSAPP_OUTBOX_EXPIRY_2026-09-29.sql'),
+  path.resolve(__dirname,'../database/PATCH_USERS_PHONE_UNIQUE_2026-10-15.sql')
 ];
 
 export async function applyProductionMigrations(client){
@@ -61,6 +62,14 @@ export async function applyProductionMigrations(client){
     if(!outboxStatusConstraint.includes('expired')){
       throw new Error('Migración incompleta: notification_outbox no admite estado expired');
     }
+
+    const phoneUnique=(await client.query(`
+      SELECT 1
+      FROM pg_indexes
+      WHERE schemaname='public'
+        AND indexname='uq_users_phone'
+    `)).rowCount;
+    if(!phoneUnique)throw new Error('Migración incompleta: falta uq_users_phone');
 
     return {ok:true,applied:PRODUCTION_MIGRATIONS.map(file=>path.basename(file))};
   }finally{
