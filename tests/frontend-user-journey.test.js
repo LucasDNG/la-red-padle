@@ -4,10 +4,17 @@ import {readFile} from 'node:fs/promises';
 
 const appSource=await readFile(new URL('../src/app.js',import.meta.url),'utf8');
 const frontSource=await readFile(new URL('../frontend/src/App.jsx',import.meta.url),'utf8');
+const indexHtml=await readFile(new URL('../frontend/index.html',import.meta.url),'utf8');
 
 function norm(path){
   return path.replace(/^\/api/,'').replace(/\$\{[^}]+\}/g,':x').replace(/:[A-Za-z0-9_]+/g,':x');
 }
+
+test('el pie legal identifica a La Red Padel y a su titular',()=>{
+  assert.match(indexHtml,/© 2026 La Red Padel\. Todos los derechos reservados\./);
+  assert.match(indexHtml,/Operado por \/ Razón Social: Lucas Diego Nouet Guilenia/);
+  assert.match(indexHtml,/<footer class="site-legal">/);
+});
 
 test('cada endpoint funcional normal tiene un flujo visible en el frontend',()=>{
   const backend=[...appSource.matchAll(/\bapp\.(get|post|patch|put|delete)\(\s*['"`]([^'"`]+)['"`]/g)]
