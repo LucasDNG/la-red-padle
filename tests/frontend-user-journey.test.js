@@ -10,10 +10,13 @@ function norm(path){
   return path.replace(/^\/api/,'').replace(/\$\{[^}]+\}/g,':x').replace(/:[A-Za-z0-9_]+/g,':x');
 }
 
-test('el pie legal identifica a La Red Padel y a su titular',()=>{
-  assert.match(indexHtml,/© 2026 La Red Padel\. Todos los derechos reservados\./);
-  assert.match(indexHtml,/Operado por \/ Razón Social: Lucas Diego Nouet Guilenia/);
-  assert.match(indexHtml,/<footer class="site-legal">/);
+test('el titular responsable aparece en Contacto y no en el pie de la portada',()=>{
+  assert.doesNotMatch(indexHtml,/site-legal/);
+  assert.doesNotMatch(indexHtml,/Lucas Diego Nouet Guilenia/);
+  assert.doesNotMatch(indexHtml,/Operado por/);
+  assert.match(frontSource,/to="\/contacto"/);
+  assert.match(frontSource,/path="\/contacto"/);
+  assert.match(frontSource,/Titular responsable \/ Razón social: Lucas Diego Nouet Guilenia - Ruiz Moreno 1545, San Pedro, Buenos Aires/);
 });
 
 test('cada endpoint funcional normal tiene un flujo visible en el frontend',()=>{

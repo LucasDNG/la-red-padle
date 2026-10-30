@@ -34,17 +34,14 @@ a{color:inherit;text-decoration:none}
 button:disabled{cursor:not-allowed;opacity:.45}
 .app{min-height:100vh}
 main{min-width:0}
-.site-legal{
-  margin-top:8px;
-  padding:16px max(22px,calc((100vw - var(--content-width))/2)) 28px;
-  border-top:1px solid rgba(255,255,255,.08);
+.legal-owner{
+  margin:0;
+  max-width:720px;
   color:var(--muted);
-  font-size:11px;
-  line-height:1.5;
+  font-size:12px;
+  line-height:1.6;
   letter-spacing:.01em;
 }
-.site-legal p{margin:0}
-.site-legal p+p{margin-top:2px}
 
 /* Header */
 .header{
@@ -670,7 +667,6 @@ hr{margin:22px 0;border:0;border-top:1px solid var(--line)}
   .score-row select{grid-column:2/-1}
   .record-card{grid-template-columns:1fr}
   .record-card>*{grid-column:1!important}
-  .site-legal{padding:14px 17px 22px}
   .footer{padding:25px 17px;align-items:flex-start;flex-direction:column;gap:22px}
   .footer>div:first-child{align-items:flex-start;flex-direction:column;gap:8px}
   .footer-links{flex-wrap:wrap}
