@@ -16,7 +16,9 @@ test('el titular responsable aparece en Contacto y no en el pie de la portada',(
   assert.doesNotMatch(indexHtml,/Operado por/);
   assert.match(frontSource,/to="\/contacto"/);
   assert.match(frontSource,/path="\/contacto"/);
-  assert.match(frontSource,/Titular responsable \/ Razón social: Lucas Diego Nouet Guilenia - Ruiz Moreno 1545, San Pedro, Buenos Aires/);
+  assert.match(frontSource,/Titular responsable: Lucas Diego Nouet Guilenia/);
+  assert.doesNotMatch(frontSource,/Ruiz Moreno/);
+  assert.doesNotMatch(frontSource,/Razón social/);
 });
 
 test('cada endpoint funcional normal tiene un flujo visible en el frontend',()=>{
