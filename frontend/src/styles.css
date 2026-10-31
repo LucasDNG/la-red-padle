@@ -42,6 +42,7 @@ main{min-width:0}
   line-height:1.6;
   letter-spacing:.01em;
 }
+.legal-owner+.legal-owner{margin-top:4px}
 
 /* Header */
 .header{

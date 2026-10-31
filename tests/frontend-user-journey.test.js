@@ -17,6 +17,8 @@ test('el titular responsable aparece en Contacto y no en el pie de la portada',(
   assert.match(frontSource,/to="\/contacto"/);
   assert.match(frontSource,/path="\/contacto"/);
   assert.match(frontSource,/Titular responsable: Lucas Diego Nouet Guilenia/);
+  assert.match(frontSource,/tel:\+543329400704/);
+  assert.match(frontSource,/\(3329\)-400704/);
   assert.doesNotMatch(frontSource,/Ruiz Moreno/);
   assert.doesNotMatch(frontSource,/Razón social/);
 });
