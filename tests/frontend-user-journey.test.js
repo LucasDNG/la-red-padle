@@ -17,7 +17,11 @@ test('el titular responsable aparece en Contacto y no en el pie de la portada',(
   assert.match(frontSource,/to="\/contacto"/);
   assert.match(frontSource,/path="\/contacto"/);
   assert.match(frontSource,/Titular responsable: Lucas Diego Nouet Guilenia/);
-  assert.match(frontSource,/tel:\+543329400704/);
+  assert.match(frontSource,/Teléfono y WhatsApp de la liga/);
+  assert.match(frontSource,/>Teléfono</);
+  assert.match(frontSource,/tel:\+5493329400704/);
+  assert.match(frontSource,/https:\/\/wa\.me\/5493329400704/);
+  assert.match(frontSource,/className="button contact-whatsapp"/);
   assert.match(frontSource,/\(3329\)-400704/);
   assert.doesNotMatch(frontSource,/Ruiz Moreno/);
   assert.doesNotMatch(frontSource,/Razón social/);
