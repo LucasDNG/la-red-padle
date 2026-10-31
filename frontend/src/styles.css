@@ -14,6 +14,8 @@
   --soft-line:rgba(106,184,238,.22);
   --muted:#a9c1d4;
   --content-width:1180px;
+  --page-gutter:24px;
+  --page-inline:max(var(--page-gutter),calc((100vw - var(--content-width))/2));
   --page-gap:clamp(18px,4.5vw,72px);
   --header-height:76px;
 }
@@ -43,19 +45,12 @@ main{min-width:0}
   letter-spacing:.01em;
 }
 .legal-owner+.legal-owner{margin-top:4px}
-main.page.contact-page{
-  width:min(680px,calc(100% - 48px));
-}
-.contact-page .page-title{
-  margin-bottom:22px;
-  padding-bottom:18px;
-}
-.contact-page .page-title p{max-width:none}
 .contact-card{
   display:flex;
-  flex-direction:column;
-  align-items:stretch;
-  padding:32px;
+  align-items:center;
+  justify-content:space-between;
+  gap:32px;
+  padding:28px 32px;
 }
 .contact-kicker{
   display:inline-flex;
@@ -79,11 +74,14 @@ main.page.contact-page{
   line-height:1;
 }
 .contact-number:hover{color:var(--green)}
+.contact-copy{min-width:0}
 .contact-actions{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:12px;
-  margin-top:24px;
+  flex:0 0 auto;
+  width:min(440px,100%);
+  margin-top:0;
 }
 .contact-actions .button{width:100%}
 .contact-actions svg{width:20px;height:20px;flex:0 0 auto}
@@ -99,8 +97,18 @@ a.button.contact-whatsapp:hover{color:#042016}
   padding-top:16px;
   border-top:1px solid rgba(255,255,255,.08);
 }
+@media(max-width:860px){
+  .contact-card{
+    flex-direction:column;
+    align-items:stretch;
+    padding:22px;
+  }
+  .contact-actions{
+    width:100%;
+    margin-top:22px;
+  }
+}
 @media(max-width:520px){
-  .contact-card{padding:22px}
   .contact-actions{grid-template-columns:1fr}
 }
 
@@ -108,7 +116,7 @@ a.button.contact-whatsapp:hover{color:#042016}
 .header{
   min-height:var(--header-height);
   height:var(--header-height);
-  padding-inline:max(22px,calc((100vw - var(--content-width))/2));
+  padding-inline:var(--page-inline);
   display:grid;
   grid-template-columns:minmax(150px,1fr) auto minmax(150px,1fr);
   align-items:center;
@@ -185,7 +193,7 @@ a.button.contact-whatsapp:hover{color:#042016}
   min-height:900px;
   overflow:hidden;
   padding:
-    130px max(28px,calc((100vw - var(--content-width))/2))
+    130px var(--page-inline)
     42px;
   display:flex;
   flex-direction:column;
@@ -211,7 +219,7 @@ a.button.contact-whatsapp:hover{color:#042016}
 .hero-top-tags{
   position:absolute;
   top:97px;
-  left:max(28px,calc((100vw - var(--content-width))/2));
+  left:var(--page-inline);
   display:flex;
   gap:10px;
 }
@@ -403,7 +411,7 @@ a.button.contact-whatsapp:hover{color:#042016}
 
 /* How it works */
 .home-rules{
-  padding:95px max(28px,calc((100vw - var(--content-width))/2));
+  padding:95px var(--page-inline);
   display:grid;
   grid-template-columns:.75fr 1.6fr;
   gap:75px;
@@ -437,7 +445,7 @@ a.button.contact-whatsapp:hover{color:#042016}
 
 /* Home content */
 .home-content{
-  width:min(var(--content-width),calc(100% - 40px));
+  width:min(var(--content-width),calc(100% - (var(--page-gutter) * 2)));
   margin:0 auto;
   padding:72px 0 18px;
 }
@@ -467,7 +475,7 @@ a.button.contact-whatsapp:hover{color:#042016}
 
 /* Shared internal pages */
 .page,.section{
-  width:min(var(--content-width),calc(100% - 40px));
+  width:min(var(--content-width),calc(100% - (var(--page-gutter) * 2)));
   margin:0 auto;
   padding:62px 0 92px;
 }
@@ -533,11 +541,13 @@ a.button.contact-whatsapp:hover{color:#042016}
 .help{margin-top:18px}
 .help p{margin-bottom:0}
 .center{
+  width:min(var(--content-width),calc(100% - (var(--page-gutter) * 2)));
+  margin:0 auto;
   min-height:calc(100vh - var(--header-height));
   display:flex;
   align-items:flex-start;
-  justify-content:center;
-  padding:58px 18px 84px;
+  justify-content:flex-start;
+  padding:76px 0 112px;
 }
 .auth{
   width:min(550px,100%);
@@ -637,7 +647,7 @@ hr{margin:22px 0;border:0;border-top:1px solid var(--line)}
 /* Footer */
 .footer{
   min-height:95px;
-  padding:25px max(28px,calc((100vw - var(--content-width))/2));
+  padding:25px var(--page-inline);
   display:flex;
   justify-content:space-between;
   align-items:center;
@@ -685,8 +695,8 @@ hr{margin:22px 0;border:0;border-top:1px solid var(--line)}
   .rank-head span:nth-child(n+4),.rank-row span:nth-child(n+4){display:none}
 }
 @media(max-width:620px){
-  :root{--header-height:92px}
-  .header{min-height:92px;padding:12px 16px}
+  :root{--header-height:92px;--page-gutter:16px}
+  .header{min-height:92px;padding:12px var(--page-gutter)}
   .brand>span{font-size:15px}
   .brand small{font-size:7px}
   .header-actions{gap:9px}
@@ -703,8 +713,8 @@ hr{margin:22px 0;border:0;border-top:1px solid var(--line)}
     font-size:10px;
   }
   .nav::-webkit-scrollbar{display:none}
-  .home-hero{padding:125px 17px 27px}
-  .hero-top-tags{top:100px;left:17px;right:17px;gap:5px;overflow-x:auto}
+  .home-hero{padding:125px var(--page-gutter) 27px}
+  .hero-top-tags{top:100px;left:var(--page-gutter);right:var(--page-gutter);gap:5px;overflow-x:auto}
   .hero-top-tags span{flex:0 0 auto;padding:6px 9px;font-size:8px}
   .hero-mini{display:block}
   .hero-copy h1{font-size:61px}
@@ -714,9 +724,9 @@ hr{margin:22px 0;border:0;border-top:1px solid var(--line)}
   .button{width:100%}
   .feature-grid{grid-template-columns:1fr;gap:8px}
   .feature-card{min-height:150px}
-  .home-rules{padding:65px 17px}
+  .home-rules{padding:65px var(--page-gutter)}
   .rules-title h2{font-size:55px}
-  .home-content,.page,.section{width:calc(100% - 24px);padding-top:46px}
+  .home-content,.page,.section{width:calc(100% - (var(--page-gutter) * 2));padding-top:46px}
   .grid2,.grid3{grid-template-columns:1fr}
   .page h1,.center h1{font-size:clamp(44px,15vw,58px)}
   .center{padding-top:34px}
@@ -728,7 +738,7 @@ hr{margin:22px 0;border:0;border-top:1px solid var(--line)}
   .score-row select{grid-column:2/-1}
   .record-card{grid-template-columns:1fr}
   .record-card>*{grid-column:1!important}
-  .footer{padding:25px 17px;align-items:flex-start;flex-direction:column;gap:22px}
+  .footer{padding:25px var(--page-gutter);align-items:flex-start;flex-direction:column;gap:22px}
   .footer>div:first-child{align-items:flex-start;flex-direction:column;gap:8px}
   .footer-links{flex-wrap:wrap}
 }
@@ -896,7 +906,7 @@ hr{margin:22px 0;border:0;border-top:1px solid var(--line)}
    ========================================================= */
 
 .page{
-  width:min(var(--content-width),calc(100% - 48px));
+  width:min(var(--content-width),calc(100% - (var(--page-gutter) * 2)));
   margin:0 auto;
   padding:76px 0 112px;
 }
@@ -1678,7 +1688,7 @@ hr{margin:22px 0;border:0;border-top:1px solid var(--line)}
 }
 @media(max-width:700px){
   .page{
-    width:calc(100% - 28px);
+    width:min(var(--content-width),calc(100% - (var(--page-gutter) * 2)));
     padding:44px 0 82px;
   }
   .page-title{
