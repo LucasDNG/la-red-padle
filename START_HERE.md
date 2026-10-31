@@ -19,7 +19,7 @@ Si un resumen de chat contradice el repo, manda el repo. Si dos documentos se co
 ## Estado técnico actual
 
 - package: `5.0.9`.
-- motor único: `wheel-v2`.
+- motor productivo: `wheel-v3` desde 2026-09-29. Las cifras de este bloque son del checkpoint histórico; el estado vigente está en `NEXT_CHAT_HANDOFF.md`.
 - runtime objetivo: Node 22.
 - PostgreSQL de CI: 16.
 - tests puros: 70/70 verdes en el último checkpoint verificado.
@@ -58,7 +58,7 @@ Los gates principales ya requieren infraestructura/credenciales reales:
 9. smoke UX autenticado;
 10. revisión legal/seguro en Argentina.
 
-Deuda técnica no bloqueante: generar legítimamente `frontend/package-lock.json` y recién entonces migrar el job frontend a `npm ci`.
+`frontend/package-lock.json` está versionado y el job frontend de CI usa `npm ci --ignore-scripts`.
 
 
 ## Estado UX vigente — 2026-09-22

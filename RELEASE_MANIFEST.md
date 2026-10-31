@@ -52,7 +52,7 @@ Los ZIPs históricos `v1`…`v11` no son fuente de verdad y no deben reaplicarse
 - revisión legal/seguro Argentina.
 
 ## Deuda no bloqueante
-Generar legítimamente `frontend/package-lock.json` y después migrar el job frontend a `npm ci`.
+`frontend/package-lock.json` quedó versionado y el job frontend de CI usa `npm ci --ignore-scripts`.
 
 Antes de declarar release, verificar el HEAD actual y sus checks; no reutilizar el estado de un commit anterior.
 

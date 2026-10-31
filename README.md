@@ -1,6 +1,6 @@
 # LA RED Pádel · San Pedro
 
-Liga continua de pádel por parejas. Estado actual: **candidato wheel-v2 técnicamente estabilizado; todavía no release público final**.
+Liga continua de pádel por parejas. Estado vigente: **Wheel v3 en producción desde 2026-09-29; todavía no es release público final**. El detalle actual está en `PUBLIC_LAUNCH_STATUS.md` y `NEXT_CHAT_HANDOFF.md`.
 
 ## Stack
 - Node.js 22 + Express 5
@@ -10,7 +10,7 @@ Liga continua de pádel por parejas. Estado actual: **candidato wheel-v2 técnic
 - Meta WhatsApp Cloud API mediante outbox
 
 ## Motor
-`wheel-v2` es el único motor competitivo activo.
+El runtime productivo es `wheel-v3`. `WHEEL_V3_SPEC.md` prevalece sobre las secciones históricas que todavía nombran `wheel-v2`.
 
 ## Fuente de verdad
 Empezar por `START_HERE.md` y `NEXT_CHAT_HANDOFF.md`. Reglas y decisiones viven en `PROJECT_RULES.md` y `DECISIONS.md`; el estado validado en `CHECKPOINT_2026-09-20.md`; hallazgos en `AUDIT_2026-09-20.md`.
@@ -43,11 +43,9 @@ npm start
 Frontend:
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
-
-Frontend sigue usando `npm install` porque todavía no existe un `frontend/package-lock.json` generado legítimamente.
 
 ## Tests
 ```bash
