@@ -30,6 +30,7 @@ CREATE TABLE users(
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
+CREATE UNIQUE INDEX uq_users_phone ON users(phone);
 CREATE INDEX idx_users_name ON users(lower(last_name),lower(first_name));
 
 CREATE TABLE identity_documents(

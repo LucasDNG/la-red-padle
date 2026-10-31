@@ -10,7 +10,7 @@ if(!connectionString)throw new Error('TEST_DATABASE_URL es obligatorio para los 
 process.env.DATABASE_URL=connectionString;
 const {Pool}=pg;
 const pool=new Pool({connectionString});
-const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity,reportWheelV3NoShow,cancelWheelV3NoShow,contestWheelV3NoShow,acceptWheelV3NoShow,escalateExpiredWheelV3NoShows,submitWheelV3ResultVersion,confirmWheelV3Result,autoValidateDueWheelV3Results,expireDueWheelV3Assignments,expireWheelV3ScheduleProposals,formWheelV3Pair,archiveWheelV3Pair,resolveWheelV3FormationCategory,proposeWheelV3Schedule,acceptWheelV3Schedule,cancelWheelV3ScheduleProposal,wheelV3RecentMovements,resolveWheelV3ResultDispute,dismissWheelV3NoShowByAdmin,resolveWheelV3NoShowByAdmin}=await import('../../src/wheelV3Engine.js');
+const {planWheelV3Category,wheelV3FormationSnapshot,completeWheelV3FormationIfReady,createWheelV3AssignmentsForCategory,cancelInvalidWheelV3AssignmentsForCategory,registerWheelV3FirstResult,wheelV3CancelledResultEligibility,applyWheelV3ConfirmedRealResult,applyWheelV3OneSidedFailure,applyWheelV3BothFailure,reactivateWheelV3Pair,reactivateDueWheelV3Penalties,requestWheelV3Inactivity,reportWheelV3NoShow,cancelWheelV3NoShow,contestWheelV3NoShow,acceptWheelV3NoShow,escalateExpiredWheelV3NoShows,submitWheelV3ResultVersion,confirmWheelV3Result,autoValidateDueWheelV3Results,expireDueWheelV3Assignments,expireWheelV3ScheduleProposals,applyDueWheelV3Dissolutions,runWheelV3Maintenance,formWheelV3Pair,archiveWheelV3Pair,resolveWheelV3FormationCategory,proposeWheelV3Schedule,acceptWheelV3Schedule,cancelWheelV3ScheduleProposal,wheelV3RecentMovements,resolveWheelV3ResultDispute,dismissWheelV3NoShowByAdmin,resolveWheelV3NoShowByAdmin}=await import('../../src/wheelV3Engine.js');
 const {pool:appPool}=await import('../../src/db.js');
 const {withCompetitiveWrite,COMPETITIVE_WRITE_LOCK_KEY}=await import('../../src/competitionRuntime.js');
 const {wheelV3CutoverReadiness,activateWheelV3,wheelV3OperationalReadiness}=await import('../../src/wheelV3Cutover.js');
@@ -2619,4 +2619,142 @@ test('WhatsApp outbox expiry patch is idempotent and preserves expired status su
     "SELECT pg_get_constraintdef(oid) definition FROM pg_constraint WHERE conname='notification_outbox_status_check' AND conrelid='notification_outbox'::regclass"
   )).rows[0]?.definition||'';
   assert.match(definition,/expired/);
+});
+
+async function openV3Assignment(home,away){
+  const c=await category(Number(home.category_number||3));
+  const assignment=(await pool.query(
+    `INSERT INTO wheel_assignments(league_id,category_id,pair_a_id,pair_b_id,attacker_pair_id,defender_pair_id,deadline_at)
+     VALUES($1,$2,$3,$4,$4,$3,CURRENT_TIMESTAMP-interval '1 hour') RETURNING id`,
+    [home.league_id,c.id,home.id,away.id],
+  )).rows[0];
+  await pool.query('INSERT INTO wheel_assignment_participants(assignment_id,pair_id) VALUES($1,$2),($1,$3)',[assignment.id,home.id,away.id]);
+  return assignment;
+}
+
+test('pending dissolution before the deadline does not archive or forfeit',async()=>{
+  const dissolving=await seedPairWithMembers(2,3,{tag:40});
+  const rival=await seedPairWithMembers(3,3,{tag:41});
+  await openV3Assignment(dissolving,rival);
+  await pool.query(
+    `INSERT INTO pair_dissolution_requests(pair_id,requested_by_user_id,deadline_at) VALUES($1,$2,CURRENT_TIMESTAMP+interval '2 days')`,
+    [dissolving.id,dissolving.members[0].id],
+  );
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const applied=await applyDueWheelV3Dissolutions(client);
+    await client.query('COMMIT');
+    assert.equal(applied.length,0);
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+  assert.equal((await pool.query('SELECT competition_state FROM pairs WHERE id=$1',[dissolving.id])).rows[0].competition_state,'active');
+  assert.equal((await pool.query('SELECT status FROM pair_dissolution_requests WHERE pair_id=$1',[dissolving.id])).rows[0].status,'pending');
+  assert.equal(Number((await pool.query('SELECT count(*) n FROM matches')).rows[0].n),0);
+});
+
+test('confirmed dissolution with an open assignment waits until the deadline',async()=>{
+  const dissolving=await seedPairWithMembers(2,3,{tag:42});
+  const rival=await seedPairWithMembers(3,3,{tag:43});
+  await openV3Assignment(dissolving,rival);
+  await pool.query(
+    `INSERT INTO pair_dissolution_requests(pair_id,requested_by_user_id,status,deadline_at) VALUES($1,$2,'confirmed',CURRENT_TIMESTAMP+interval '2 days')`,
+    [dissolving.id,dissolving.members[0].id],
+  );
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    await applyDueWheelV3Dissolutions(client);
+    await client.query('COMMIT');
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+  assert.equal((await pool.query('SELECT status FROM pair_dissolution_requests WHERE pair_id=$1',[dissolving.id])).rows[0].status,'awaiting_result');
+  assert.equal((await pool.query('SELECT competition_state FROM pairs WHERE id=$1',[dissolving.id])).rows[0].competition_state,'active');
+  assert.equal(Number((await pool.query('SELECT count(*) n FROM matches')).rows[0].n),0);
+});
+
+test('expired unilateral dissolution forfeits an open unplayed assignment without invented games',async()=>{
+  const dissolving=await seedPairWithMembers(1,3,{tag:44});
+  await seedPairWithMembers(2,3,{tag:45});
+  const rival=await seedPairWithMembers(3,3,{tag:46});
+  const assignment=await openV3Assignment(dissolving,rival);
+  await pool.query(
+    `INSERT INTO pair_dissolution_requests(pair_id,requested_by_user_id,deadline_at) VALUES($1,$2,CURRENT_TIMESTAMP-interval '1 minute')`,
+    [dissolving.id,dissolving.members[0].id],
+  );
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const maintenance=await runWheelV3Maintenance(client);
+    await client.query('COMMIT');
+    assert.equal(maintenance.dissolutionsApplied,1);
+    assert.equal(maintenance.assignmentsExpired,0);
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+
+  const match=(await pool.query('SELECT * FROM matches WHERE assignment_id=$1',[assignment.id])).rows[0];
+  assert.equal(match.result_type,'dissolution_forfeit');
+  assert.equal(match.score,null);
+  assert.equal(Number(match.pair_a_games),0);
+  assert.equal(Number(match.pair_b_games),0);
+  assert.equal(Number(match.winner_pair_id),Number(rival.id));
+  assert.equal(match.resolution_source,'dissolution_forfeit');
+  const closed=(await pool.query('SELECT status,close_reason FROM wheel_assignments WHERE id=$1',[assignment.id])).rows[0];
+  assert.equal(closed.status,'confirmed');
+  assert.equal(closed.close_reason,'dissolution_forfeit');
+  assert.equal((await pool.query('SELECT competition_state FROM pairs WHERE id=$1',[dissolving.id])).rows[0].competition_state,'inactive');
+  assert.equal((await pool.query('SELECT status FROM pair_dissolution_requests WHERE pair_id=$1',[dissolving.id])).rows[0].status,'applied');
+  const positions=Object.fromEntries((await pool.query(
+    'SELECT id,position,competition_state FROM pairs WHERE category_id=$1',[dissolving.category_id],
+  )).rows.map(r=>[Number(r.id),r]));
+  assert.equal(Number(positions[Number(rival.id)].position),1);
+  assert.equal(positions[Number(rival.id)].competition_state,'active');
+  const low=Math.min(Number(dissolving.members[0].id),Number(dissolving.members[1].id));
+  const high=Math.max(Number(dissolving.members[0].id),Number(dissolving.members[1].id));
+  const streak=(await pool.query(
+    'SELECT failure_streak FROM pair_duo_state WHERE league_id=$1 AND member_low_id=$2 AND member_high_id=$3',
+    [dissolving.league_id,low,high],
+  )).rows[0];
+  assert.equal(Number(streak.failure_streak),1);
+});
+
+test('a loaded result blocks the dissolution forfeit until that result finishes',async()=>{
+  const dissolving=await seedPairWithMembers(2,3,{tag:47});
+  const rival=await seedPairWithMembers(3,3,{tag:48});
+  const assignment=await openV3Assignment(dissolving,rival);
+  await pool.query(
+    `INSERT INTO wheel_result_versions(assignment_id,pair_id,winner_pair_id,result_type,played_at,score)
+     VALUES($1,$2,$2,'normal',CURRENT_TIMESTAMP,$3::jsonb)`,
+    [assignment.id,rival.id,JSON.stringify({sets:[{kind:'set',pairA:6,pairB:4},{kind:'set',pairA:6,pairB:4}]})],
+  );
+  await pool.query(
+    `INSERT INTO pair_dissolution_requests(pair_id,requested_by_user_id,deadline_at) VALUES($1,$2,CURRENT_TIMESTAMP-interval '1 minute')`,
+    [dissolving.id,dissolving.members[0].id],
+  );
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const applied=await applyDueWheelV3Dissolutions(client);
+    await client.query('COMMIT');
+    assert.equal(applied.length,0);
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+  assert.equal((await pool.query('SELECT status FROM pair_dissolution_requests WHERE pair_id=$1',[dissolving.id])).rows[0].status,'awaiting_result');
+  assert.equal((await pool.query('SELECT competition_state FROM pairs WHERE id=$1',[dissolving.id])).rows[0].competition_state,'active');
+  assert.equal(Number((await pool.query('SELECT count(*) n FROM matches')).rows[0].n),0);
+  assert.equal(Number((await pool.query('SELECT count(*) n FROM wheel_assignment_participants WHERE assignment_id=$1',[assignment.id])).rows[0].n),2);
+});
+
+test('expired dissolution without an assignment archives the pair and invents no match',async()=>{
+  const dissolving=await seedPairWithMembers(2,3,{tag:49});
+  await pool.query(
+    `INSERT INTO pair_dissolution_requests(pair_id,requested_by_user_id,deadline_at) VALUES($1,$2,CURRENT_TIMESTAMP-interval '1 minute')`,
+    [dissolving.id,dissolving.members[0].id],
+  );
+  const client=await pool.connect();
+  try{
+    await client.query('BEGIN');
+    const applied=await applyDueWheelV3Dissolutions(client);
+    await client.query('COMMIT');
+    assert.equal(applied.length,1);
+  }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+  assert.equal((await pool.query('SELECT competition_state FROM pairs WHERE id=$1',[dissolving.id])).rows[0].competition_state,'inactive');
+  assert.equal((await pool.query('SELECT status FROM pair_dissolution_requests WHERE pair_id=$1',[dissolving.id])).rows[0].status,'applied');
+  assert.equal(Number((await pool.query('SELECT count(*) n FROM matches')).rows[0].n),0);
 });

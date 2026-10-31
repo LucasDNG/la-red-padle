@@ -1291,8 +1291,9 @@ export async function applyWheelV3OneSidedFailure(client,{
   const failingBefore=before[failing];
   const winnerBefore=before[winner];
 
-  const gamesA=Number(assignment.pair_a_id)===winner?12:0;
-  const gamesB=Number(assignment.pair_b_id)===winner?12:0;
+  const dissolution=resolutionSource==='dissolution_forfeit';
+  const gamesA=dissolution?0:(Number(assignment.pair_a_id)===winner?12:0);
+  const gamesB=dissolution?0:(Number(assignment.pair_b_id)===winner?12:0);
   const match=(await q(client,`
     INSERT INTO matches(
       assignment_id,league_id,category_number,pair_a_id,pair_b_id,
@@ -1300,8 +1301,8 @@ export async function applyWheelV3OneSidedFailure(client,{
       pair_a_games,pair_b_games,played_at,resolution_source
     )
     VALUES(
-      $1,$2,$3,$4,$5,$6,'administrative_forfeit',
-      $7::jsonb,NULL,$8,$9,CURRENT_TIMESTAMP,$10
+      $1,$2,$3,$4,$5,$6,$7,
+      $8::jsonb,NULL,$9,$10,CURRENT_TIMESTAMP,$11
     )
     RETURNING *
   `,[
@@ -1311,7 +1312,8 @@ export async function applyWheelV3OneSidedFailure(client,{
     assignment.pair_a_id,
     assignment.pair_b_id,
     winner,
-    JSON.stringify({sets:[
+    dissolution?'dissolution_forfeit':'administrative_forfeit',
+    dissolution?null:JSON.stringify({sets:[
       {kind:'set',pairA:Number(assignment.pair_a_id)===winner?6:0,pairB:Number(assignment.pair_b_id)===winner?6:0},
       {kind:'set',pairA:Number(assignment.pair_a_id)===winner?6:0,pairB:Number(assignment.pair_b_id)===winner?6:0},
     ]}),
@@ -1409,12 +1411,15 @@ export async function applyWheelV3OneSidedFailure(client,{
   for(const categoryId of [...affectedCategories].sort((a,b)=>a-b)){
     refresh.push({categoryId,...await refreshWheelV3Category(client,categoryId)});
   }
+  const dissolutionNotice=resolutionSource==='dissolution_forfeit';
   await queueAssignmentNotification(client,assignment,{
-    type:'administrative_result',
-    title:'Partido resuelto administrativamente',
-    body:'El compromiso se cerró con una resolución administrativa y LA RED actualizó la rueda.',
+    type:dissolutionNotice?'dissolution_forfeit':'administrative_result',
+    title:dissolutionNotice?'Partido cerrado por disolución':'Partido resuelto administrativamente',
+    body:dissolutionNotice
+      ?'La pareja que pidió disolverse no jugó el compromiso a tiempo. El rival se queda con el partido, sin games inventados, y la pareja se disuelve.'
+      :'El compromiso se cerró con una resolución administrativa y LA RED actualizó la rueda.',
     payload:{assignmentId:assignment.id,failingPairId:failing,winnerPairId:winner,resolutionSource},
-    dedupeKey:`v3-admin-result:${assignment.id}`,
+    dedupeKey:dissolutionNotice?`v3-dissolution-forfeit:${assignment.id}`:`v3-admin-result:${assignment.id}`,
   });
 
   return {
@@ -2270,6 +2275,96 @@ export async function expireWheelV3ScheduleProposals(client){
   `)).rows;
 }
 
+export async function applyDueWheelV3Dissolutions(client){
+  const requests=(await q(client,`
+    SELECT d.id
+    FROM pair_dissolution_requests d
+    JOIN pairs p ON p.id=d.pair_id
+    WHERE d.status IN('pending','confirmed','awaiting_result')
+    ORDER BY d.id
+    FOR UPDATE OF d
+  `)).rows;
+  const applied=[];
+  for(const row of requests){
+    const request=(await q(client,`
+      SELECT d.*,p.competition_state
+      FROM pair_dissolution_requests d
+      JOIN pairs p ON p.id=d.pair_id
+      WHERE d.id=$1
+      FOR UPDATE OF d
+    `,[row.id])).rows[0];
+    if(!request||!['pending','confirmed','awaiting_result'].includes(request.status))continue;
+    if(request.competition_state==='inactive'){
+      await q(client,`
+        UPDATE pair_dissolution_requests
+        SET status='applied',resolved_at=CURRENT_TIMESTAMP
+        WHERE id=$1 AND status<>'applied'
+      `,[request.id]);
+      continue;
+    }
+
+    const assignment=(await q(client,`
+      SELECT wa.*
+      FROM wheel_assignment_participants wap
+      JOIN wheel_assignments wa ON wa.id=wap.assignment_id
+      WHERE wap.pair_id=$1
+      FOR UPDATE OF wa
+    `,[request.pair_id])).rows[0]||null;
+    const now=(await q(client,`SELECT CURRENT_TIMESTAMP now`)).rows[0].now;
+    const deadlinePassed=new Date(now).getTime()>=new Date(request.deadline_at).getTime();
+
+    if(assignment){
+      const versions=(await q(client,`
+        SELECT 1 FROM wheel_result_versions WHERE assignment_id=$1 LIMIT 1
+      `,[assignment.id])).rowCount;
+      const recorded=(await q(client,`
+        SELECT 1 FROM matches WHERE assignment_id=$1
+      `,[assignment.id])).rowCount;
+      const resultLoaded=versions>0||recorded>0||assignment.first_result_at||assignment.status!=='open';
+      if(resultLoaded){
+        if(request.status!=='awaiting_result'){
+          await q(client,`UPDATE pair_dissolution_requests SET status='awaiting_result' WHERE id=$1`,[request.id]);
+        }
+        continue;
+      }
+      if(!deadlinePassed){
+        if(request.status==='confirmed'){
+          await q(client,`UPDATE pair_dissolution_requests SET status='awaiting_result' WHERE id=$1`,[request.id]);
+        }
+        continue;
+      }
+
+      await applyWheelV3OneSidedFailure(client,{
+        assignmentId:assignment.id,
+        failingPairId:request.pair_id,
+        resolutionSource:'dissolution_forfeit',
+      });
+      await q(client,`
+        UPDATE pair_dissolution_requests
+        SET status='applied',resolved_at=CURRENT_TIMESTAMP
+        WHERE id=$1 AND status<>'applied'
+      `,[request.id]);
+      const state=(await q(client,`SELECT competition_state FROM pairs WHERE id=$1`,[request.pair_id])).rows[0];
+      if(state?.competition_state==='inactive'){
+        applied.push({pairId:Number(request.pair_id),alreadyArchived:true});
+      }else{
+        applied.push(await archiveWheelV3Pair(client,request.pair_id));
+      }
+      continue;
+    }
+
+    if(request.status==='confirmed'||request.status==='awaiting_result'||deadlinePassed){
+      await q(client,`
+        UPDATE pair_dissolution_requests
+        SET status='applied',resolved_at=CURRENT_TIMESTAMP
+        WHERE id=$1
+      `,[request.id]);
+      applied.push(await archiveWheelV3Pair(client,request.pair_id));
+    }
+  }
+  return applied;
+}
+
 export async function runWheelV3Maintenance(client){
   const settings=(await q(client,`
     SELECT key,value FROM app_settings
@@ -2285,6 +2380,7 @@ export async function runWheelV3Maintenance(client){
       noShowsEscalated:0,
       resultsAutoValidated:0,
       assignmentsExpired:0,
+      dissolutionsApplied:0,
       refresh:[],
     };
   }
@@ -2307,6 +2403,7 @@ export async function runWheelV3Maintenance(client){
 
   const noShowsEscalated=await escalateExpiredWheelV3NoShows(client);
   const resultsAutoValidated=await autoValidateDueWheelV3Results(client);
+  const dissolutionsApplied=await applyDueWheelV3Dissolutions(client);
   const assignmentsExpired=await expireDueWheelV3Assignments(client);
 
   const categories=(await q(client,`
@@ -2326,6 +2423,7 @@ export async function runWheelV3Maintenance(client){
     noShowsEscalated:noShowsEscalated.length,
     resultsAutoValidated:resultsAutoValidated.length,
     assignmentsExpired:assignmentsExpired.length,
+    dissolutionsApplied:dissolutionsApplied.length,
     refresh,
   };
 }

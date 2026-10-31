@@ -4,6 +4,11 @@ export const DAY = 24*60*60*1000;
 export function problem(message,status=400){const e=new Error(message);e.statusCode=status;return e;}
 export function normalizeDni(v){return String(v??'').replace(/\D/g,'');}
 export function normalizePhone(v){return String(v??'').replace(/[^\d+]/g,'').trim();}
+export function canonicalWhatsApp(v){
+  const digits=String(v??'').replace(/\D/g,'');
+  if(!/^549\d{10}$/.test(digits))throw problem('WhatsApp inválido');
+  return digits;
+}
 export function normalizeDateKey(value){
   const d=new Date(value); if(Number.isNaN(d.getTime())) throw problem('Fecha inválida');
   return new Intl.DateTimeFormat('en-CA',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
