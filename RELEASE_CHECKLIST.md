@@ -41,8 +41,8 @@
 - [x] TOTP fail-closed y requisitos de secreto automatizados;
 - [x] generador local de secretos JWT/TOTP preparado;
 - [x] TOTP Admin real configurado y probado con autenticador;
-- [x] WhatsApp sender con retries/dedupe y Graph version configurable;
-- [ ] WhatsApp Meta real configurado y mensaje de prueba entregado;
+- [x] WhatsApp sender con retries/dedupe mediante outbox;
+- [ ] Evolution API configurada y mensaje de prueba entregado;
 - [x] retries/outbox probados;
 - [x] rate limiting revisado; contador por IP + endpoint en auth, con limitación conocida de memoria local por instancia;
 - [x] store de rate limit acotado y fail-closed ante saturación;
@@ -76,7 +76,7 @@
 - [x] secrets/variables core cargados en el Environment `production`;
 - [x] preflight `core` verde contra Neon real;
 - [ ] secrets/variables WhatsApp cargados en GitHub Environment `production` y Render;
-- [ ] preflight `full` verde antes del release público; run `36585295135` confirmó que hoy falla sólo por las 5 entradas Meta faltantes.
+- [ ] preflight `full` verde antes del release público. El run histórico `36585295135` falló por las entradas Meta, que ya no se usan.
 
 ## Deploy
 - [x] GitHub Actions verde;
@@ -137,7 +137,7 @@ Solo después de todo lo anterior: **lanzamiento público**.
 - [x] documentación técnica fuente actualizada a Wheel v3.
 
 ### Bloqueantes externos antes del lanzamiento público
-- [ ] cargar las 5 entradas Meta WhatsApp en GitHub Environment `production`;
+- [ ] cargar las 3 variables de Evolution API en GitHub Environment `production`;
 - [ ] cargar las mismas credenciales/configuración en Render;
 - [ ] ejecutar `preflight:full` verde;
 - [ ] ejecutar workflow `LA RED WhatsApp production test` y confirmar recepción;

@@ -1,7 +1,7 @@
 import {q} from './db.js';
 import {formationComplete,planCategoryWheel,shouldCancelAssignmentForStructure,resultAllowedAfterCancellation,resultCountsAsReal,roleAfterRealMatch,promotionStateAfterResult,relegationStateAfterResult,populationDirectionalThreshold,entryPositionPenultimate,descendedEntryPosition,individualCategoriesAfterDescent,failureStateAfterClosure,roleAfterOwnFailure,administrativeFailureMovement,fullCalendarMonthsBetween,inactivityReturnPosition,simultaneousOnePlacePenalty,categoryForReformedPair} from './wheelV3Rules.js';
 import {scoreGames,resultEquals,normalizeScore} from './core.js';
-import {queuePairNotification,queueAssignmentNotification} from './notifications.js';
+import {queuePairNotification,queueAssignmentNotification,matchNoticeText} from './notifications.js';
 
 export async function wheelV3FormationSnapshot(client,leagueId,{lock=false}={}){
   if(lock){
@@ -2692,7 +2692,7 @@ export async function acceptWheelV3Schedule(client,{
   await queueAssignmentNotification(client,updated,{
     type:'schedule_confirmed',
     title:'Fecha confirmada',
-    body:'La fecha y el lugar del partido quedaron confirmados por ambas parejas.',
+    body:await matchNoticeText(client,updated),
     payload:{assignmentId,scheduledAt:updated.scheduled_at,locationText:updated.location_text},
     dedupeKey:`v3-schedule-confirmed:${proposal.id}`,
   });

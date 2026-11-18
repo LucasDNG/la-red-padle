@@ -34,16 +34,14 @@ Hasta que aparezca evidencia real de un defecto:
 
 ## Bloqueantes externos antes de abrir al público
 
-### 1. WhatsApp Meta
+### 1. WhatsApp con Evolution API
 
-Faltan las cinco entradas productivas:
-- PROD_WHATSAPP_PHONE_NUMBER_ID
-- PROD_WHATSAPP_ACCESS_TOKEN
-- PROD_WHATSAPP_TEMPLATE_NAME
-- PROD_WHATSAPP_GRAPH_VERSION
-- PROD_WHATSAPP_TEMPLATE_LANGUAGE
+El canal dejó de usar WhatsApp Cloud API de Meta. Faltan las tres entradas productivas:
+- PROD_EVOLUTION_API_URL
+- PROD_EVOLUTION_API_KEY
+- PROD_EVOLUTION_INSTANCE_NAME
 
-Confirmado en GitHub Environment `production` el 2026-10-01 13:36 ART: run `36893204527` detenido exclusivamente por ausencia de los cinco inputs full. Actualización 2026-10-02: los logs de arranque de Render a las 22:43:40 UTC (19:43:40 ART) confirman que también faltan las cinco variables en el servicio `la-red-padle-api`. No se habilitó el dispatcher ni se enviaron mensajes. CI de la corrección de WhatsApp y smoke/postcutover productivo están verdes; el bloqueo es externo de configuración.
+Hasta el 2026-10-02 las cinco variables de Meta tampoco estaban cargadas en GitHub ni en Render, y no se envió ningún mensaje. El dispatcher sigue apagado mientras falte Evolution.
 
 Deben cargarse en:
 1. GitHub Environment `production`;

@@ -53,7 +53,7 @@ Los gates principales ya requieren infraestructura/credenciales reales:
 4. ejecutar production smoke real;
 5. probar TOTP con autenticador real;
 6. confirmar restore window/RPO/RTO y hacer drill de recuperación Neon;
-7. configurar Meta WhatsApp y entregar un mensaje real;
+7. configurar Evolution API y entregar un mensaje real;
 8. ejecutar `preflight:full`;
 9. smoke UX autenticado;
 10. revisión legal/seguro en Argentina.

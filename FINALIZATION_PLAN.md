@@ -63,8 +63,8 @@ Seguir `PRODUCTION_RECOVERY.md`:
 - ejecutar drill aislado;
 - definir backup externo si se requiere más retención.
 
-### Gate G — WhatsApp Meta
-Configurar Phone Number ID, token, template, Graph version y language. Entregar un mensaje de prueba aprobado.
+### Gate G — WhatsApp con Evolution API
+Configurar URL, API key e instancia. Entregar un mensaje de prueba.
 
 ### Gate H — Preflight full
 Ejecutar `npm run preflight:full` o el workflow en modo `full`. Es obligatorio antes del release público.
@@ -109,7 +109,7 @@ Antes de continuar con smoke/TOTP/WhatsApp:
 - Gate E TOTP Admin real: VERDE.
 - Wheel v3 productivo + postcutover: VERDE.
 - Smoke autenticado read-only: VERDE.
-- WhatsApp Meta real: PENDIENTE por 5 entradas externas faltantes.
+- WhatsApp Evolution real: PENDIENTE por las 3 variables de la instancia.
 - Preflight full: PENDIENTE de WhatsApp.
 - Legal/seguro: PENDIENTE externo.
 - Recuperación Neon: ventana histórica confirmada; RPO/RTO + drill aislado siguen pendientes.
@@ -132,7 +132,7 @@ Bug de fallback observado en navegador real y corregido. La navegación SPA offl
 No quedan gates funcionales internos conocidos de Wheel v3. No seguir cambiando reglas por prevención.
 
 Orden restante:
-1. configurar Meta WhatsApp en GitHub + Render;
+1. configurar Evolution API en GitHub + Render;
 2. ejecutar preflight full;
 3. enviar mensaje controlado de prueba;
 4. cerrar revisión legal/seguro;

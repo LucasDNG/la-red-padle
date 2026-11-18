@@ -7,7 +7,7 @@ Liga continua de pádel por parejas. Estado actual: **candidato wheel-v2 técnic
 - PostgreSQL / Neon
 - React 19 + Vite 7
 - Render + Vercel
-- Meta WhatsApp Cloud API mediante outbox
+- WhatsApp mediante Evolution API v2 y outbox
 
 ## Motor
 `wheel-v2` es el único motor competitivo activo.
@@ -30,7 +30,7 @@ Empezar por `START_HERE.md` y `NEXT_CHAT_HANDOFF.md`. Reglas y decisiones viven 
 No asumir un commit nuevo como verde sin consultar GitHub Actions.
 
 ## Pendiente principal
-Los bloqueos principales ya son operativos: Environment `production`, preflight real contra Neon, Render health, production smoke, TOTP real, recuperación Neon, Meta WhatsApp, smoke UX y revisión legal/seguro.
+Los bloqueos principales ya son operativos: Environment `production`, preflight real contra Neon, Render health, production smoke, TOTP real, recuperación Neon, Evolution API, smoke UX y revisión legal/seguro.
 
 ## Local
 

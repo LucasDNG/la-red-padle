@@ -2,7 +2,7 @@ import 'dotenv/config';
 import {assertRuntimeConfig} from './config.js';
 import {app} from './app.js';
 import {maintenance} from './wheelRuntime.js';
-import {dispatchWhatsAppOutbox} from './notifications.js';
+import {dispatchWhatsAppOutbox,queueMatchReminders} from './notifications.js';
 import {pool} from './db.js';
 import {applyProductionMigrations} from './migrations.js';
 import {runBackgroundTasks} from './background.js';
@@ -22,16 +22,26 @@ try{
   const port=Number(process.env.PORT||3000);
   const server=app.listen(port,'0.0.0.0',()=>console.log(`LA RED Pádel API · runtime seleccionado por DB · ${port}`));
 
-  async function tick(){await runBackgroundTasks({maintenanceTask:maintenance,outboxTask:dispatchWhatsAppOutbox});}
-  const initialTick=setTimeout(tick,1500);
-  const maintenanceInterval=setInterval(tick,60*60*1000);
-  initialTick.unref();
+  async function maintenanceTick(){await runBackgroundTasks({maintenanceTask:maintenance});}
+  async function notifyTick(){
+    await runBackgroundTasks({
+      reminderTask:()=>queueMatchReminders(pool),
+      outboxTask:dispatchWhatsAppOutbox,
+    });
+  }
+  const initialMaintenance=setTimeout(maintenanceTick,1500);
+  const initialNotify=setTimeout(notifyTick,1500);
+  const maintenanceInterval=setInterval(maintenanceTick,60*60*1000);
+  const notifyInterval=setInterval(notifyTick,15*60*1000);
+  initialMaintenance.unref();
+  initialNotify.unref();
   maintenanceInterval.unref();
+  notifyInterval.unref();
 
   const shutdown=createGracefulShutdown({
     server,
     pool,
-    timers:[initialTick,maintenanceInterval],
+    timers:[initialMaintenance,initialNotify,maintenanceInterval,notifyInterval],
   });
   installRuntimeHandlers({shutdown});
   bindPoolErrorHandler({pool,shutdown});
