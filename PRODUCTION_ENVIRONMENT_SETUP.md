@@ -16,8 +16,7 @@ Cargar como **Environment secrets**:
 | `PROD_DATABASE_URL` | Connection string de la Neon final |
 | `PROD_JWT_SECRET` | Salida `JWT_SECRET` de `npm run generate:secrets -- --account=admin` |
 | `PROD_ADMIN_TOTP_SECRET` | Salida `ADMIN_TOTP_SECRET` del mismo comando |
-| `PROD_WHATSAPP_PHONE_NUMBER_ID` | Meta WhatsApp Cloud API |
-| `PROD_WHATSAPP_ACCESS_TOKEN` | Meta WhatsApp Cloud API |
+| `PROD_EVOLUTION_API_KEY` | Global API Key de Evolution API |
 
 ## Variables
 Cargar como **Environment variables**:
@@ -26,9 +25,8 @@ Cargar como **Environment variables**:
 |---|---|
 | `PROD_API_URL` | Origen HTTPS del backend Render, sin `/api`, por ejemplo `https://la-red-padle-api.onrender.com` |
 | `PROD_FRONTEND_URL` | `https://la-red-padle.vercel.app` o el dominio final real |
-| `PROD_WHATSAPP_TEMPLATE_NAME` | Nombre exacto de la plantilla aprobada |
-| `PROD_WHATSAPP_GRAPH_VERSION` | Versión Graph configurada, formato `vN.N` |
-| `PROD_WHATSAPP_TEMPLATE_LANGUAGE` | Normalmente `es_AR` |
+| `PROD_EVOLUTION_API_URL` | URL de la instancia, por ejemplo `https://evolution.laredpadel.com.ar` |
+| `PROD_EVOLUTION_INSTANCE_NAME` | Nombre de la instancia, por ejemplo `laredpadel` |
 
 ## TOTP
 El comando local:
@@ -55,12 +53,12 @@ Los dos comandos son portables y no requieren definir `PREFLIGHT_MODE` manualmen
 
 El workflow permite elegir:
 
-- `core`: valida Neon/TLS, JWT, frontend/CORS, TOTP, engine/timezone, reloj global, patch, Admin, cancha e invariantes DB. **No exige Meta WhatsApp.**
+- `core`: valida Neon/TLS, JWT, frontend/CORS, TOTP, engine/timezone, reloj global, patch, Admin, cancha e invariantes DB. **No exige Evolution.**
 - `full`: ejecuta todo lo anterior y además exige la configuración completa de WhatsApp. **Este modo es obligatorio antes del release público.**
 
 El primer paso valida solo los inputs requeridos por el modo elegido y, si falta alguno, muestra **solo los nombres faltantes**, nunca sus valores.
 
-Estado 2026-09-29: `core` está verde con Wheel v3 activo. `full` sigue bloqueado únicamente por las cinco entradas de Meta WhatsApp todavía no cargadas.
+Estado 2026-09-29: `core` está verde con Wheel v3 activo. `full` queda bloqueado hasta cargar las tres variables de Evolution API.
 
 Después `npm run preflight:prod` valida de forma read-only:
 - configuración productiva;
@@ -125,13 +123,13 @@ Run real 2026-09-29 `36585954395`: success. Había jugador verificado pero ningu
 
 ## Prueba controlada de WhatsApp
 
-Una vez cargadas las cinco entradas de Meta, usar GitHub → Actions → `LA RED WhatsApp production test`.
+Los avisos salen por Evolution API v2. Hacen falta `EVOLUTION_API_URL`, `EVOLUTION_API_KEY` y `EVOLUTION_INSTANCE_NAME`. En GitHub llevan prefijo `PROD_`. En Render van sin ese prefijo.
+
+Una vez cargadas, usar GitHub → Actions → `LA RED WhatsApp production test`.
 
 Antes de ejecutarlo debe existir confirmación explícita del propietario para el envío real al destino elegido. No lanzar este workflow para comprobar solamente configuración o CI: envía un mensaje. `preflight:full` y postcutover son verificaciones sin envío.
 
-Desde `9a7c1a022a2d3a3fe3983e29d4db24999093dde9`, las cinco variables son obligatorias también en la validación y en el sender/dispatcher. El idioma no tiene fallback: debe coincidir con el idioma aprobado de la plantilla Meta. En Render usar los mismos nombres sin el prefijo `PROD_`.
-
-Coordinar la carga de la quinta variable en Render con la confirmación explícita de habilitación: el dispatcher de producción puede comenzar a enviar el outbox automáticamente cuando la configuración esté completa. El workflow de prueba no controla esa habilitación automática.
+Cargar las tres variables en Render sólo con confirmación explícita de habilitación: el dispatcher de producción puede comenzar a enviar el outbox automáticamente cuando la configuración esté completa. El workflow de prueba no controla esa habilitación automática.
 
 El workflow pide:
 - `phone`: número de destino en formato internacional;
@@ -141,12 +139,12 @@ Secuencia segura:
 1. valida la confirmación;
 2. ejecuta `npm run preflight:full`;
 3. si todo está verde, ejecuta `npm run whatsapp:test:prod`;
-4. envía una única plantilla de prueba al teléfono indicado.
+4. envía un único texto de prueba al teléfono indicado.
 
-No guarda ni imprime el token de Meta ni el número completo en el resultado del script.
+No guarda ni imprime la API key ni el número completo en el resultado del script.
 
 
-## Seguridad del outbox antes de habilitar Meta
+## Seguridad del outbox antes de habilitar Evolution
 
 Antes de habilitar WhatsApp se corrigió el tratamiento de mensajes sensibles/temporales. El outbox admite `expired` y el dispatcher valida:
 - `password_recovery`: código no usado y no vencido;

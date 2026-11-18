@@ -227,18 +227,14 @@ test('WhatsApp outbox retries failed rows and marks them sent after a successful
   }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
 
   const oldEnv={
-    id:process.env.WHATSAPP_PHONE_NUMBER_ID,
-    token:process.env.WHATSAPP_ACCESS_TOKEN,
-    template:process.env.WHATSAPP_TEMPLATE_NAME,
-    version:process.env.WHATSAPP_GRAPH_VERSION,
-    lang:process.env.WHATSAPP_TEMPLATE_LANGUAGE
+    url:process.env.EVOLUTION_API_URL,
+    key:process.env.EVOLUTION_API_KEY,
+    instance:process.env.EVOLUTION_INSTANCE_NAME,
   };
   const oldFetch=globalThis.fetch;
-  process.env.WHATSAPP_PHONE_NUMBER_ID='123';
-  process.env.WHATSAPP_ACCESS_TOKEN='token';
-  process.env.WHATSAPP_TEMPLATE_NAME='la_red_test';
-  process.env.WHATSAPP_GRAPH_VERSION='v26.0';
-  process.env.WHATSAPP_TEMPLATE_LANGUAGE='es_AR';
+  process.env.EVOLUTION_API_URL='http://localhost:8080';
+  process.env.EVOLUTION_API_KEY='token';
+  process.env.EVOLUTION_INSTANCE_NAME='laredpadel';
 
   let calls=0,lastUrl='';
   globalThis.fetch=async(url)=>{
@@ -253,9 +249,9 @@ test('WhatsApp outbox retries failed rows and marks them sent after a successful
     let row=(await testPool.query("SELECT status,attempts,last_error FROM notification_outbox WHERE dedupe_key='wa:hardening:retry'")).rows[0];
     assert.equal(row.status,'failed');
     assert.equal(Number(row.attempts),1);
-    assert.match(row.last_error,/WhatsApp HTTP 500 code=131000 subcode=2494073/);
+    assert.match(row.last_error,/Evolution HTTP 500/);
     assert.equal(row.last_error.includes('+5493329555000'),false);
-    assert.match(lastUrl,/graph\.facebook\.com\/v26\.0\/123\/messages$/);
+    assert.match(lastUrl,/http:\/\/localhost:8080\/message\/sendText\/laredpadel$/);
 
     await testPool.query("UPDATE notification_outbox SET next_attempt_at=now()-interval '1 second' WHERE dedupe_key='wa:hardening:retry'");
     const second=await dispatchWhatsAppOutbox();
@@ -267,11 +263,9 @@ test('WhatsApp outbox retries failed rows and marks them sent after a successful
     assert.ok(row.sent_at);
   }finally{
     globalThis.fetch=oldFetch;
-    if(oldEnv.id===undefined)delete process.env.WHATSAPP_PHONE_NUMBER_ID;else process.env.WHATSAPP_PHONE_NUMBER_ID=oldEnv.id;
-    if(oldEnv.token===undefined)delete process.env.WHATSAPP_ACCESS_TOKEN;else process.env.WHATSAPP_ACCESS_TOKEN=oldEnv.token;
-    if(oldEnv.template===undefined)delete process.env.WHATSAPP_TEMPLATE_NAME;else process.env.WHATSAPP_TEMPLATE_NAME=oldEnv.template;
-    if(oldEnv.version===undefined)delete process.env.WHATSAPP_GRAPH_VERSION;else process.env.WHATSAPP_GRAPH_VERSION=oldEnv.version;
-    if(oldEnv.lang===undefined)delete process.env.WHATSAPP_TEMPLATE_LANGUAGE;else process.env.WHATSAPP_TEMPLATE_LANGUAGE=oldEnv.lang;
+    if(oldEnv.url===undefined)delete process.env.EVOLUTION_API_URL;else process.env.EVOLUTION_API_URL=oldEnv.url;
+    if(oldEnv.key===undefined)delete process.env.EVOLUTION_API_KEY;else process.env.EVOLUTION_API_KEY=oldEnv.key;
+    if(oldEnv.instance===undefined)delete process.env.EVOLUTION_INSTANCE_NAME;else process.env.EVOLUTION_INSTANCE_NAME=oldEnv.instance;
   }
 });
 

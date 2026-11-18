@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import pg from 'pg';
-import {databasePoolOptions,productionConfigReport} from '../src/config.js';
+import {databasePoolOptions,productionConfigReport,whatsappConfiguration} from '../src/config.js';
 import {databasePreflight} from '../src/preflight.js';
 
 const modeArg=process.argv.find(arg=>arg.startsWith('--mode='));
@@ -22,7 +22,11 @@ try{
   console.log(JSON.stringify({
     ...result,
     preflightMode:mode,
-    whatsappGraphVersion:process.env.WHATSAPP_GRAPH_VERSION||null,
+    whatsapp:{
+      provider:'evolution',
+      configured:whatsappConfiguration(process.env).configured,
+      instance:process.env.EVOLUTION_INSTANCE_NAME||null,
+    },
   }));
 }finally{
   await pool.end();

@@ -2,15 +2,13 @@ const INSECURE_SSL_MODES=new Set(['disable','allow','prefer','no-verify']);
 
 function clean(value){return String(value??'').trim();}
 export function whatsappConfiguration(env=process.env){
-  const required=['WHATSAPP_PHONE_NUMBER_ID','WHATSAPP_ACCESS_TOKEN','WHATSAPP_TEMPLATE_NAME','WHATSAPP_GRAPH_VERSION','WHATSAPP_TEMPLATE_LANGUAGE'];
+  const required=['EVOLUTION_API_URL','EVOLUTION_API_KEY','EVOLUTION_INSTANCE_NAME'];
   const missing=required.filter(key=>!clean(env[key]));
   const invalid=[];
-  for(const [key,pattern] of [
-    ['WHATSAPP_PHONE_NUMBER_ID',/^\d+$/],
-    ['WHATSAPP_TEMPLATE_NAME',/^[a-z0-9_]+$/],
-    ['WHATSAPP_GRAPH_VERSION',/^v\d+\.\d+$/],
-    ['WHATSAPP_TEMPLATE_LANGUAGE',/^[a-z]{2}_[A-Z]{2}$/],
-  ])if(clean(env[key])&&!pattern.test(clean(env[key])))invalid.push(key);
+  const url=clean(env.EVOLUTION_API_URL);
+  if(url&&!/^https?:\/\/.+/i.test(url))invalid.push('EVOLUTION_API_URL');
+  const instance=clean(env.EVOLUTION_INSTANCE_NAME);
+  if(instance&&!/^[A-Za-z0-9_-]+$/.test(instance))invalid.push('EVOLUTION_INSTANCE_NAME');
   return {configured:missing.length===0&&invalid.length===0,missing,invalid};
 }
 function parseDatabaseUrl(raw){

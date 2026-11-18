@@ -46,7 +46,7 @@ Los ZIPs históricos `v1`…`v11` no son fuente de verdad y no deben reaplicarse
 - production smoke real;
 - TOTP con autenticador real;
 - restore window/RPO/RTO + drill Neon;
-- Meta WhatsApp + mensaje real;
+- Evolution API + mensaje real;
 - `preflight:full`;
 - smoke UX autenticado;
 - revisión legal/seguro Argentina.

@@ -1,5 +1,6 @@
 import {pool,q} from './db.js';
 import {whatsappConfiguration} from './config.js';
+import {sendWhatsAppMessage} from './evolutionApi.js';
 
 export async function queueUserNotification(client,{userId,type,title,body,payload={},dedupeKey,whatsapp=true,overridePhone=null}){
   const row=(await q(client,`
@@ -39,48 +40,84 @@ export async function queueAssignmentNotification(client,a,msg){
   await queuePairNotification(client,a.pair_b_id,msg);
 }
 
-function metaConfigured(){return whatsappConfiguration().configured;}
+export function formatMatchSchedule(value){
+  const date=new Date(value);
+  if(Number.isNaN(date.getTime()))return 'horario a confirmar';
+  return new Intl.DateTimeFormat('es-AR',{
+    timeZone:'America/Argentina/Buenos_Aires',
+    weekday:'long',
+    day:'2-digit',
+    month:'2-digit',
+    hour:'2-digit',
+    minute:'2-digit',
+    hourCycle:'h23',
+  }).format(date);
+}
 
-export async function sendWhatsAppTemplate(phone,payload){
-  const to=String(payload.overridePhone||phone||'').replace(/\D/g,'');
-  if(!to)throw new Error('Usuario sin teléfono');
-  const version=String(process.env.WHATSAPP_GRAPH_VERSION||'').trim();
-  if(!/^v\d+\.\d+$/.test(version))throw new Error('WhatsApp Graph version no configurada');
-  if(!metaConfigured())throw new Error('WhatsApp incompleto: se requieren las cinco variables Meta');
-  const url=`https://graph.facebook.com/${version}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`;
-  const body={
-    messaging_product:'whatsapp',
-    to,
-    type:'template',
-    template:{
-      name:process.env.WHATSAPP_TEMPLATE_NAME,
-      language:{code:process.env.WHATSAPP_TEMPLATE_LANGUAGE},
-      components:[{
-        type:'body',
-        parameters:[{
-          type:'text',
-          text:String(payload.body||'Tenés una novedad en LA RED').slice(0,1000),
-        }],
-      }],
-    },
-  };
-  const r=await fetch(url,{
-    method:'POST',
-    headers:{
-      Authorization:`Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
-      'Content-Type':'application/json',
-    },
-    body:JSON.stringify(body),
-  });
-  if(!r.ok){
-    let code=null,subcode=null;
-    try{
-      const parsed=JSON.parse(await r.text());
-      code=parsed?.error?.code??null;
-      subcode=parsed?.error?.error_subcode??null;
-    }catch{}
-    throw new Error(`WhatsApp HTTP ${r.status}${code!==null?` code=${code}`:''}${subcode!==null?` subcode=${subcode}`:''}`);
+export async function matchNoticeText(client,assignment,{kind='confirmado'}={}){
+  const when=formatMatchSchedule(assignment.scheduled_at);
+  const place=String(assignment.location_text||'').trim()||'a confirmar';
+  const names=(await q(client,`
+    SELECT pm.pair_id,u.first_name,u.last_name
+    FROM pair_members pm
+    JOIN users u ON u.id=pm.user_id
+    WHERE pm.pair_id=ANY($1::bigint[])
+    ORDER BY pm.pair_id,u.last_name,u.first_name
+  `,[ [assignment.pair_a_id,assignment.pair_b_id] ])).rows;
+  const label=pairId=>names
+    .filter(row=>Number(row.pair_id)===Number(pairId))
+    .map(row=>`${row.first_name} ${row.last_name}`.trim())
+    .join(' y ')||'pareja';
+  const lead=kind==='recordatorio'
+    ?'Recordatorio: tu partido empieza en menos de 2 horas.'
+    :'Partido confirmado.';
+  return `${lead} ${when}. Lugar: ${place}. ${label(assignment.pair_a_id)} vs ${label(assignment.pair_b_id)}.`;
+}
+
+// El recordatorio queda en el outbox con clave única. Si Evolution está caída,
+// el dispatcher lo reintenta y este barrido no crea otro mensaje.
+export async function queueMatchReminders(db=pool){
+  const client=await db.connect();
+  let checked=0;
+  let queued=0;
+  try{
+    const rows=(await q(client,`
+      SELECT *
+      FROM wheel_assignments
+      WHERE status='open'
+        AND schedule_confirmed_at IS NOT NULL
+        AND scheduled_at>CURRENT_TIMESTAMP
+        AND scheduled_at<=CURRENT_TIMESTAMP+interval '2 hours'
+      ORDER BY scheduled_at
+      LIMIT 50
+    `)).rows;
+    checked=rows.length;
+    for(const assignment of rows){
+      try{
+        await client.query('BEGIN');
+        const body=await matchNoticeText(client,assignment,{kind:'recordatorio'});
+        await queueAssignmentNotification(client,assignment,{
+          type:'match_reminder',
+          title:'Recordatorio de partido',
+          body,
+          payload:{
+            assignmentId:assignment.id,
+            scheduledAt:assignment.scheduled_at,
+            locationText:assignment.location_text,
+          },
+          dedupeKey:`match-reminder:${assignment.id}`,
+        });
+        await client.query('COMMIT');
+        queued++;
+      }catch(err){
+        await client.query('ROLLBACK');
+        console.error('whatsapp: no se pudo encolar el recordatorio',assignment.id,err.message);
+      }
+    }
+  }finally{
+    client.release();
   }
+  return {checked,queued};
 }
 
 export async function expireObsoleteWhatsAppOutbox(client){
@@ -149,7 +186,7 @@ export async function expireObsoleteWhatsAppOutbox(client){
 }
 
 export async function dispatchWhatsAppOutbox(limit=30){
-  const configured=metaConfigured();
+  const configured=whatsappConfiguration().configured;
   const client=await pool.connect();
   let rows=[];
   let expired=0;
@@ -192,7 +229,10 @@ export async function dispatchWhatsAppOutbox(limit=30){
   let sent=0,failed=0;
   for(const r of rows){
     try{
-      await sendWhatsAppTemplate(r.phone,r.payload||{});
+      const payload=r.payload||{};
+      const phone=payload.overridePhone||r.phone;
+      const text=String(payload.body||'Tenés una novedad en LA RED');
+      await sendWhatsAppMessage(phone,text);
       await pool.query(`
         UPDATE notification_outbox
         SET status='sent',sent_at=CURRENT_TIMESTAMP,last_error=NULL

@@ -23,13 +23,9 @@ services:
         sync: false
       - key: ADMIN_TOTP_SECRET
         sync: false
-      - key: WHATSAPP_PHONE_NUMBER_ID
+      - key: EVOLUTION_API_URL
         sync: false
-      - key: WHATSAPP_ACCESS_TOKEN
+      - key: EVOLUTION_API_KEY
         sync: false
-      - key: WHATSAPP_TEMPLATE_NAME
+      - key: EVOLUTION_INSTANCE_NAME
         sync: false
-      - key: WHATSAPP_GRAPH_VERSION
-        sync: false
-      - key: WHATSAPP_TEMPLATE_LANGUAGE
-        value: es_AR

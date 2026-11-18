@@ -1,71 +1,95 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {sendWhatsAppTemplate} from '../src/notifications.js';
+import {formatArgentineWhatsApp,sendWhatsAppMessage} from '../src/evolutionApi.js';
+import {formatMatchSchedule} from '../src/notifications.js';
 
-test('WhatsApp sender never calls Meta if any of the five variables is missing',async()=>{
-  const values={WHATSAPP_PHONE_NUMBER_ID:'123',WHATSAPP_ACCESS_TOKEN:'fake',WHATSAPP_TEMPLATE_NAME:'notice',WHATSAPP_GRAPH_VERSION:'v23.0',WHATSAPP_TEMPLATE_LANGUAGE:'es_AR'};
+const evolutionEnv={
+  EVOLUTION_API_URL:'http://localhost:8080',
+  EVOLUTION_API_KEY:'local-key',
+  EVOLUTION_INSTANCE_NAME:'laredpadel',
+};
+
+function restoreEnv(previous){
+  for(const key of Object.keys(process.env))if(!(key in previous))delete process.env[key];
+  Object.assign(process.env,previous);
+}
+
+test('Argentine numbers normalize to 549 plus area without 0 and subscriber without 15',()=>{
+  assert.equal(formatArgentineWhatsApp('(3329)-400704'),'5493329400704');
+  assert.equal(formatArgentineWhatsApp('+54 9 3329 400704'),'5493329400704');
+  assert.equal(formatArgentineWhatsApp('54332915400704'),'5493329400704');
+  assert.equal(formatArgentineWhatsApp('03329 15 400704'),'5493329400704');
+  assert.equal(formatArgentineWhatsApp('5493329400704'),'5493329400704');
+  assert.throws(()=>formatArgentineWhatsApp('123'),/Teléfono inválido/);
+});
+
+test('WhatsApp sender never calls Evolution if any variable is missing',async()=>{
   const previous={...process.env};
   const originalFetch=globalThis.fetch;
   let calls=0;
   globalThis.fetch=async()=>{calls++;throw new Error('Unexpected network call');};
   try{
-    for(const key of Object.keys(values)){
-      Object.assign(process.env,values);
+    for(const key of Object.keys(evolutionEnv)){
+      Object.assign(process.env,evolutionEnv);
       delete process.env[key];
-      await assert.rejects(sendWhatsAppTemplate('5493329123456',{body:'x'}),/WhatsApp (incompleto|Graph version no configurada)/);
+      await assert.rejects(sendWhatsAppMessage('5493329123456','x'),/WhatsApp incompleto/);
     }
     assert.equal(calls,0);
   }finally{
     globalThis.fetch=originalFetch;
-    for(const key of Object.keys(process.env))if(!(key in previous))delete process.env[key];
-    Object.assign(process.env,previous);
+    restoreEnv(previous);
   }
 });
 
-test('WhatsApp template sender uses configured Meta endpoint without leaking payload semantics',async()=>{
+test('WhatsApp sender posts text to the Evolution instance',async()=>{
   const previous={...process.env};
-  process.env.WHATSAPP_GRAPH_VERSION='v23.0';
-  process.env.WHATSAPP_PHONE_NUMBER_ID='123456789';
-  process.env.WHATSAPP_ACCESS_TOKEN='secret-token';
-  process.env.WHATSAPP_TEMPLATE_NAME='la_red_notification';
-  process.env.WHATSAPP_TEMPLATE_LANGUAGE='es_AR';
-
+  Object.assign(process.env,evolutionEnv);
   const originalFetch=globalThis.fetch;
   let seen=null;
   globalThis.fetch=async(url,options)=>{
     seen={url,options,body:JSON.parse(options.body)};
-    return new Response(JSON.stringify({messages:[{id:'wamid.test'}]}),{status:200});
+    return new Response(JSON.stringify({key:{id:'evo.test'}}),{status:200});
   };
-
   try{
-    await sendWhatsAppTemplate('+54 9 3329 123456',{body:'Mensaje de prueba'});
-    assert.equal(seen.url,'https://graph.facebook.com/v23.0/123456789/messages');
+    await sendWhatsAppMessage('+54 9 3329 123456','Mensaje de prueba');
+    assert.equal(seen.url,'http://localhost:8080/message/sendText/laredpadel');
     assert.equal(seen.options.method,'POST');
-    assert.equal(seen.options.headers.Authorization,'Bearer secret-token');
-    assert.equal(seen.body.messaging_product,'whatsapp');
-    assert.equal(seen.body.to,'5493329123456');
-    assert.equal(seen.body.template.name,'la_red_notification');
-    assert.equal(seen.body.template.language.code,'es_AR');
-    assert.equal(seen.body.template.components[0].parameters[0].text,'Mensaje de prueba');
+    assert.equal(seen.options.headers.apikey,'local-key');
+    assert.deepEqual(seen.body,{number:'5493329123456',text:'Mensaje de prueba'});
+    assert.equal(JSON.stringify(seen).includes('graph.facebook.com'),false);
   }finally{
     globalThis.fetch=originalFetch;
-    for(const key of Object.keys(process.env)){
-      if(!(key in previous))delete process.env[key];
-    }
-    Object.assign(process.env,previous);
+    restoreEnv(previous);
   }
 });
 
-test('WhatsApp sender rejects malformed Graph version before network call',async()=>{
-  const previous=process.env.WHATSAPP_GRAPH_VERSION;
-  process.env.WHATSAPP_GRAPH_VERSION='latest';
+test('a down Evolution API fails the send and retries only a network error',async()=>{
+  const previous={...process.env};
+  Object.assign(process.env,evolutionEnv);
+  const originalFetch=globalThis.fetch;
+  let calls=0;
+  globalThis.fetch=async()=>{
+    calls++;
+    if(calls===1)throw new Error('fetch failed');
+    return new Response('{}',{status:200});
+  };
   try{
-    await assert.rejects(
-      sendWhatsAppTemplate('5493329123456',{body:'x'}),
-      /Graph version no configurada/,
-    );
+    await sendWhatsAppMessage('5493329123456','Hola');
+    assert.equal(calls,2);
+    let httpCalls=0;
+    globalThis.fetch=async()=>{
+      httpCalls++;
+      return new Response('down',{status:503});
+    };
+    await assert.rejects(sendWhatsAppMessage('5493329123456','Hola'),/Evolution HTTP 503/);
+    assert.equal(httpCalls,1);
   }finally{
-    if(previous===undefined)delete process.env.WHATSAPP_GRAPH_VERSION;
-    else process.env.WHATSAPP_GRAPH_VERSION=previous;
+    globalThis.fetch=originalFetch;
+    restoreEnv(previous);
   }
+});
+
+test('match schedule is formatted in Argentina time',()=>{
+  assert.match(formatMatchSchedule('2026-11-15T21:00:00Z'),/18:00/);
+  assert.equal(formatMatchSchedule('no-es-fecha'),'horario a confirmar');
 });

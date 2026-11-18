@@ -88,7 +88,7 @@ GitHub Actions ejecuta backend syntax/check, tests y build frontend en cada push
 - API: Render.
 - Frontend: Vercel.
 - DB: Neon.
-- WhatsApp: Meta WhatsApp Cloud API mediante outbox.
+- WhatsApp: Evolution API v2 mediante outbox.
 
 
 ## Capa visual

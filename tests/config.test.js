@@ -8,20 +8,18 @@ const strongEnv={
   JWT_SECRET:'0123456789abcdef0123456789abcdef0123456789abcdef',
   FRONTEND_URL:'https://la-red-padle.vercel.app',
   ADMIN_TOTP_SECRET:'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
-  WHATSAPP_PHONE_NUMBER_ID:'123',
-  WHATSAPP_ACCESS_TOKEN:'token',
-  WHATSAPP_TEMPLATE_NAME:'la_red_notice',
-  WHATSAPP_GRAPH_VERSION:'v26.0',
-  WHATSAPP_TEMPLATE_LANGUAGE:'es_AR',
+  EVOLUTION_API_URL:'https://evolution.example.com',
+  EVOLUTION_API_KEY:'token',
+  EVOLUTION_INSTANCE_NAME:'laredpadel',
 };
 
 test('WhatsApp readiness matches sender requirements and exposes names only',()=>{
   assert.deepEqual(whatsappConfiguration(strongEnv),{configured:true,missing:[],invalid:[]});
-  const report=whatsappConfiguration({...strongEnv,WHATSAPP_GRAPH_VERSION:'  '});
-  assert.deepEqual(report,{configured:false,missing:['WHATSAPP_GRAPH_VERSION'],invalid:[]});
-  assert.equal(whatsappConfiguration({...strongEnv,WHATSAPP_GRAPH_VERSION:'26'}).configured,false);
-  assert.equal(whatsappConfiguration({...strongEnv,WHATSAPP_ACCESS_TOKEN:'  '}).configured,false);
-  assert.equal(JSON.stringify(report).includes(strongEnv.WHATSAPP_ACCESS_TOKEN),false);
+  const report=whatsappConfiguration({...strongEnv,EVOLUTION_API_URL:'  '});
+  assert.deepEqual(report,{configured:false,missing:['EVOLUTION_API_URL'],invalid:[]});
+  assert.equal(whatsappConfiguration({...strongEnv,EVOLUTION_API_URL:'ftp://evolution.example.com'}).configured,false);
+  assert.equal(whatsappConfiguration({...strongEnv,EVOLUTION_API_KEY:'  '}).configured,false);
+  assert.equal(JSON.stringify(report).includes(strongEnv.EVOLUTION_API_KEY),false);
 });
 
 test('production DB without sslmode enables verified TLS by default',()=>{
@@ -48,7 +46,7 @@ test('runtime production config rejects weak JWT, insecure frontend and missing 
 
 test('strict production preflight requires WhatsApp configuration',()=>{
   const env={...strongEnv};
-  delete env.WHATSAPP_ACCESS_TOKEN;
+  delete env.EVOLUTION_API_KEY;
   assert.ok(productionConfigReport(env,{strictIntegrations:false}).warnings.some(x=>x.includes('WhatsApp')));
   assert.ok(productionConfigReport(env,{strictIntegrations:true}).errors.some(x=>x.includes('WhatsApp')));
 });
@@ -58,8 +56,8 @@ test('complete production config passes runtime validation',()=>{
   assert.deepEqual(assertRuntimeConfig(strongEnv),{errors:[],warnings:[]});
 });
 
-test('strict preflight requires each of the five Meta variables',()=>{
-  for(const key of Object.keys(strongEnv).filter(key=>key.startsWith('WHATSAPP_'))){
+test('strict preflight requires each Evolution variable',()=>{
+  for(const key of Object.keys(strongEnv).filter(key=>key.startsWith('EVOLUTION_'))){
     const env={...strongEnv,[key]:''};
     assert.ok(productionConfigReport(env,{strictIntegrations:true}).errors.some(x=>x.includes(key)),key);
     assert.ok(productionConfigReport(env).warnings.some(x=>x.includes(key)),key);
@@ -93,8 +91,7 @@ test('production CORS autoriza los dominios oficiales de LA RED además del fron
   assert.ok(origins.includes('https://laredpadel.com.ar'));
 });
 
-test('WhatsApp production config validates Graph version, phone id and template name',()=>{
-  assert.ok(productionConfigReport({...strongEnv,WHATSAPP_GRAPH_VERSION:'26'},{strictIntegrations:true}).errors.some(x=>x.includes('WHATSAPP_GRAPH_VERSION')));
-  assert.ok(productionConfigReport({...strongEnv,WHATSAPP_PHONE_NUMBER_ID:'abc'},{strictIntegrations:true}).errors.some(x=>x.includes('WHATSAPP_PHONE_NUMBER_ID')));
-  assert.ok(productionConfigReport({...strongEnv,WHATSAPP_TEMPLATE_NAME:'La Red!'},{strictIntegrations:true}).errors.some(x=>x.includes('WHATSAPP_TEMPLATE_NAME')));
+test('WhatsApp production config validates Evolution URL and instance name',()=>{
+  assert.ok(productionConfigReport({...strongEnv,EVOLUTION_API_URL:'localhost:8080'},{strictIntegrations:true}).errors.some(x=>x.includes('EVOLUTION_API_URL')));
+  assert.ok(productionConfigReport({...strongEnv,EVOLUTION_INSTANCE_NAME:'la red'},{strictIntegrations:true}).errors.some(x=>x.includes('EVOLUTION_INSTANCE_NAME')));
 });
